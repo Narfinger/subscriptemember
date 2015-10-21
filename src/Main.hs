@@ -1,146 +1,64 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-
-{-
-This is basically very manual test. Check following link for details.
-Google web oauth: https://developers.google.com/accounts/docs/OAuth2WebServer
-Google OAuth 2.0 playround: https://developers.google.com/oauthplayground/
--}
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts,
+  GeneralizedNewtypeDeriving, MultiParamTypeClasses,
+  TemplateHaskell, TypeFamilies, RecordWildCards #-}
 
 module Main where
 
-import           Keys                          (googleKey)
-import           Network.OAuth.OAuth2
+import Control.Applicative  ( (<$>) )
+import Control.Exception    ( bracket )
+import Control.Monad        ( msum )
+import Control.Monad.Reader ( ask )
+import Control.Monad.State  ( get, put )
+import Data.Data            ( Data, Typeable )
+import Data.Acid            ( AcidState, Query, Update
+                            , makeAcidic, openLocalState )
+import Happstack.Server     ( Response, ServerPart, dir
+                            , nullDir, nullConf, ok
+                            , simpleHTTP, toResponse )
+import Data.Acid.Advanced   ( query', update' )
+import Data.Acid.Local      ( createCheckpointAndClose )
+import Data.SafeCopy        ( base, deriveSafeCopy )
+import Network.URI
 
-import           Control.Monad                 (liftM)
-import           Data.Aeson                    (FromJSON)
-import           Data.Aeson.TH                 (defaultOptions, deriveJSON)
-import qualified Data.ByteString.Char8         as BS
-import qualified Data.ByteString.Lazy.Internal as BL
-import           Data.Text                     (Text)
-import           Network.HTTP.Conduit
-import           Prelude                       hiding (id)
-import qualified Prelude                       as P (id)
-import           System.Environment            (getArgs)
+data YoutubeVideo = YoutubeVideo { title :: String
+                                 , url :: String
+                                 } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
---------------------------------------------------
+data VideosState = VideosState [YoutubeVideo]
 
-data Token = Token { issued_to   :: Text
-                   , audience    :: Text
-                   , user_id     :: Maybe Text
-                   , scope       :: Text
-                   , expires_in  :: Integer
-                   -- , email          :: Maybe Text
-                   -- , verified_email :: Maybe Bool
-                   , access_type :: Text
-                   } deriving (Show)
+$(deriveSafeCopy 0 'base ''VideosState)
 
+initialVideoState :: VideosState
+initialVideoState = []
+  
+-- incCountBy :: Integer -> Update CounterState Integer
+-- incCountBy n =
+--     do c@CounterState{..} <- get
+--        let newCount = count + n
+--        put $ c { count = newCount }
+--        return newCount
 
-$(deriveJSON defaultOptions ''Token)
+appendVideos :: YoutubeVideo -> Update VideosState YoutubeVideo
+appendVideos v = do
+  vs <- get
+  put $ v : vs
 
-data User = User { id          :: Text
-                 , name        :: Text
-                 , given_name  :: Text
-                 , family_name :: Text
-                 , link        :: Text
-                 , picture     :: Text
-                 , gender      :: Text
-                 , birthday    :: Text
-                 , locale      :: Text
-                 } deriving (Show)
+getVideos :: Query VideosState VideosState
+getVideos = ask
 
-$(deriveJSON defaultOptions ''User)
+$(makeAcidic ''Videos ['getVideos, 'appendVideos])
 
---------------------------------------------------
+handlers :: AcidState Videos -> ServerPart Response
+handlers acid = msum
+  [
+    do nullDir
+       vs <- query' acid VideosState
+       ok $ toResponse $ show vs
+  ]
 
 main :: IO ()
-main = do
-    xs <- getArgs
-    mgr <- newManager conduitManagerSettings
-    case xs of
-        ["offline"] -> offlineCase mgr
-        _ -> normalCase mgr
-    closeManager mgr
-
-offlineCase :: Manager -> IO ()
-offlineCase mgr = do
-    BS.putStrLn $ authorizationUrl googleKey `appendQueryParam` (googleScopeEmail ++ googleAccessOffline)
-    putStrLn "visit the url and paste code here: "
-    code <- fmap BS.pack getLine
-    (Right token) <- fetchAccessToken mgr googleKey code
-    f token
-    --
-    -- obtain a new access token with refresh token, which turns out only in response at first time.
-    -- Revoke Access https://www.google.com/settings/security
-    --
-    case refreshToken token of
-        Nothing -> putStrLn "Failed to fetch refresh token"
-        Just tk -> do
-            (Right token') <- fetchRefreshToken mgr googleKey tk
-            f token'
-            --validateToken accessToken >>= print
-            --(validateToken' accessToken :: IO (OAuth2Result Token)) >>= print
-    where f token = do
-            print token
-            validateToken mgr token >>= print
-            (validateToken' mgr token :: IO (OAuth2Result Token)) >>= print
-
-normalCase :: Manager -> IO ()
-normalCase mgr = do
-    BS.putStrLn $ authorizationUrl googleKey `appendQueryParam` googleScopeUserInfo
-    putStrLn "visit the url and paste code here: "
-    code <- fmap BS.pack getLine
-    (Right token) <- fetchAccessToken mgr googleKey code
-    putStr "AccessToken: " >> print token
-    -- get response in ByteString
-    validateToken mgr token >>= print
-    -- get response in JSON
-    (validateToken' mgr token :: IO (OAuth2Result Token)) >>= print
-    -- get response in ByteString
-    userinfo mgr token >>= print
-    -- get response in JSON
-    (userinfo' mgr token :: IO (OAuth2Result User)) >>= print
-
---------------------------------------------------
--- Google API
-
--- | This is special for google Gain read-only access to the user's email address.
-googleScopeEmail :: QueryParams
-googleScopeEmail = [("scope", "https://www.googleapis.com/auth/userinfo.email")]
-
--- | Gain read-only access to basic profile information, including a
-googleScopeUserInfo :: QueryParams
-googleScopeUserInfo = [("scope", "https://www.googleapis.com/auth/userinfo.profile")]
-
--- | Access offline
-googleAccessOffline :: QueryParams
-googleAccessOffline = [("access_type", "offline")
-                      ,("approval_prompt", "force")]
-
--- | Token Validation
-validateToken :: Manager
-                 -> AccessToken
-                 -> IO (OAuth2Result BL.ByteString)
-validateToken mgr token =
-   authGetBS' mgr token url
-   where url = "https://www.googleapis.com/oauth2/v1/tokeninfo"
-
-validateToken' :: FromJSON a
-                  => Manager
-                  -> AccessToken
-                  -> IO (OAuth2Result a)
-validateToken' mgr token = liftM parseResponseJSON $ validateToken mgr token
-
--- | fetch user email.
---   for more information, please check the playround site.
---
-userinfo :: Manager
-            -> AccessToken
-            -> IO (OAuth2Result BL.ByteString)
-userinfo mgr token = authGetBS mgr token "https://www.googleapis.com/oauth2/v2/userinfo"
-
-userinfo' :: FromJSON a
-             => Manager
-             -> AccessToken
-             -> IO (OAuth2Result a)
-userinfo' mgr token = authGetJSON mgr token "https://www.googleapis.com/oauth2/v2/userinfo"
+main =
+  bracket (openLocalState initialCounterState)
+          (createCheckpointAndClose)
+           (\acid ->
+               simpleHTTP nullConf (handlers acid))
