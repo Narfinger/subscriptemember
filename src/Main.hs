@@ -60,11 +60,17 @@ bodyTemplate body =
   H.html $ do
     H.head $ do
       H.title "Amarok Control HASKELL"
+      H.link ! A.rel "stylesheet" ! A.href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"
+      H.script ! A.src "https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js" $ ""
+      H.script ! A.src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" $ ""
       H.meta ! A.httpEquiv "refresh"
              ! A.content "60"
       H.link ! A.rel "stylesheet" ! A.type_ "text/css" ! A.href "style.css"
     H.body $ do
-      body
+      H.div ! A.class_ "container" $ do
+        H.div ! A.class_ "row" $ do
+          H.h1 $ "Youtube Subscriptemember"
+          body
 
 videoTemplate :: YoutubeVideo -> H.Html
 videoTemplate v =
@@ -74,7 +80,7 @@ videoTemplate v =
 
 indexPage :: [YoutubeVideo] -> H.Html
 indexPage vs = bodyTemplate $
-               H.table $ do
+               H.table ! A.class_ "table table-striped" $ do
                  mapM_ videoTemplate vs
 
 
