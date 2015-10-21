@@ -24,12 +24,15 @@ data YoutubeVideo = YoutubeVideo { title :: String
                                  , url :: String
                                  } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
-data VideosState = VideosState [YoutubeVideo]
+data ServerState = ServerState { videos :: [YoutubeVideo]
+                               } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
-$(deriveSafeCopy 0 'base ''VideosState)
+$(deriveSafeCopy 0 'base ''YoutubeVideo)
+$(deriveSafeCopy 0 'base ''ServerState)
 
-initialVideoState :: VideosState
-initialVideoState = []
+initialServerState :: ServerState
+initialServerState = ServerState { videos = []
+                                 }
   
 -- incCountBy :: Integer -> Update CounterState Integer
 -- incCountBy n =
@@ -38,27 +41,33 @@ initialVideoState = []
 --        put $ c { count = newCount }
 --        return newCount
 
-appendVideos :: YoutubeVideo -> Update VideosState YoutubeVideo
+appendVideos :: YoutubeVideo -> Update ServerState [YoutubeVideo]
 appendVideos v = do
-  vs <- get
-  put $ v : vs
+  vs@ServerState{..} <- get
+  let nvs = v : videos
+  put $ vs { videos =  nvs }
+  return nvs
+  
+getVideos :: Query ServerState [YoutubeVideo]
+getVideos = videos <$> ask
+                
 
-getVideos :: Query VideosState VideosState
-getVideos = ask
+-- getVideos :: Query VideosState VideosState
+-- getVideos = ask
 
-$(makeAcidic ''Videos ['getVideos, 'appendVideos])
+$(makeAcidic ''ServerState ['appendVideos, 'getVideos])
 
-handlers :: AcidState Videos -> ServerPart Response
+handlers :: AcidState ServerState -> ServerPart Response
 handlers acid = msum
   [
     do nullDir
-       vs <- query' acid VideosState
+       vs <- query' acid GetVideos
        ok $ toResponse $ show vs
   ]
 
 main :: IO ()
 main =
-  bracket (openLocalState initialCounterState)
+  bracket (openLocalState initialServerState)
           (createCheckpointAndClose)
            (\acid ->
                simpleHTTP nullConf (handlers acid))
