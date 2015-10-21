@@ -1,9 +1,12 @@
 {-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts,
   GeneralizedNewtypeDeriving, MultiParamTypeClasses,
-  TemplateHaskell, TypeFamilies, RecordWildCards #-}
+  TemplateHaskell, TypeFamilies, RecordWildCards, OverloadedStrings #-}
 
 module Main where
 
+import Text.Blaze ((!))
+import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as A
 import Control.Applicative  ( (<$>) )
 import Control.Exception    ( bracket )
 import Control.Monad        ( msum )
@@ -39,14 +42,6 @@ tmpdata = [ YoutubeVideo "test1" "http://test"
 initialServerState :: ServerState
 initialServerState = ServerState { videos = tmpdata
                                  }
-  
--- incCountBy :: Integer -> Update CounterState Integer
--- incCountBy n =
---     do c@CounterState{..} <- get
---        let newCount = count + n
---        put $ c { count = newCount }
---        return newCount
-
 appendVideos :: YoutubeVideo -> Update ServerState [YoutubeVideo]
 appendVideos v = do
   vs@ServerState{..} <- get
@@ -56,21 +51,44 @@ appendVideos v = do
   
 getVideos :: Query ServerState [YoutubeVideo]
 getVideos = videos <$> ask
-                
-
--- getVideos :: Query VideosState VideosState
--- getVideos = ask
 
 $(makeAcidic ''ServerState ['appendVideos, 'getVideos])
+
+
+bodyTemplate :: H.Html ->H.Html
+bodyTemplate body =
+  H.html $ do
+    H.head $ do
+      H.title "Amarok Control HASKELL"
+      H.meta ! A.httpEquiv "refresh"
+             ! A.content "60"
+      H.link ! A.rel "stylesheet" ! A.type_ "text/css" ! A.href "style.css"
+    H.body $ do
+      body
+
+videoTemplate :: YoutubeVideo -> H.Html
+videoTemplate v =
+  H.tr $ do
+    H.td $ do H.toHtml $ title v
+    H.td $ do H.toHtml $ url v
+
+indexPage :: [YoutubeVideo] -> H.Html
+indexPage vs = bodyTemplate $
+               H.table $ do
+                 mapM_ videoTemplate vs
+
 
 handlers :: AcidState ServerState -> ServerPart Response
 handlers acid = msum
   [
     do nullDir
        vs <- query' acid GetVideos
-       ok $ toResponse $ show vs
+       ok $ toResponse $ indexPage vs
   ]
 
+
+
+ 
 main :: IO ()
 main =
   bracket (openLocalState initialServerState)
