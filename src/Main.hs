@@ -30,8 +30,14 @@ data ServerState = ServerState { videos :: [YoutubeVideo]
 $(deriveSafeCopy 0 'base ''YoutubeVideo)
 $(deriveSafeCopy 0 'base ''ServerState)
 
+tmpdata :: [YoutubeVideo]
+tmpdata = [ YoutubeVideo "test1" "http://test"
+          , YoutubeVideo "test2" "http://tes2"
+          , YoutubeVideo "test3" "http://tes3"
+          ]
+  
 initialServerState :: ServerState
-initialServerState = ServerState { videos = []
+initialServerState = ServerState { videos = tmpdata
                                  }
   
 -- incCountBy :: Integer -> Update CounterState Integer
