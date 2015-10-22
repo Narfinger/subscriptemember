@@ -10,26 +10,27 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import Control.Applicative  ( (<$>) )
 import Control.Exception    ( bracket )
-import Control.Monad        ( msum )
+import Control.Monad        ( msum, when )
 import Control.Monad.Reader ( ask )
 import Control.Monad.State  ( get, put )
 import Data.Data            ( Data, Typeable )
 import Data.Acid            ( AcidState, Query, Update
                             , makeAcidic, openLocalState )
-import Happstack.Server     ( Response, ServerPart, dir
-                            , nullDir, nullConf, ok
-                            , simpleHTTP, toResponse )
-import Data.Acid.Advanced   ( query', update' )
-import Data.Acid.Local      ( createCheckpointAndClose )
-import Data.SafeCopy        ( base, deriveSafeCopy )
-import Network.URI
-import Data.Text                     (Text)
-import qualified Network.HTTP.Conduit as C
+import Data.Maybe
 import Data.Aeson                    (FromJSON)
 import Data.Aeson.TH                 (defaultOptions, deriveJSON)
 import           Keys                          (googleKey)
 import           Network.OAuth.OAuth2
 import qualified Data.ByteString.Char8         as BS
+import Data.Text                     (Text)
+import Data.Acid.Advanced   ( query', update' )
+import Data.Acid.Local      ( createCheckpointAndClose )
+import Data.SafeCopy        ( base, deriveSafeCopy )
+import Happstack.Server     ( Response, ServerPart, dir
+                            , nullDir, nullConf, ok
+                            , simpleHTTP, toResponse )
+import Network.URI
+import qualified Network.HTTP.Conduit as C
 
 
 data YoutubeVideo = YoutubeVideo { title :: String
@@ -92,7 +93,7 @@ appendVideos v = do
 getVideos :: Query ServerState [YoutubeVideo]
 getVideos = videos <$> ask
 
-getAccessToken :: Query ServerState (Just AccessToken)
+getAccessToken :: Query ServerState (Maybe AccessToken)
 getAccessToken = token <$> ask
 
 writeAccessToken :: AccessToken -> Update ServerState AccessToken
@@ -141,23 +142,30 @@ handlers acid = msum
     do nullDir
        vs <- query' acid GetVideos
        tk <- query' acid GetAccessToken
-       ok $ toResponse $ indexPage vs tk
+       let jtk = fromJust tk
+       ok $ toResponse $ indexPage vs jtk
   ]
- 
-main :: IO ()
-main = do
-  -- this whole thing needs to be done only if no state was found
+
+saveNewToken :: AcidState ServerState -> IO ()
+saveNewToken acid = do
   mgr <- C.newManager C.conduitManagerSettings
   token <- getToken mgr
   C.closeManager mgr
-  bracket (openLocalState (initialServerState token))
+  update' acid (WriteAccessToken token)
+  return ()
+    
+newAccessTokenOrNothing :: AcidState ServerState -> IO ()
+newAccessTokenOrNothing acid = do
+  tk <- query' acid GetAccessToken
+  let newToken = isNothing tk
+  when newToken (saveNewToken acid)
+  return ()
+    
+    
+main :: IO ()
+main = do
+  bracket (openLocalState initialServerState)
           (createCheckpointAndClose)
          (\acid -> do 
-              tk <- query' acid GetAccessToken
-              when (isNothing tk) do {
-                mgr <- C.newManager C.conduitManagerSettings;
-                token <- getToken mgr;
-                C.closeManager mgr;
-                update' acid (WriteAccessToken token)
-                }
+              newAccessTokenOrNothing acid;
               simpleHTTP nullConf (handlers acid))
