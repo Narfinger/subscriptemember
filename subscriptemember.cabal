@@ -17,7 +17,7 @@ cabal-version:       >=1.10
 
 executable subscriptemember
   main-is:             Main.hs
-  other-modules:       Keys
+  other-modules:       Keys, GoogleHandler
   -- other-extensions:    
   build-depends:       base >= 4.8 && <4.9
                      , hoauth2 >= 0.4.8
@@ -32,5 +32,6 @@ executable subscriptemember
                      , blaze-html >= 0.8.1.1
                      , happstack-server >= 7.4.5
                      , network-uri >= 2.6.0.3
+                     , blaze-markup >= 0.7.0.3
   hs-source-dirs:      src
   default-language:    Haskell2010
