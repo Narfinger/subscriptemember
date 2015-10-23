@@ -17,6 +17,7 @@ import           Happstack.Server     ( Response, ServerPart, dir
                             , nullDir, nullConf, ok
                             , simpleHTTP, toResponse )
 import           GoogleHandler
+import           YoutubeApi
 import           Network.OAuth.OAuth2
 
 

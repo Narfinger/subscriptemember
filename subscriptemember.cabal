@@ -17,7 +17,7 @@ cabal-version:       >=1.10
 
 executable subscriptemember
   main-is:             Main.hs
-  other-modules:       Keys, GoogleHandler
+  other-modules:       Keys, GoogleHandler, YoutubeApi
   -- other-extensions:    
   build-depends:       base >= 4.8 && <4.9
                      , hoauth2 >= 0.4.8

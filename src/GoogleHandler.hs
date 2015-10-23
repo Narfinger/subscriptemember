@@ -29,6 +29,12 @@ import           Network.OAuth.OAuth2
 googleScopeUserInfo :: QueryParams
 googleScopeUserInfo = [("scope", "https://www.googleapis.com/auth/userinfo.profile")]
 
+googleScopeYoutube :: QueryParams
+googleScopeYoutube = [("scope", "https://www.googleapis.com/auth/youtube")]
+
+oauthScope :: QueryParams
+oauthScope = [("scope", "https://www.googleapis.com/auth/youtube")]
+
 deriving instance Eq AccessToken
 deriving instance Ord AccessToken
 deriving instance Read AccessToken
@@ -48,7 +54,7 @@ $(deriveSafeCopy 0 'base ''YoutubeVideo)
 
 getToken :: C.Manager -> IO AccessToken
 getToken mgr = do
-    BS.putStrLn $ authorizationUrl googleKey `appendQueryParam` googleScopeUserInfo
+    BS.putStrLn $ authorizationUrl googleKey `appendQueryParam` oauthScope
     putStrLn "visit the url and paste code here: "
     code <- fmap BS.pack getLine
     (Right token) <- fetchAccessToken mgr googleKey code
