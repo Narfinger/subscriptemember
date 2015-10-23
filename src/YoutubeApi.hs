@@ -25,10 +25,34 @@ import           Network.OAuth.OAuth2
 
 baseurl = "https://www.googleapis.com/youtube/v3"
 
+data PageInfo = PageInfo { totalResults :: Int
+                         , resultsPerPage :: Int
+                         } deriving (Show)
+
+data YoutubeResponse a = YoutubeResponse { --kind :: Text
+--                                         , etag :: Text
+                                         nextPageToken :: Maybe Text
+                                         , pageInfo :: PageInfo
+                                         , items :: YoutubeItems a
+                                         } deriving (Show)
+                                                    
+data YoutubeItems a = YoutubeItems { kind :: Text
+--                                         , etag :: Text
+                                         , id :: Text
+                                         , snippet :: a
+                                         } deriving (Show)
+
+data YoutubeSubscription = YoutubeSubscription { publishedAt :: Text
+                                               , title :: Text
+                                               , description :: Text
+                                               , channelId :: Text
+                                                              -- i ignored resourceId and thumbnails
+                                               } deriving (Show)
+
   -- returns my subscriptions
-getSubscriptionsForMe :: FromJSON a=> C.Manager -> AccessToken -> Channel -> IO (OAuth2Result a)
-getSubscriptionsForMe mgr token channel =
-  let url = baseurl ++ "/subscriptions?&maxResults=50&part=snippet&mine=True" ++  channel in
+getSubscriptionsForMe :: FromJSON a=> C.Manager -> AccessToken -> IO (OAuth2Result a)
+getSubscriptionsForMe mgr token =
+  let url = baseurl ++ "/subscriptions?&maxResults=50&part=snippet&mine=True" in
   authGetJSON mgr token url
 
 getUploadPlaylistForChannel :: FromJSON a=> C.Manager -> AccessToken -> [Channel] -> IO (OAuth2Result a)
