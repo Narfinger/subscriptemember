@@ -1,15 +1,19 @@
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts,
+  GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell,
+  TypeFamilies, RecordWildCards, StandaloneDeriving, OverloadedStrings #-}
+
 module YoutubeApi where
 
-import GoogleHandler
+--import GoogleHandler
 import           Control.Applicative  ( (<$>) )
 import           Control.Monad        ( msum, when )
 import           Control.Monad.Reader ( ask )
 import           Control.Monad.State  ( get, put )
 import           Control.Monad.Trans
-import           Data.Aeson                    (FromJSON)
+import           Data.Aeson                    (FromJSON, eitherDecode, decode)
 import           Data.Aeson.TH                 (defaultOptions, deriveJSON)
-import qualified Data.ByteString.Char8         as BS
-import qualified Data.ByteString.Lazy.Internal as BL
+import qualified Data.ByteString                   as B
+import qualified Data.ByteString.Lazy              as BL
 import           Data.Data            ( Data, Typeable )
 import           Data.Acid            ( AcidState, Query, Update
                             , makeAcidic, openLocalState )
@@ -23,24 +27,25 @@ import           Keys                          (googleKey)
 import           Network.OAuth.OAuth2
 
 
+baseurl :: B.ByteString
 baseurl = "https://www.googleapis.com/youtube/v3"
 
 data PageInfo = PageInfo { totalResults :: Int
                          , resultsPerPage :: Int
                          } deriving (Show)
 
-data YoutubeResponse a = YoutubeResponse { --kind :: Text
---                                         , etag :: Text
-                                         nextPageToken :: Maybe Text
+data YoutubeResponse a = YoutubeResponse { kind :: Text
+                                         , etag :: Text
+                                         , nextPageToken :: Maybe Text
                                          , pageInfo :: PageInfo
-                                         , items :: YoutubeItems a
+                                         , items :: [YoutubeItems a]
                                          } deriving (Show)
                                                     
-data YoutubeItems a = YoutubeItems { kind :: Text
---                                         , etag :: Text
-                                         , id :: Text
-                                         , snippet :: a
-                                         } deriving (Show)
+data YoutubeItems a = YoutubeItems { --kkind :: Text
+                                   -- , eetag :: Text
+                                   id :: Text
+                                   , snippet :: a
+                                   } deriving (Show)
 
 data YoutubeSubscription = YoutubeSubscription { publishedAt :: Text
                                                , title :: Text
@@ -49,23 +54,35 @@ data YoutubeSubscription = YoutubeSubscription { publishedAt :: Text
                                                               -- i ignored resourceId and thumbnails
                                                } deriving (Show)
 
-  -- returns my subscriptions
-getSubscriptionsForMe :: FromJSON a=> C.Manager -> AccessToken -> IO (OAuth2Result a)
+$(deriveJSON defaultOptions ''PageInfo)
+$(deriveJSON defaultOptions ''YoutubeResponse)
+$(deriveJSON defaultOptions ''YoutubeItems)
+$(deriveJSON defaultOptions ''YoutubeSubscription)
+
+constructQuery :: B.ByteString -> B.ByteString
+constructQuery = B.append baseurl
+
+decodeResponse (Left _) = Nothing
+decodeResponse (Right e) = decode e
+
+          -- returns my subscriptions
+getSubscriptionsForMe :: FromJSON (YoutubeResponse YoutubeSubscription) =>
+                         C.Manager -> AccessToken -> IO (Maybe (YoutubeResponse YoutubeSubscription))
 getSubscriptionsForMe mgr token =
-  let url = baseurl ++ "/subscriptions?&maxResults=50&part=snippet&mine=True" in
-  authGetJSON mgr token url
+  let url = constructQuery "/subscriptions?&maxResults=50&part=snippet&mine=True" in
+  let flift = fmap (decodeResponse :: Either BL.ByteString BL.ByteString -> Maybe (YoutubeResponse YoutubeSubscription)) in
+  flift (authGetJSON mgr token url)
+  
 
-getUploadPlaylistForChannel :: FromJSON a=> C.Manager -> AccessToken -> [Channel] -> IO (OAuth2Result a)
-getUploadPlaylistForChannel mgr token channel =
-    let url = baseurl ++ "channels?part=contentDetails&maxResults=50&fields=items%2FcontentDetailsid=" ++ channel in
-    authGetJSON mgr token url
+-- getUploadPlaylistForChannel :: FromJSON a=> C.Manager -> AccessToken -> [Channel] -> IO (OAuth2Result a)
+-- getUploadPlaylistForChannel mgr token channel =
+--     let url = baseurl ++ "channels?part=contentDetails&maxResults=50&fields=items%2FcontentDetailsid=" ++ channel in
+--     authGetJSON mgr token url
 
-
-
-getPlaylistItemsFromPlaylist :: FromJSON a => C.Manager -> AccessToken -> Playlist -> IO (OAuth2Result a)
-getPlaylistItemsFromPlaylist mgr token playlist =
-  let url = "/playlistItems?part=snippet&playlistId=" ++ playlist in
-  authGetJSON mgr token url
+-- getPlaylistItemsFromPlaylist :: FromJSON a => C.Manager -> AccessToken -> Playlist -> IO (OAuth2Result a)
+-- getPlaylistItemsFromPlaylist mgr token playlist =
+--   let url = "/playlistItems?part=snippet&playlistId=" ++ playlist in
+--   authGetJSON mgr token url
 
   -- update ids = getUploadPlaylistChannel(getSubscriptionsForMe) and save this
   -- check new videos for check all getPlaylistItemsFromPlaylist but this should be batchable
