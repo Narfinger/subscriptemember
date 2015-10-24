@@ -47,20 +47,30 @@ data YoutubeItems a = YoutubeItems { id :: Text
                                    , contentDetails :: Maybe a
                                    } deriving (Show)
 
+-- Youtube gives two channel ids, one which is mine and the correct one in resourceId
 data YoutubeSubscription = YoutubeSubscription { publishedAt :: Text
                                                , title :: Text
                                                , description :: Text
-                                               , channelId :: Text
-                                                              -- i ignored resourceId and thumbnails
+                                               , resourceId :: YoutubeResource 
                                                } deriving (Show)
+
+data YoutubeResource = YoutubeResource { -- kind :: Text
+                                       channelId :: Text
+                                       } deriving (Show)
 
 data YoutubePlaylist = YoutubePlaylist { uploads :: Text
                                        } deriving (Show)
+
+data YoutubeVideo = YoutubeVideo { publishedAt :: Text
+                                 , title :: Text
+                                 , description :: Text
+                                 } deriving (Show)
 
 $(deriveJSON defaultOptions ''PageInfo)
 $(deriveJSON defaultOptions ''YoutubeResponse)
 $(deriveJSON defaultOptions ''YoutubeItems)
 $(deriveJSON defaultOptions ''YoutubeSubscription)
+$(deriveJSON defaultOptions ''YoutubeResource)
 $(deriveJSON defaultOptions ''YoutubePlaylist)
 
 constructQuery :: B.ByteString -> B.ByteString
@@ -87,10 +97,11 @@ getUploadPlaylistForChannel mgr token channels =
   let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items%2FcontentDetailsid=" channelids in
   fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse (YoutubePlaylist))))
 
--- getPlaylistItemsFromPlaylist :: FromJSON a => C.Manager -> AccessToken -> Playlist -> IO (OAuth2Result a)
--- getPlaylistItemsFromPlaylist mgr token playlist =
---   let url = "/playlistItems?part=snippet&playlistId=" ++ playlist in
---   authGetJSON mgr token url
+
+getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> YoutubePlaylist -> IO (Maybe (YoutubeResponse (YoutubeVideo)))
+getPlaylistItemsFromPlaylist mgr token playlist =
+   let url = "/playlistItems?part=snippet&playlistId=" ++ playlist in
+   authGetJSON mgr token url
 
   -- update ids = getUploadPlaylistChannel(getSubscriptionsForMe) and save this
   -- check new videos for check all getPlaylistItemsFromPlaylist but this should be batchable
