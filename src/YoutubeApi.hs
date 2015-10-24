@@ -2,7 +2,12 @@
   GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell,
   TypeFamilies, RecordWildCards, StandaloneDeriving, OverloadedStrings #-}
 
-module YoutubeApi where
+module YoutubeApi ( updateSubscriptions
+                  , updateVideos
+                  , Video(..)      -- these are the general types we use for saving
+                  , Subscription(..) -- same for subscriptions
+                  )
+  where
 
 --import GoogleHandler
 import           Control.Applicative  ( (<$>) )
@@ -11,7 +16,7 @@ import           Control.Monad.Reader ( ask )
 import           Control.Monad.State  ( get, put )
 import           Control.Monad.Trans
 import           Data.Aeson                    (FromJSON)
-import           Data.Aeson.TH                 (defaultOptions, deriveJSON)
+import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier)
 import qualified Data.ByteString                   as B
 import qualified Data.ByteString.Char8             as BC
 import qualified Data.ByteString.Lazy              as BL
@@ -35,9 +40,9 @@ data PageInfo = PageInfo { totalResults :: Int
                          , resultsPerPage :: Int
                          } deriving (Show)
 
-data YoutubeResponse a = YoutubeResponse { kind :: Text
-                                         , etag :: Text
-                                         , nextPageToken :: Maybe Text
+data YoutubeResponse a = YoutubeResponse { --kind :: Text
+                                         --, etag :: Text
+                                         nextPageToken :: Maybe Text
                                          , pageInfo :: PageInfo
                                          , items :: [YoutubeItems a]
                                          } deriving (Show)
@@ -48,8 +53,8 @@ data YoutubeItems a = YoutubeItems { id :: Text
                                    } deriving (Show)
 
 -- Youtube gives two channel ids, one which is mine and the correct one in resourceId
-data YoutubeSubscription = YoutubeSubscription { publishedAt :: Text
-                                               , title :: Text
+data YoutubeSubscription = YoutubeSubscription { -- publishedAt :: Text
+                                               subtitle :: Text
                                                , description :: Text
                                                , resourceId :: YoutubeResource 
                                                } deriving (Show)
@@ -63,15 +68,19 @@ data YoutubePlaylist = YoutubePlaylist { uploads :: Text
 
 data YoutubeVideo = YoutubeVideo { publishedAt :: Text
                                  , title :: Text
-                                 , description :: Text
+                                 -- , description :: Text
                                  } deriving (Show)
 
 $(deriveJSON defaultOptions ''PageInfo)
 $(deriveJSON defaultOptions ''YoutubeResponse)
 $(deriveJSON defaultOptions ''YoutubeItems)
-$(deriveJSON defaultOptions ''YoutubeSubscription)
+$(deriveJSON defaultOptions{fieldLabelModifier = \x -> if x == "subtitle" then "title" else x} ''YoutubeSubscription)
 $(deriveJSON defaultOptions ''YoutubeResource)
 $(deriveJSON defaultOptions ''YoutubePlaylist)
+$(deriveJSON defaultOptions ''YoutubeVideo)
+
+textToByteString :: Text -> BC.ByteString
+textToByteString = BC.pack . unpack
 
 constructQuery :: B.ByteString -> B.ByteString
 constructQuery = B.append baseurl
@@ -93,15 +102,51 @@ getSubscriptionsForMe mgr token =
 
 getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [YoutubeSubscription] -> IO (Maybe (YoutubeResponse (YoutubePlaylist)))
 getUploadPlaylistForChannel mgr token channels =
-  let channelids = map (\x -> BC.pack $ unpack $ channelId x) channels in 
+  let channelids = map (\x -> textToByteString $ channelId $ resourceId x) channels in 
   let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items%2FcontentDetailsid=" channelids in
   fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse (YoutubePlaylist))))
 
 
 getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> YoutubePlaylist -> IO (Maybe (YoutubeResponse (YoutubeVideo)))
 getPlaylistItemsFromPlaylist mgr token playlist =
-   let url = "/playlistItems?part=snippet&playlistId=" ++ playlist in
-   authGetJSON mgr token url
+  let askvalue = textToByteString $ uploads playlist in
+  let url = constructQuery (BC.append "/playlistItems?part=snippet&playlistId="  askvalue) in
+  fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse YoutubeVideo)))
 
   -- update ids = getUploadPlaylistChannel(getSubscriptionsForMe) and save this
   -- check new videos for check all getPlaylistItemsFromPlaylist but this should be batchable
+
+
+
+data Subscription = Subscription { sid :: Text
+                                 , channelname :: Text
+                                 } deriving (Eq, Ord, Read, Show, Data, Typeable)
+
+data Video = Video { vid :: Text
+                   , videotitle :: Text
+                   } deriving (Eq, Ord, Read, Show, Data, Typeable)
+
+$(deriveSafeCopy 0 'base ''Subscription)
+$(deriveSafeCopy 0 'base ''Video)
+
+
+constructSubscriptionMaybe x =
+  let s = snippet x in
+  case s of
+  Nothing -> Nothing
+  Just x -> let r = channelId $ resourceId x in
+    let t = subtitle x in
+    Just Subscription {sid = r, channelname = t}
+
+collapseMaybeList :: Maybe [Maybe a] -> Maybe [a]
+collapseMaybeList Nothing = Nothing
+collapseMaybeList (Just x) = catMaybes x  
+
+extractSubscriptions Nothing = Nothing
+extractSubscriptions (Just x) = collapseMaybeList $ map constructSubscriptionMaybe (items x)
+
+updateSubscriptions :: C.Manager -> AccessToken -> IO (Maybe [Subscription])
+updateSubscriptions m tk = (fmap extractSubscriptions) (getSubscriptionsForMe m tk)
+
+updateVideos :: [Video]
+updateVideos = []
