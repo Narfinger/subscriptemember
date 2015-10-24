@@ -72,24 +72,30 @@ subPage s = bodyTemplate $
             H.table ! A.class_ "table table-striped" $ do
               H.tr $ do
                 mapM_ subtotr s
+subsHandler :: Response m => C.Manager -> AccessToken -> IO (m Response)
+subsHandler mgr tk = do
+  subs <- updateSubscriptions mgr tk;
+  return (ok $ toResponse $ subPage subs)
 
---handlers :: AcidState ServerState -> ServerPart Response
-handlers acid = do
-  mgr <- C.newManager C.conduitManagerSettings
+indexHandler:: (Monad m, Response m1) => AccessToken -> [YoutubeVideo] -> m (m1 Response)
+indexHandler tk vs = do
+  return (ok $ toResponse $ indexPage vs tk)
+
+--handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
+handlers acid mgr = do
   vs <- acidGetVideos acid
   tk <- acidGetAccessToken acid
   let jtk = fromJust tk
-  msum [ dir "subs" $ do
-             subs <- updateSubscriptions mgr jtk
-             ok $ toResponse $ subPage subs
-       ,     
-         ok $ toResponse $ indexPage vs jtk
+  msum [ dir "subs" $ subsHandler mgr jtk
+       , indexHandler jtk vs
        ]  
     
 main :: IO ()
 main = do
+  mgr <- C.newManager C.conduitManagerSettings
   bracket (openLocalState initialServerState)
           (createCheckpointAndClose)
          (\acid -> do 
               newAccessTokenOrNothing acid;
-              simpleHTTP nullConf (handlers acid))
+                simpleHTTP nullConf (handlers acid mgr)            
+         )
