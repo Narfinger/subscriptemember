@@ -10,7 +10,7 @@ import           Control.Monad        ( msum, when )
 import           Control.Monad.Reader ( ask )
 import           Control.Monad.State  ( get, put )
 import           Control.Monad.Trans
-import           Data.Aeson                    (FromJSON, eitherDecode, decode)
+import           Data.Aeson                    (FromJSON)
 import           Data.Aeson.TH                 (defaultOptions, deriveJSON)
 import qualified Data.ByteString                   as B
 import qualified Data.ByteString.Lazy              as BL
@@ -62,16 +62,18 @@ $(deriveJSON defaultOptions ''YoutubeSubscription)
 constructQuery :: B.ByteString -> B.ByteString
 constructQuery = B.append baseurl
 
-decodeResponse (Left _) = Nothing
-decodeResponse (Right e) = decode e
+
+decode :: FromJSON a => Either BL.ByteString a -> Maybe a
+decode (Left _) = Nothing
+decode (Right x) = Just x
 
           -- returns my subscriptions
 getSubscriptionsForMe :: FromJSON (YoutubeResponse YoutubeSubscription) =>
                          C.Manager -> AccessToken -> IO (Maybe (YoutubeResponse YoutubeSubscription))
 getSubscriptionsForMe mgr token =
   let url = constructQuery "/subscriptions?&maxResults=50&part=snippet&mine=True" in
-  let flift = fmap (decodeResponse :: Either BL.ByteString BL.ByteString -> Maybe (YoutubeResponse YoutubeSubscription)) in
-  flift (authGetJSON mgr token url)
+--  let flift = fmap (decodeResponse :: Either BL.ByteString BL.ByteString -> Maybe (YoutubeResponse YoutubeSubscription)) in
+  fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))
   
 
 -- getUploadPlaylistForChannel :: FromJSON a=> C.Manager -> AccessToken -> [Channel] -> IO (OAuth2Result a)
