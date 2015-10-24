@@ -19,7 +19,7 @@ import           Happstack.Server     ( Response, ServerPart, dir
 import           GoogleHandler
 import           YoutubeApi
 import           Network.OAuth.OAuth2
-
+import qualified Network.HTTP.Conduit as C
 
 tmpdata :: [YoutubeVideo]
 tmpdata = [ YoutubeVideo "test1" "http://test"
@@ -62,16 +62,29 @@ indexPage vs tk = bodyTemplate $
                       H.td $ do H.toHtml $ show tk
                     mapM_ videoTemplate vs
 
+subtotr :: Subscription -> H.Html
+subtotr s =  H.tr $ do
+  H.td $ do H.toHtml $ show $ sid s
+  H.td $ do H.toHtml $ show $ channelname s
 
-handlers :: AcidState ServerState -> ServerPart Response
-handlers acid = msum
-  [
-    do nullDir
-       vs <- acidGetVideos acid
-       tk <- acidGetAccessToken acid
-       let jtk = fromJust tk
-       ok $ toResponse $ indexPage vs jtk
-  ]  
+subPage :: [Subscription] -> H.Html
+subPage s = bodyTemplate $
+            H.table ! A.class_ "table table-striped" $ do
+              H.tr $ do
+                mapM_ subtotr s
+
+--handlers :: AcidState ServerState -> ServerPart Response
+handlers acid = do
+  mgr <- C.newManager C.conduitManagerSettings
+  vs <- acidGetVideos acid
+  tk <- acidGetAccessToken acid
+  let jtk = fromJust tk
+  msum [ dir "subs" $ do
+             subs <- updateSubscriptions mgr jtk
+             ok $ toResponse $ subPage subs
+       ,     
+         ok $ toResponse $ indexPage vs jtk
+       ]  
     
 main :: IO ()
 main = do
