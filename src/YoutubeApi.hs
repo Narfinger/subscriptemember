@@ -13,6 +13,7 @@ import           Control.Monad.Trans
 import           Data.Aeson                    (FromJSON)
 import           Data.Aeson.TH                 (defaultOptions, deriveJSON)
 import qualified Data.ByteString                   as B
+import qualified Data.ByteString.Char8             as BC
 import qualified Data.ByteString.Lazy              as BL
 import           Data.Data            ( Data, Typeable )
 import           Data.Acid            ( AcidState, Query, Update
@@ -21,7 +22,7 @@ import           Data.Acid.Local      ( createCheckpointAndClose )
 import           Data.Maybe
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.SafeCopy        ( base, deriveSafeCopy )
-import           Data.Text                     (Text)
+import           Data.Text                     (Text, unpack)
 import qualified Network.HTTP.Conduit as C
 import           Keys                          (googleKey)
 import           Network.OAuth.OAuth2
@@ -41,10 +42,9 @@ data YoutubeResponse a = YoutubeResponse { kind :: Text
                                          , items :: [YoutubeItems a]
                                          } deriving (Show)
                                                     
-data YoutubeItems a = YoutubeItems { --kkind :: Text
-                                   -- , eetag :: Text
-                                   id :: Text
-                                   , snippet :: a
+data YoutubeItems a = YoutubeItems { id :: Text
+                                   , snippet :: Maybe a
+                                   , contentDetails :: Maybe a
                                    } deriving (Show)
 
 data YoutubeSubscription = YoutubeSubscription { publishedAt :: Text
@@ -54,32 +54,38 @@ data YoutubeSubscription = YoutubeSubscription { publishedAt :: Text
                                                               -- i ignored resourceId and thumbnails
                                                } deriving (Show)
 
+data YoutubePlaylist = YoutubePlaylist { uploads :: Text
+                                       } deriving (Show)
+
 $(deriveJSON defaultOptions ''PageInfo)
 $(deriveJSON defaultOptions ''YoutubeResponse)
 $(deriveJSON defaultOptions ''YoutubeItems)
 $(deriveJSON defaultOptions ''YoutubeSubscription)
+$(deriveJSON defaultOptions ''YoutubePlaylist)
 
 constructQuery :: B.ByteString -> B.ByteString
 constructQuery = B.append baseurl
 
+constructMultipleQuery :: B.ByteString -> [B.ByteString] -> B.ByteString
+constructMultipleQuery b list = B.append b $ B.intercalate "," list
 
 decode :: FromJSON a => Either BL.ByteString a -> Maybe a
 decode (Left _) = Nothing
 decode (Right x) = Just x
 
-          -- returns my subscriptions
-getSubscriptionsForMe :: FromJSON (YoutubeResponse YoutubeSubscription) =>
-                         C.Manager -> AccessToken -> IO (Maybe (YoutubeResponse YoutubeSubscription))
+-- returns my subscriptions
+getSubscriptionsForMe :: C.Manager -> AccessToken -> IO (Maybe (YoutubeResponse YoutubeSubscription))
 getSubscriptionsForMe mgr token =
   let url = constructQuery "/subscriptions?&maxResults=50&part=snippet&mine=True" in
 --  let flift = fmap (decodeResponse :: Either BL.ByteString BL.ByteString -> Maybe (YoutubeResponse YoutubeSubscription)) in
   fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))
   
 
--- getUploadPlaylistForChannel :: FromJSON a=> C.Manager -> AccessToken -> [Channel] -> IO (OAuth2Result a)
--- getUploadPlaylistForChannel mgr token channel =
---     let url = baseurl ++ "channels?part=contentDetails&maxResults=50&fields=items%2FcontentDetailsid=" ++ channel in
---     authGetJSON mgr token url
+getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [YoutubeSubscription] -> IO (Maybe (YoutubeResponse (YoutubePlaylist)))
+getUploadPlaylistForChannel mgr token channels =
+  let channelids = map (\x -> BC.pack $ unpack $ channelId x) channels in 
+  let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items%2FcontentDetailsid=" channelids in
+  fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse (YoutubePlaylist))))
 
 -- getPlaylistItemsFromPlaylist :: FromJSON a => C.Manager -> AccessToken -> Playlist -> IO (OAuth2Result a)
 -- getPlaylistItemsFromPlaylist mgr token playlist =
