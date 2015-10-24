@@ -130,22 +130,24 @@ $(deriveSafeCopy 0 'base ''Subscription)
 $(deriveSafeCopy 0 'base ''Video)
 
 
+constructSubscriptionMaybe :: YoutubeItems YoutubeSubscription -> Maybe Subscription
 constructSubscriptionMaybe x =
   let s = snippet x in
   case s of
   Nothing -> Nothing
   Just x -> let r = channelId $ resourceId x in
     let t = subtitle x in
-    Just Subscription {sid = r, channelname = t}
+    Just (Subscription {sid = r, channelname = t})
 
-collapseMaybeList :: Maybe [Maybe a] -> Maybe [a]
-collapseMaybeList Nothing = Nothing
+collapseMaybeList :: Maybe [Maybe a] -> [a]
+collapseMaybeList Nothing = []
 collapseMaybeList (Just x) = catMaybes x  
 
-extractSubscriptions Nothing = Nothing
-extractSubscriptions (Just x) = collapseMaybeList $ map constructSubscriptionMaybe (items x)
+extractSubscriptions :: Maybe (YoutubeResponse YoutubeSubscription) -> [Subscription] 
+extractSubscriptions Nothing = []
+extractSubscriptions (Just x) = catMaybes $ map constructSubscriptionMaybe (items x)
 
-updateSubscriptions :: C.Manager -> AccessToken -> IO (Maybe [Subscription])
+updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
 updateSubscriptions m tk = (fmap extractSubscriptions) (getSubscriptionsForMe m tk)
 
 updateVideos :: [Video]
