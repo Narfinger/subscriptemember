@@ -7,13 +7,14 @@ module Main where
 
 import           Control.Exception ( bracket )
 import           Control.Monad        ( msum )
+import           Control.Monad.Trans ( lift, liftIO )
 import           Data.Acid  ( AcidState, makeAcidic, openLocalState )
 import           Data.Acid.Local      ( createCheckpointAndClose )
 import           Data.Maybe ( fromJust )
 import           Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
-import           Happstack.Server     ( Response, ServerPart, dir
+import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
                             , nullDir, nullConf, ok
                             , simpleHTTP, toResponse )
 import           GoogleHandler
@@ -46,6 +47,8 @@ bodyTemplate body =
     H.body $ do
       H.div ! A.class_ "container" $ do
         H.div ! A.class_ "row" $ do
+          H.a ! A.href  "/subs" $ do "Update and see Subscriptions"
+        H.div ! A.class_ "row" $ do
           H.h1 $ "Youtube Subscriptemember"
           body
 
@@ -72,14 +75,14 @@ subPage s = bodyTemplate $
             H.table ! A.class_ "table table-striped" $ do
               H.tr $ do
                 mapM_ subtotr s
-subsHandler :: Response m => C.Manager -> AccessToken -> IO (m Response)
+subsHandler :: C.Manager -> AccessToken -> ServerPartT IO Response
 subsHandler mgr tk = do
-  subs <- updateSubscriptions mgr tk;
-  return (ok $ toResponse $ subPage subs)
+  subs <- liftIO (updateSubscriptions mgr tk)
+  ok $ toResponse $ subPage subs
 
-indexHandler:: (Monad m, Response m1) => AccessToken -> [YoutubeVideo] -> m (m1 Response)
+indexHandler:: AccessToken -> [YoutubeVideo] -> ServerPartT IO Response
 indexHandler tk vs = do
-  return (ok $ toResponse $ indexPage vs tk)
+  ok $ toResponse $ indexPage vs tk
 
 --handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
 handlers acid mgr = do
