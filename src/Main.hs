@@ -28,7 +28,7 @@ bodyTemplate :: H.Html ->H.Html
 bodyTemplate body =
   H.html $ do
     H.head $ do
-      H.title "Amarok Control HASKELL"
+      H.title "Subscriptemember"
       H.link ! A.rel "stylesheet" ! A.href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"
       H.script ! A.src "https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js" $ ""
       H.script ! A.src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" $ ""
@@ -37,9 +37,6 @@ bodyTemplate body =
       H.link ! A.rel "stylesheet" ! A.type_ "text/css" ! A.href "style.css"
     H.body $ do
       H.div ! A.class_ "container" $ do
-        H.div ! A.class_ "row" $ do
-          H.a ! A.href  "/subs" $ do "See Subscriptions"
-          H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
         H.div ! A.class_ "row" $ do
           H.h1 $ "Youtube Subscriptemember"
           body
@@ -51,11 +48,21 @@ videoTemplate v =
     H.td $ do "TMP URL"--url v
 
 indexPage :: [Video] -> AccessToken -> H.Html
-indexPage vs tk = bodyTemplate $
-                  H.table ! A.class_ "table table-striped" $ do
-                    H.tr $ do
-                      H.td $ do H.toHtml $ show tk
-                    mapM_ videoTemplate vs
+indexPage vs tk = bodyTemplate $ do
+                    H.div ! A.class_ "col-md-8" $ do
+                                   H.div ! A.class_ "row" $ do
+                                                     H.table ! A.class_ "table table-striped" $ do
+                                                              H.tr $ do
+                                                                H.td $ do H.toHtml $ show tk
+                                                              mapM_ videoTemplate vs
+                    H.div ! A.class_ "col-md-4" $ do
+                                   H.div ! A.class_ "row" $ do
+                                                    H.a ! A.href  "/subs" $ do "See Subscriptions"
+                                   H.div ! A.class_ "row" $ do
+                                                    H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
+
+                      
+                      
 
 subtotr :: Subscription -> H.Html
 subtotr s =  H.tr $ do
