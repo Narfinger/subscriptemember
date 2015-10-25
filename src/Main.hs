@@ -9,6 +9,7 @@ import           Control.Exception ( bracket )
 import           Control.Monad        ( msum )
 import           Control.Monad.Trans ( lift, liftIO )
 import           Data.Acid  ( AcidState, makeAcidic, openLocalState )
+import           Data.Acid.Advanced   ( query', update' )
 import           Data.Acid.Local      ( createCheckpointAndClose )
 import           Data.Maybe ( fromJust )
 import           Text.Blaze ((!))
@@ -17,21 +18,11 @@ import qualified Text.Blaze.Html5.Attributes as A
 import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
                             , nullDir, nullConf, ok
                             , simpleHTTP, toResponse )
+import           AcidHandler
 import           GoogleHandler
 import           YoutubeApi
 import           Network.OAuth.OAuth2
 import qualified Network.HTTP.Conduit as C
-
-tmpdata :: [YoutubeVideo]
-tmpdata = [ YoutubeVideo "test1" "http://test"
-          , YoutubeVideo "test2" "http://tes2"
-          , YoutubeVideo "test3" "http://tes3"
-          ]
-  
-initialServerState :: ServerState
-initialServerState = ServerState { videos = tmpdata
-                                   , token = Nothing
-                                   }
 
 bodyTemplate :: H.Html ->H.Html
 bodyTemplate body =
@@ -47,18 +38,19 @@ bodyTemplate body =
     H.body $ do
       H.div ! A.class_ "container" $ do
         H.div ! A.class_ "row" $ do
-          H.a ! A.href  "/subs" $ do "Update and see Subscriptions"
+          H.a ! A.href  "/subs" $ do "See Subscriptions"
+          H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
         H.div ! A.class_ "row" $ do
           H.h1 $ "Youtube Subscriptemember"
           body
 
-videoTemplate :: YoutubeVideo -> H.Html
+videoTemplate :: Video -> H.Html
 videoTemplate v =
   H.tr $ do
-    H.td $ do H.toHtml $ title v
-    H.td $ do H.toHtml $ url v
+    H.td $ do H.toHtml $ videotitle v
+    H.td $ do "TMP URL"--url v
 
-indexPage :: [YoutubeVideo] -> AccessToken -> H.Html
+indexPage :: [Video] -> AccessToken -> H.Html
 indexPage vs tk = bodyTemplate $
                   H.table ! A.class_ "table table-striped" $ do
                     H.tr $ do
@@ -75,22 +67,29 @@ subPage s = bodyTemplate $
             H.table ! A.class_ "table table-striped" $ do
               H.tr $ do
                 mapM_ subtotr s
-subsHandler :: C.Manager -> AccessToken -> ServerPartT IO Response
-subsHandler mgr tk = do
-  subs <- liftIO (updateSubscriptions mgr tk)
+subsHandler :: AcidState ServerState -> ServerPartT IO Response
+subsHandler acid  = do
+  subs <- query' acid GetSubs  
   ok $ toResponse $ subPage subs
 
-indexHandler:: AccessToken -> [YoutubeVideo] -> ServerPartT IO Response
+subsAndUpdateHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
+subsAndUpdateHandler acid mgr tk = do
+  s <- liftIO (updateSubscriptions mgr tk)
+  subs <- update' acid (UpdateSubs s)
+  ok $ toResponse $ subPage subs
+
+indexHandler:: AccessToken -> [Video] -> ServerPartT IO Response
 indexHandler tk vs = do
   ok $ toResponse $ indexPage vs tk
 
---handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
+handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
 handlers acid mgr = do
-  vs <- acidGetVideos acid
+--  vs <- acidGetVideos acid
   tk <- acidGetAccessToken acid
   let jtk = fromJust tk
-  msum [ dir "subs" $ subsHandler mgr jtk
-       , indexHandler jtk vs
+  msum [ dir "subsUp" $ subsAndUpdateHandler acid mgr jtk
+       , dir "subs" $ subsHandler acid
+       , indexHandler jtk []
        ]  
     
 main :: IO ()
