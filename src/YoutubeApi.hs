@@ -98,9 +98,9 @@ getSubscriptionsForMe mgr token =
   fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))
   
 
-getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [YoutubeSubscription] -> IO (Maybe (YoutubeResponse (YoutubePlaylist)))
+getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse (YoutubePlaylist)))
 getUploadPlaylistForChannel mgr token channels =
-  let channelids = map (\x -> textToByteString $ channelId $ resourceId x) channels in 
+  let channelids = map (\x -> textToByteString $ sid x) channels in 
   let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items%2FcontentDetailsid=" channelids in
   fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse (YoutubePlaylist))))
 
@@ -149,7 +149,8 @@ extractSubscriptions (Just x) = catMaybes $ map constructSubscriptionMaybe (item
 updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
 updateSubscriptions m tk = do
   subs <- (fmap extractSubscriptions) (getSubscriptionsForMe m tk)
-  (fmap extractPlaylist) (getUploadPlaylistForChannel m tk subs) subs
+  uploadsStuff <- getUploadPlaylistForChannel m tk subs
+  (fmap $ extractPlaylist subs) uploadsStuff
    
 
 constructPlaylistIds :: YoutubeItems YoutubePlaylist -> Maybe Text
@@ -159,7 +160,7 @@ constructPlaylistIds x =
   Nothing -> Nothing
   Just x -> Just (uploads x)
   
-extractPlaylist :: Maybe (YoutubeResponse YoutubePlaylist) -> [Subscription] -> [Subscription]
+extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse YoutubePlaylist) -> [Subscription]
 extractPlaylist Nothing subs = []
 extractPlaylist (Just x) subs =
   let ids = catMaybes $ map constructPlaylistIds (items x) in
