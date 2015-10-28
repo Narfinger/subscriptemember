@@ -118,6 +118,7 @@ getPlaylistItemsFromPlaylist mgr token playlist =
 
 data Subscription = Subscription { sid :: Text
                                  , channelname :: Text
+                                 , uploadPlaylist :: Text
                                  } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
 data Video = Video { vid :: Text
@@ -135,7 +136,7 @@ constructSubscriptionMaybe x =
   Nothing -> Nothing
   Just x -> let r = channelId $ resourceId x in
     let t = subtitle x in
-    Just (Subscription {sid = r, channelname = t})
+    Just (Subscription {sid = r, channelname = t, uploadPlaylist=""})
 
 collapseMaybeList :: Maybe [Maybe a] -> [a]
 collapseMaybeList Nothing = []
@@ -146,7 +147,25 @@ extractSubscriptions Nothing = []
 extractSubscriptions (Just x) = catMaybes $ map constructSubscriptionMaybe (items x)
 
 updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
-updateSubscriptions m tk = (fmap extractSubscriptions) (getSubscriptionsForMe m tk)
+updateSubscriptions m tk = do
+  subs <- (fmap extractSubscriptions) (getSubscriptionsForMe m tk)
+  (fmap extractPlaylist) (getUploadPlaylistForChannel m tk subs) subs
+   
 
-updateVideos :: [Video]
-updateVideos = []
+constructPlaylistIds :: YoutubeItems YoutubePlaylist -> Maybe Text
+constructPlaylistIds x =
+  let c = contentDetails x in
+  case c of
+  Nothing -> Nothing
+  Just x -> Just (uploads x)
+  
+extractPlaylist :: Maybe (YoutubeResponse YoutubePlaylist) -> [Subscription] -> [Subscription]
+extractPlaylist Nothing subs = []
+extractPlaylist (Just x) subs =
+  let ids = catMaybes $ map constructPlaylistIds (items x) in
+  let construct = \id -> \s -> s{uploadPlaylist = id} in 
+  zipWith construct ids subs
+
+
+updateVideos :: [Subscription] -> [Video]
+updateVideos subs = []
