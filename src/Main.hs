@@ -12,6 +12,7 @@ import           Data.Acid  ( AcidState, makeAcidic, openLocalState )
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.Acid.Local      ( createCheckpointAndClose )
 import           Data.Maybe ( fromJust )
+import           Data.Time
 import           Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -47,14 +48,15 @@ videoTemplate v =
     H.td $ do H.toHtml $ videotitle v
     H.td $ do "TMP URL"--url v
 
-indexPage :: [Video] -> AccessToken -> H.Html
-indexPage vs tk = bodyTemplate $ do
+indexPage :: [Video] -> UTCTime -> H.Html
+indexPage vs time =
+  let t = formatTime defaultTimeLocale "Last Refreshed: %k:%M:%S %e.%m" time in
+  bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
-                                                     H.table ! A.class_ "table table-striped" $ do
-                                                              H.tr $ do
-                                                                H.td $ do H.toHtml $ show tk
-                                                              mapM_ videoTemplate vs
+                                     H.toHtml t
+                                     H.table ! A.class_ "table table-striped" $ do
+                                         mapM_ videoTemplate vs
                     H.div ! A.class_ "col-md-4" $ do
                                    H.div ! A.class_ "row" $ do
                                                     H.a ! A.href  "/subs" $ do "See Subscriptions"
@@ -85,9 +87,10 @@ subsAndUpdateHandler acid mgr tk = do
   subs <- update' acid (UpdateSubs s)
   ok $ toResponse $ subPage subs
 
-indexHandler:: AccessToken -> [Video] -> ServerPartT IO Response
-indexHandler tk vs = do
-  ok $ toResponse $ indexPage vs tk
+indexHandler:: AcidState ServerState -> [Video] -> ServerPartT IO Response
+indexHandler acid vs = do
+  time <- query' acid GetLastRefreshed
+  ok $ toResponse $ indexPage vs time
 
 handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
 handlers acid mgr = do
@@ -96,7 +99,7 @@ handlers acid mgr = do
   let jtk = fromJust tk
   msum [ dir "subsUp" $ subsAndUpdateHandler acid mgr jtk
        , dir "subs" $ subsHandler acid
-       , indexHandler jtk []
+       , indexHandler acid []
        ]  
     
 main :: IO ()

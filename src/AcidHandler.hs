@@ -21,6 +21,8 @@ import           Data.Acid.Local      ( createCheckpointAndClose )
 import           Data.Maybe
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.SafeCopy        ( base, deriveSafeCopy )
+import           Data.Time
+import           Data.Time.Clock.POSIX
 import           Data.Text                     (Text)
 import qualified Network.HTTP.Conduit as C
 import           Keys                          (googleKey)
@@ -37,6 +39,7 @@ $(deriveSafeCopy 0 'base ''AccessToken)
 
 data ServerState = ServerState { videos :: [Video]
                                , subscriptions :: [Subscription]
+                               , lastRefreshed :: UTCTime 
                                , token :: Maybe AccessToken
                                } deriving (Eq, Ord, Read, Show, Data, Typeable)
                                          
@@ -45,6 +48,7 @@ $(deriveSafeCopy 0 'base ''ServerState)
 initialServerState :: ServerState
 initialServerState = ServerState { videos = []
                                  , subscriptions = []
+                                 , lastRefreshed =  posixSecondsToUTCTime $ fromIntegral 0
                                  , token = Nothing
                                  }
 
@@ -70,8 +74,17 @@ writeAccessToken tk = do
   put $ vs { token = Just tk }
   return tk
 
+-- getTime
+getLastRefreshed :: Query ServerState UTCTime
+getLastRefreshed = lastRefreshed <$> ask
 
-$(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'updateSubs, 'getSubs])
+writeLastRefreshed :: UTCTime -> Update ServerState UTCTime
+writeLastRefreshed t = do
+  vs@ServerState{..} <- get
+  put $ vs { lastRefreshed = t }
+  return t
+
+$(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'updateSubs, 'getSubs, 'getLastRefreshed, 'writeLastRefreshed])
 
   -- helper functions
 saveNewToken :: AcidState ServerState -> IO ()

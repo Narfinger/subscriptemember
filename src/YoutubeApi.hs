@@ -40,9 +40,7 @@ data PageInfo = PageInfo { totalResults :: Int
                          , resultsPerPage :: Int
                          } deriving (Show)
 
-data YoutubeResponse a = YoutubeResponse { --kind :: Text
-                                         --, etag :: Text
-                                         nextPageToken :: Maybe Text
+data YoutubeResponse a = YoutubeResponse { nextPageToken :: Maybe Text
                                          , pageInfo :: PageInfo
                                          , items :: [YoutubeItems a]
                                          } deriving (Show)
