@@ -97,7 +97,7 @@ constructMultipleQuery :: B.ByteString -> [B.ByteString] -> B.ByteString
 constructMultipleQuery b list = B.append baseurl $ B.append b $ B.intercalate "%2C" list
 
 decode :: FromJSON a => Either BL.ByteString a -> Maybe a
-decode (Left l) = trace (show l) Nothing
+decode (Left l) =  Nothing
 decode (Right x) = Just x
 
 -- returns my subscriptions
@@ -110,10 +110,11 @@ getSubscriptionsForMe mgr token =
 
 getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse ContentDetails))
 getUploadPlaylistForChannel mgr token channels =
-  let channelids = map (\x -> textToByteString $ sid x) (take 2 channels) in 
-  let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items&id=" channelids in
-  trace (show url) (fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse ContentDetails))))
+  let channelids = map (\x -> textToByteString $ sid x) channels in 
+  let url = constructMultipleQuery "/channels?part=contentDetails%2Csnippet&maxResults=50&fields=items&id=" channelids in
+  (fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse ContentDetails))))
 
+--getIconsForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse ))
 
 -- getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> YoutubePlaylist -> IO (Maybe (YoutubeResponse (YoutubeVideo)))
 -- getPlaylistItemsFromPlaylist mgr token playlist =
@@ -153,24 +154,23 @@ extractSubscriptions (Just x) = catMaybes $ map constructSubscriptionMaybe (item
 updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
 updateSubscriptions m tk = do
   subs <- (fmap extractSubscriptions) (getSubscriptionsForMe m tk)
-  uploadsStuff <- getUploadPlaylistForChannel m tk (take 3 subs)
-  print $ show uploadsStuff
-  return subs -- $ (extractPlaylist subs) uploadsStuff
+  uploadsStuff <- getUploadPlaylistForChannel m tk subs
+  return (extractPlaylist subs uploadsStuff)
    
 
--- constructPlaylistIds :: YoutubeItems YoutubePlaylist -> Maybe Text
--- constructPlaylistIds x =
---   let c = contentDetails x in
---   case c of
---   Nothing -> Nothing
---   Just x -> Just (uploads x)
+constructPlaylistIds :: YoutubeItems ContentDetails -> Maybe Text
+constructPlaylistIds x =
+  let c = contentDetails x in
+  case c of
+  Nothing -> Nothing
+  Just r -> Just (uploads $ relatedPlaylists r) 
   
--- extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse RelatedPlaylists) -> [Subscription]
--- extractPlaylist _ Nothing = []
--- extractPlaylist subs (Just x) =
---   let ids = catMaybes $ map constructPlaylistIds (items x) in
---   let construct = \id -> \s -> s{uploadPlaylist = id} in 
---   zipWith construct ids subs
+extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse ContentDetails) -> [Subscription]
+extractPlaylist _ Nothing = []
+extractPlaylist subs (Just x) =
+  let ids = catMaybes $ map constructPlaylistIds (items x) in
+  let construct = \id -> \s -> s{uploadPlaylist = id} in 
+  zipWith construct ids subs
 
 
 updateVideos :: [Subscription] -> [Video]

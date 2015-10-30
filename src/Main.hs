@@ -52,6 +52,8 @@ indexPage vs time =
   bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
+                                     "WARNING: 50 YOUTUBE LIMIT IS NOT YET IMPLEMENTED"
+                                   H.div ! A.class_ "row" $ do
                                      H.toHtml t
                                      H.table ! A.class_ "table table-striped" $ do
                                          mapM_ videoTemplate vs
@@ -66,13 +68,17 @@ indexPage vs time =
 
 subtotr :: Subscription -> H.Html
 subtotr s =  H.tr $ do
-  H.td $ do H.toHtml $ show $ sid s
   H.td $ do H.toHtml $ show $ channelname s
+  H.td $ do H.toHtml $ show $ sid s
   H.td $ do H.toHtml $ show $ uploadPlaylist s
 
 subPage :: [Subscription] -> H.Html
 subPage s = bodyTemplate $
             H.table ! A.class_ "table table-striped" $ do
+              H.tr $ do
+                H.th "Channel Name"
+                H.th "Channel ID"
+                H.th "Upload Playlist ID"
               H.tr $ do
                 mapM_ subtotr s
 subsHandler :: AcidState ServerState -> ServerPartT IO Response
