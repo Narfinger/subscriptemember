@@ -15,22 +15,24 @@ import           Control.Monad        ( msum, when )
 import           Control.Monad.Reader ( ask )
 import           Control.Monad.State  ( get, put )
 import           Control.Monad.Trans
+import           Data.Acid            ( AcidState, Query, Update
+                                      , makeAcidic, openLocalState )
+import           Data.Acid.Advanced   ( query', update' )
+import           Data.Acid.Local      ( createCheckpointAndClose )
 import           Data.Aeson                    (FromJSON)
 import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier)
 import qualified Data.ByteString                   as B
 import qualified Data.ByteString.Char8             as BC
 import qualified Data.ByteString.Lazy              as BL
 import           Data.Data            ( Data, Typeable )
-import           Data.Acid            ( AcidState, Query, Update
-                            , makeAcidic, openLocalState )
-import           Data.Acid.Local      ( createCheckpointAndClose )
 import           Data.Maybe
-import           Data.Acid.Advanced   ( query', update' )
 import           Data.SafeCopy        ( base, deriveSafeCopy )
 import           Data.Text                     (Text, unpack)
 import qualified Network.HTTP.Conduit as C
 import           Keys                          (googleKey)
 import           Network.OAuth.OAuth2
+import Debug.Trace (trace)
+import           HelperFunctions ( firstLetterDown )
 
 
 baseurl :: B.ByteString
@@ -61,7 +63,7 @@ data YoutubeResource = YoutubeResource { -- kind :: Text
                                        channelId :: Text
                                        } deriving (Show)
 
-data YoutubePlaylist = YoutubePlaylist { uploads :: Text
+data RelatedPlaylists = RelatedPlaylists { uploads :: Text
                                        } deriving (Show)
 
 data YoutubeVideo = YoutubeVideo { publishedAt :: Text
@@ -69,12 +71,13 @@ data YoutubeVideo = YoutubeVideo { publishedAt :: Text
                                  -- , description :: Text
                                  } deriving (Show)
 
+
 $(deriveJSON defaultOptions ''PageInfo)
 $(deriveJSON defaultOptions ''YoutubeResponse)
 $(deriveJSON defaultOptions ''YoutubeItems)
 $(deriveJSON defaultOptions{fieldLabelModifier = \x -> if x == "subtitle" then "title" else x} ''YoutubeSubscription)
 $(deriveJSON defaultOptions ''YoutubeResource)
-$(deriveJSON defaultOptions ''YoutubePlaylist)
+$(deriveJSON defaultOptions{constructorTagModifier = firstLetterDown}  ''RelatedPlaylists)
 $(deriveJSON defaultOptions ''YoutubeVideo)
 
 textToByteString :: Text -> BC.ByteString
@@ -83,8 +86,10 @@ textToByteString = BC.pack . unpack
 constructQuery :: B.ByteString -> B.ByteString
 constructQuery = B.append baseurl
 
+
+--this constructs a query with comma separated inputs (comma is %2C in url code)
 constructMultipleQuery :: B.ByteString -> [B.ByteString] -> B.ByteString
-constructMultipleQuery b list = B.append b $ B.intercalate "," list
+constructMultipleQuery b list = B.append baseurl $ B.append b $ B.intercalate "%2C" list
 
 decode :: FromJSON a => Either BL.ByteString a -> Maybe a
 decode (Left _) = Nothing
@@ -98,23 +103,18 @@ getSubscriptionsForMe mgr token =
   fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))
   
 
-getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse (YoutubePlaylist)))
+getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse (RelatedPlaylists)))
 getUploadPlaylistForChannel mgr token channels =
-  let channelids = map (\x -> textToByteString $ sid x) channels in 
-  let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items%2FcontentDetailsid=" channelids in
-  fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse (YoutubePlaylist))))
+  let channelids = map (\x -> textToByteString $ sid x) (take 2 channels) in 
+  let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items&id=" channelids in
+  trace (show url) (fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse (RelatedPlaylists)))))
 
 
-getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> YoutubePlaylist -> IO (Maybe (YoutubeResponse (YoutubeVideo)))
-getPlaylistItemsFromPlaylist mgr token playlist =
-  let askvalue = textToByteString $ uploads playlist in
-  let url = constructQuery (BC.append "/playlistItems?part=snippet&playlistId="  askvalue) in
-  fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse YoutubeVideo)))
-
-  -- update ids = getUploadPlaylistChannel(getSubscriptionsForMe) and save this
-  -- check new videos for check all getPlaylistItemsFromPlaylist but this should be batchable
-
-
+-- getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> YoutubePlaylist -> IO (Maybe (YoutubeResponse (YoutubeVideo)))
+-- getPlaylistItemsFromPlaylist mgr token playlist =
+--   let askvalue = textToByteString $ uploads playlist in
+--   let url = constructQuery (BC.append "/playlistItems?part=snippet&playlistId="  askvalue) in
+--   fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse YoutubeVideo)))
 
 data Subscription = Subscription { sid :: Text
                                  , channelname :: Text
@@ -149,23 +149,24 @@ extractSubscriptions (Just x) = catMaybes $ map constructSubscriptionMaybe (item
 updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
 updateSubscriptions m tk = do
   subs <- (fmap extractSubscriptions) (getSubscriptionsForMe m tk)
-  uploadsStuff <- getUploadPlaylistForChannel m tk subs
-  (fmap $ extractPlaylist subs) uploadsStuff
+  uploadsStuff <- getUploadPlaylistForChannel m tk (take 3 subs)
+  print $ show uploadsStuff
+  return subs -- $ (extractPlaylist subs) uploadsStuff
    
 
-constructPlaylistIds :: YoutubeItems YoutubePlaylist -> Maybe Text
-constructPlaylistIds x =
-  let c = contentDetails x in
-  case c of
-  Nothing -> Nothing
-  Just x -> Just (uploads x)
+-- constructPlaylistIds :: YoutubeItems YoutubePlaylist -> Maybe Text
+-- constructPlaylistIds x =
+--   let c = contentDetails x in
+--   case c of
+--   Nothing -> Nothing
+--   Just x -> Just (uploads x)
   
-extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse YoutubePlaylist) -> [Subscription]
-extractPlaylist Nothing subs = []
-extractPlaylist (Just x) subs =
-  let ids = catMaybes $ map constructPlaylistIds (items x) in
-  let construct = \id -> \s -> s{uploadPlaylist = id} in 
-  zipWith construct ids subs
+-- extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse RelatedPlaylists) -> [Subscription]
+-- extractPlaylist _ Nothing = []
+-- extractPlaylist subs (Just x) =
+--   let ids = catMaybes $ map constructPlaylistIds (items x) in
+--   let construct = \id -> \s -> s{uploadPlaylist = id} in 
+--   zipWith construct ids subs
 
 
 updateVideos :: [Subscription] -> [Video]

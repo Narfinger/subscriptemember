@@ -30,7 +30,7 @@ googleScopeUserInfo :: QueryParams
 googleScopeUserInfo = [("scope", "https://www.googleapis.com/auth/userinfo.profile")]
 
 googleScopeYoutube :: QueryParams
-googleScopeYoutube = [("scope", "https://www.googleapis.com/auth/youtube")]
+googleScopeYoutube = [("scope", "https://www.googleapis.com/auth/youtube.readonly")]
 
 oauthScope :: QueryParams
 oauthScope = [("scope", "https://www.googleapis.com/auth/youtube")]
