@@ -32,12 +32,12 @@ googleScopeUserInfo = [("scope", "https://www.googleapis.com/auth/userinfo.profi
 googleScopeYoutube :: QueryParams
 googleScopeYoutube = [("scope", "https://www.googleapis.com/auth/youtube.readonly")]
 
-oauthScope :: QueryParams
-oauthScope = [("scope", "https://www.googleapis.com/auth/youtube")]
+-- oauthScope :: QueryParams
+-- oauthScope = [("scope", "https://www.googleapis.com/auth/youtube")]
 
 getToken :: C.Manager -> IO AccessToken
 getToken mgr = do
-    BS.putStrLn $ authorizationUrl googleKey `appendQueryParam` oauthScope
+    BS.putStrLn $ authorizationUrl googleKey `appendQueryParam` googleScopeYoutube
     putStrLn "visit the url and paste code here: "
     code <- fmap BS.pack getLine
     (Right token) <- fetchAccessToken mgr googleKey code

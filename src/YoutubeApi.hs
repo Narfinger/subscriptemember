@@ -20,7 +20,7 @@ import           Data.Acid            ( AcidState, Query, Update
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.Acid.Local      ( createCheckpointAndClose )
 import           Data.Aeson                    (FromJSON)
-import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier)
+import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier, constructorTagModifier )
 import qualified Data.ByteString                   as B
 import qualified Data.ByteString.Char8             as BC
 import qualified Data.ByteString.Lazy              as BL
@@ -43,7 +43,7 @@ data PageInfo = PageInfo { totalResults :: Int
                          } deriving (Show)
 
 data YoutubeResponse a = YoutubeResponse { nextPageToken :: Maybe Text
-                                         , pageInfo :: PageInfo
+                                         , pageInfo :: Maybe PageInfo
                                          , items :: [YoutubeItems a]
                                          } deriving (Show)
                                                     
@@ -63,8 +63,11 @@ data YoutubeResource = YoutubeResource { -- kind :: Text
                                        channelId :: Text
                                        } deriving (Show)
 
-data RelatedPlaylists = RelatedPlaylists { uploads :: Text
+data ContentDetails = ContentDetails { relatedPlaylists  :: RelatedPlaylists
                                        } deriving (Show)
+
+data RelatedPlaylists = RelatedPlaylists { uploads :: Text
+                                         } deriving (Show)
 
 data YoutubeVideo = YoutubeVideo { publishedAt :: Text
                                  , title :: Text
@@ -76,8 +79,10 @@ $(deriveJSON defaultOptions ''PageInfo)
 $(deriveJSON defaultOptions ''YoutubeResponse)
 $(deriveJSON defaultOptions ''YoutubeItems)
 $(deriveJSON defaultOptions{fieldLabelModifier = \x -> if x == "subtitle" then "title" else x} ''YoutubeSubscription)
+$(deriveJSON defaultOptions ''ContentDetails)
 $(deriveJSON defaultOptions ''YoutubeResource)
-$(deriveJSON defaultOptions{constructorTagModifier = firstLetterDown}  ''RelatedPlaylists)
+$(deriveJSON defaultOptions{constructorTagModifier = firstLetterDown} ''RelatedPlaylists)
+-- $(deriveJSON defaultOptions{constructorTagModifier = firstLetterDown}  ''RelatedPlaylists)
 $(deriveJSON defaultOptions ''YoutubeVideo)
 
 textToByteString :: Text -> BC.ByteString
@@ -92,7 +97,7 @@ constructMultipleQuery :: B.ByteString -> [B.ByteString] -> B.ByteString
 constructMultipleQuery b list = B.append baseurl $ B.append b $ B.intercalate "%2C" list
 
 decode :: FromJSON a => Either BL.ByteString a -> Maybe a
-decode (Left _) = Nothing
+decode (Left l) = trace (show l) Nothing
 decode (Right x) = Just x
 
 -- returns my subscriptions
@@ -103,11 +108,11 @@ getSubscriptionsForMe mgr token =
   fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))
   
 
-getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse (RelatedPlaylists)))
+getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse ContentDetails))
 getUploadPlaylistForChannel mgr token channels =
   let channelids = map (\x -> textToByteString $ sid x) (take 2 channels) in 
   let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items&id=" channelids in
-  trace (show url) (fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse (RelatedPlaylists)))))
+  trace (show url) (fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse ContentDetails))))
 
 
 -- getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> YoutubePlaylist -> IO (Maybe (YoutubeResponse (YoutubeVideo)))
@@ -127,7 +132,6 @@ data Video = Video { vid :: Text
 
 $(deriveSafeCopy 0 'base ''Subscription)
 $(deriveSafeCopy 0 'base ''Video)
-
 
 constructSubscriptionMaybe :: YoutubeItems YoutubeSubscription -> Maybe Subscription
 constructSubscriptionMaybe x =
