@@ -37,7 +37,7 @@ bodyTemplate body =
     H.body $ do
       H.div ! A.class_ "container" $ do
         H.div ! A.class_ "row" $ do
-          H.h1 $ "Youtube Subscriptemember"
+          H.h1 "Youtube Subscriptemember"
           body
 
 videoTemplate :: Video -> H.Html
@@ -68,6 +68,7 @@ indexPage vs time =
 
 subtotr :: Subscription -> H.Html
 subtotr s =  H.tr $ do
+  H.td $ do H.img ! A.src (H.preEscapedTextValue $ thumbnail s) ! A.width "30" ! A.height "30"
   H.td $ do H.toHtml $ show $ channelname s
   H.td $ do H.toHtml $ show $ sid s
   H.td $ do H.toHtml $ show $ uploadPlaylist s
@@ -76,11 +77,13 @@ subPage :: [Subscription] -> H.Html
 subPage s = bodyTemplate $
             H.table ! A.class_ "table table-striped" $ do
               H.tr $ do
+                H.th "Icon"
                 H.th "Channel Name"
                 H.th "Channel ID"
                 H.th "Upload Playlist ID"
               H.tr $ do
                 mapM_ subtotr s
+
 subsHandler :: AcidState ServerState -> ServerPartT IO Response
 subsHandler acid  = do
   subs <- query' acid GetSubs  
