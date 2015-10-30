@@ -4,8 +4,8 @@ module Main where
 
 import           Control.Exception ( bracket )
 import           Control.Monad        ( msum )
-import           Control.Monad.Trans ( lift, liftIO )
-import           Data.Acid  ( AcidState, makeAcidic, openLocalState )
+import           Control.Monad.Trans ( liftIO )
+import           Data.Acid  ( AcidState, openLocalState )
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.Acid.Local      ( createCheckpointAndClose )
 import           Data.Maybe ( fromJust )
@@ -14,10 +14,9 @@ import           Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
-                            , nullDir, nullConf, ok
+                            , nullConf, ok
                             , simpleHTTP, toResponse )
 import           AcidHandler
-import           GoogleHandler
 import           YoutubeApi
 import           Network.OAuth.OAuth2
 import qualified Network.HTTP.Conduit as C
