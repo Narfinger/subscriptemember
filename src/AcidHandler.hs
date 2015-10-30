@@ -48,7 +48,7 @@ $(deriveSafeCopy 0 'base ''ServerState)
 initialServerState :: ServerState
 initialServerState = ServerState { videos = []
                                  , subscriptions = []
-                                 , lastRefreshed =  posixSecondsToUTCTime $ fromIntegral 0
+                                 , lastRefreshed =  posixSecondsToUTCTime 0
                                  , token = Nothing
                                  }
 

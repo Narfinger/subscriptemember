@@ -1,8 +1,5 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts,
-  GeneralizedNewtypeDeriving, MultiParamTypeClasses,
-  TemplateHaskell, TypeFamilies, RecordWildCards, OverloadedStrings,
-  StandaloneDeriving #-}
-
+{-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
+    TypeFamilies, OverloadedStrings #-}  
 module Main where
 
 import           Control.Exception ( bracket )
@@ -114,7 +111,7 @@ main :: IO ()
 main = do
   mgr <- C.newManager C.conduitManagerSettings
   bracket (openLocalState initialServerState)
-          (createCheckpointAndClose)
+          createCheckpointAndClose
          (\acid -> do 
               newAccessTokenOrNothing acid;
                 simpleHTTP nullConf (handlers acid mgr)            

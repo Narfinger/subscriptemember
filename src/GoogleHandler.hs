@@ -1,7 +1,5 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts,
-  GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell,
-  TypeFamilies, RecordWildCards, OverloadedStrings,
-  StandaloneDeriving #-}
+{-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
+    TypeFamilies, OverloadedStrings #-}
 
 module GoogleHandler where
 

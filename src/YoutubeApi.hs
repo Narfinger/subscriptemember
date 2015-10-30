@@ -6,10 +6,8 @@ module YoutubeApi ( updateSubscriptions
                   , updateVideos
                   , Video(..)      -- these are the general types we use for saving
                   , Subscription(..) -- same for subscriptions
-                  )
-  where
+                  ) where
 
---import GoogleHandler
 import           Control.Applicative  ( (<$>) )
 import           Control.Monad        ( msum, when )
 import           Control.Monad.Reader ( ask )
@@ -106,6 +104,7 @@ constructQuery = B.append baseurl
 constructMultipleQuery :: B.ByteString -> [B.ByteString] -> B.ByteString
 constructMultipleQuery b list = B.append baseurl $ B.append b $ B.intercalate "%2C" list
 
+-- | shorthand to decode a return from authGetJSON
 decode :: FromJSON a => Either BL.ByteString a -> Maybe a
 decode (Left l) =  Nothing
 decode (Right x) = Just x
@@ -119,7 +118,7 @@ getSubscriptionsForMe mgr token =
 
 getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse ContentDetails))
 getUploadPlaylistForChannel mgr token channels =
-  let channelids = map (\x -> textToByteString $ sid x) channels in 
+  let channelids = map (textToByteString . sid) channels in 
   let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items&id=" channelids in
   (fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse ContentDetails))))
 
@@ -151,7 +150,7 @@ constructSubscriptionMaybe x =
   Just x -> let r = channelId $ resourceId x in
     let t = subscriptiontitle x in
     let n = url $ def $ thumbnails x in
-    Just (Subscription {sid = r, channelname = t, uploadPlaylist="", thumbnail = n})
+    Just Subscription {sid = r, channelname = t, uploadPlaylist="", thumbnail = n}
 
 collapseMaybeList :: Maybe [Maybe a] -> [a]
 collapseMaybeList Nothing = []
@@ -159,7 +158,7 @@ collapseMaybeList (Just x) = catMaybes x
 
 extractSubscriptions :: Maybe (YoutubeResponse YoutubeSubscription) -> [Subscription] 
 extractSubscriptions Nothing = []
-extractSubscriptions (Just x) = catMaybes $ map constructSubscriptionMaybe (items x)
+extractSubscriptions (Just x) = mapMaybe constructSubscriptionMaybe (items x)
 
 updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
 updateSubscriptions m tk = do
@@ -179,7 +178,7 @@ extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse ContentDetails) -> [
 extractPlaylist _ Nothing = []
 extractPlaylist subs (Just x) =
   let ids = catMaybes $ map constructPlaylistIds (items x) in
-  let construct = \id -> \s -> s{uploadPlaylist = id} in 
+  let construct = \id-> \s -> s{uploadPlaylist = id} in 
   zipWith construct ids subs
 
 
