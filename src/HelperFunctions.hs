@@ -2,6 +2,7 @@ module HelperFunctions ( firstLetterDown
                        , allToURLString
                        , thumbnailsLabelChange
                        , subscriptionLabelChange
+                       , videoLabelChange
                        ) where
 
 import qualified Data.Char as Char    ( toLower )
@@ -24,3 +25,10 @@ thumbnailsLabelChange x = x
 subscriptionLabelChange :: String -> String
 subscriptionLabelChange "subscriptiontitle" = "title"
 subscriptionLabelChange x = x
+
+videoLabelChange :: String -> String
+videoLabelChange "vidthumbnails" = "thumbnails"
+videoLabelChange "vidresourceId" = "resourceId"
+videoLabelChange "vidpublishedAt" = "publishedAt"
+videoLabelChange "vidtitle" = "title"
+videoLabelChange x = x

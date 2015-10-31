@@ -20,9 +20,9 @@ import           Data.Text                     (Text, unpack)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
 import Debug.Trace (trace)
-import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange )
+import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange )
 
-
+-- | Base url for asking Youtube questions to google api
 baseurl :: B.ByteString
 baseurl = "https://www.googleapis.com/youtube/v3"
 
@@ -56,8 +56,8 @@ data YoutubeSubscription = YoutubeSubscription { -- publishedAt :: Text
                                                , thumbnails :: YoutubeThumbnails
                                                } deriving (Show)
 
-data YoutubeResource = YoutubeResource { -- kind :: Text
-                                       channelId :: Text
+data YoutubeResource = YoutubeResource { channelId :: Maybe Text
+                                       , videoId :: Maybe Text
                                        } deriving (Show)
 
 data ContentDetails = ContentDetails { relatedPlaylists  :: RelatedPlaylists
@@ -66,9 +66,10 @@ data ContentDetails = ContentDetails { relatedPlaylists  :: RelatedPlaylists
 data RelatedPlaylists = RelatedPlaylists { uploads :: Text
                                          } deriving (Show)
 
-data YoutubeVideo = YoutubeVideo { publishedAt :: Text
-                                 , title :: Text
-                                 -- , description :: Text
+data YoutubeVideo = YoutubeVideo { vidpublishedAt :: Text
+                                 , vidtitle :: Text
+                                 , vidthumbnails :: YoutubeThumbnails
+                                 , vidresourceId :: YoutubeResource
                                  } deriving (Show)
 
 
@@ -81,7 +82,7 @@ $(deriveJSON defaultOptions{fieldLabelModifier = subscriptionLabelChange} ''Yout
 $(deriveJSON defaultOptions ''ContentDetails)
 $(deriveJSON defaultOptions ''YoutubeResource)
 $(deriveJSON defaultOptions{constructorTagModifier = firstLetterDown} ''RelatedPlaylists)
-$(deriveJSON defaultOptions ''YoutubeVideo)
+$(deriveJSON defaultOptions{fieldLabelModifier = videoLabelChange} ''YoutubeVideo)
 
 -- | Text To Bytestring
 textToByteString :: Text -> BC.ByteString
@@ -116,11 +117,11 @@ getUploadPlaylistForChannel mgr token channels =
   (fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse ContentDetails))))
 
 
--- getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> YoutubePlaylist -> IO (Maybe (YoutubeResponse (YoutubeVideo)))
--- getPlaylistItemsFromPlaylist mgr token playlist =
---   let askvalue = textToByteString $ uploads playlist in
---   let url = constructQuery (BC.append "/playlistItems?part=snippet&playlistId="  askvalue) in
---   fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse YoutubeVideo)))
+getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Maybe (YoutubeResponse (YoutubeVideo)))
+getPlaylistItemsFromPlaylist mgr token subscription =
+   let askvalue = textToByteString $ uploadPlaylist subscription in
+   let url = constructQuery (BC.append "/playlistItems?part=snippet&playlistId="  askvalue) in
+   fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse YoutubeVideo)))
 
 -- | Main Datastructure for storing subscriptions
 data Subscription = Subscription { sid :: Text
@@ -130,8 +131,10 @@ data Subscription = Subscription { sid :: Text
                                  } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
 -- | Main Datastructure for storing videos
-data Video = Video { vid :: Text
+data Video = Video { vidId :: Text
                    , videotitle :: Text
+                   , vidThumbnail :: Text
+                   , publishedAt :: Text
                    } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
 $(deriveSafeCopy 0 'base ''Subscription)
@@ -146,7 +149,7 @@ constructSubscriptionMaybe x =
   Just nx -> let r = channelId $ resourceId nx in
     let t = subscriptiontitle nx in
     let n = url $ def $ thumbnails nx in
-    Just Subscription {sid = r, channelname = t, uploadPlaylist="", thumbnail = n}
+    Just Subscription {sid = fromJust r, channelname = t, uploadPlaylist="", thumbnail = n}
 
 -- | catMaybes lifted to work on a Maybe [a] and returns a [a] which can be empty
 -- collapseMaybeList :: Maybe [Maybe a] -> [a]
@@ -180,6 +183,20 @@ extractPlaylist subs (Just x) =
   let construct = \id-> \s -> s{uploadPlaylist = id} in 
   zipWith construct ids subs
 
+
+extractVideo :: YoutubeItems YoutubeVideo -> Maybe Video
+extractVideo item =
+  let s = snippet item in
+  case s of
+  Nothing -> Nothing
+  Just snip -> let valuetitle = vidtitle snip in
+    let valuethumb = url $ def $ vidthumbnails snip in
+    let valuetitle = vidtitle snip
+        valuepublishedat = vidpublishedAt snip in
+    let valueid = videoId $ vidresourceId snip in
+    Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat }
+                   
+
 -- | fetches videos of Subscriptions and returns the videos
 updateVideos :: [Subscription] -> [Video]
-updateVideos subs = []
+updateVideos subs = [] 
