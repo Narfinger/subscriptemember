@@ -39,6 +39,7 @@ bodyTemplate body =
 videoTemplate :: Video -> H.Html
 videoTemplate v =
   H.tr $ do
+    H.td $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)
     H.td $ do H.toHtml $ videotitle v
     H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeUrlFromId v) $ do "Play"
 
@@ -52,7 +53,11 @@ indexPage vs time =
                                    H.div ! A.class_ "row" $ do
                                      H.toHtml t
                                      H.table ! A.class_ "table table-striped" $ do
-                                         mapM_ videoTemplate vs
+                                       H.tr $ do
+                                         H.th "Thumbnail"
+                                         H.th "Title"
+                                         H.th "PlayButton"
+                                       mapM_ videoTemplate vs
                     H.div ! A.class_ "col-md-4" $ do
                                    H.div ! A.class_ "row" $ do
                                                     H.a ! A.href  "/subs" $ do "See Subscriptions"
