@@ -40,7 +40,7 @@ videoTemplate :: Video -> H.Html
 videoTemplate v =
   H.tr $ do
     H.td $ do H.toHtml $ videotitle v
-    H.td $ do "TMP URL"--url v
+    H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeUrlFromId v) $ do "Play"
 
 indexPage :: [Video] -> UTCTime -> H.Html
 indexPage vs time =
@@ -58,6 +58,9 @@ indexPage vs time =
                                                     H.a ! A.href  "/subs" $ do "See Subscriptions"
                                    H.div ! A.class_ "row" $ do
                                                     H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
+                                   H.div ! A.class_ "row" $ do
+                                     H.a ! A.href  "/upvids" $ do "Update Videos"
+                    
 
                       
                       
@@ -91,9 +94,19 @@ subsAndUpdateHandler acid mgr tk = do
   subs <- update' acid (UpdateSubs s)
   ok $ toResponse $ subPage subs
 
-indexHandler:: AcidState ServerState -> [Video] -> ServerPartT IO Response
-indexHandler acid vs = do
+upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
+upvidsHandler acid mgr tk = do
+  subs <- query' acid GetSubs
+  s <- liftIO (updateVideos mgr tk subs)
+  oldvids <- query' acid GetVids
+  let nvids = s ++ oldvids
+  nvids <- update' acid (WriteVids nvids)
+  indexHandler acid
+
+indexHandler:: AcidState ServerState  -> ServerPartT IO Response
+indexHandler acid = do
   time <- query' acid GetLastRefreshed
+  vs <- query' acid GetVids
   ok $ toResponse $ indexPage vs time
 
 handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
@@ -103,7 +116,8 @@ handlers acid mgr = do
   let jtk = fromJust tk
   msum [ dir "subsUp" $ subsAndUpdateHandler acid mgr jtk
        , dir "subs" $ subsHandler acid
-       , indexHandler acid []
+       , dir "upvids" $ upvidsHandler acid mgr jtk
+       , indexHandler acid
        ]  
     
 main :: IO ()

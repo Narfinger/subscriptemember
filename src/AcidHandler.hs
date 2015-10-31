@@ -80,7 +80,19 @@ writeLastRefreshed t = do
   put $ vs { lastRefreshed = t }
   return t
 
-$(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'updateSubs, 'getSubs, 'getLastRefreshed, 'writeLastRefreshed])
+-- | Acid query videos
+getVids :: Query ServerState [Video]
+getVids = videos <$> ask
+
+-- | Acid update vids
+writeVids :: [Video] -> Update ServerState [Video]
+writeVids v = do
+  vs@ServerState{..} <- get
+  put $ vs{videos = v}
+  return v
+
+$(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'updateSubs, 'getSubs, 'getLastRefreshed, 'writeLastRefreshed,
+                            'getVids, 'writeVids])
 
 -- | helper functions that asks a new token and saves it 
 saveNewToken :: AcidState ServerState -> IO ()

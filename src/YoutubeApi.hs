@@ -4,6 +4,7 @@
 
 module YoutubeApi ( updateSubscriptions
                   , updateVideos
+                  , makeUrlFromId
                   , Video(..)      -- these are the general types we use for saving
                   , Subscription(..) -- same for subscriptions
                   ) where
@@ -16,7 +17,7 @@ import qualified Data.ByteString.Lazy              as BL
 import           Data.Data            ( Data, Typeable )
 import           Data.Maybe
 import           Data.SafeCopy        ( base, deriveSafeCopy )
-import           Data.Text                     (Text, unpack)
+import           Data.Text                     (Text, unpack, append)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
 import Debug.Trace (trace)
@@ -137,6 +138,9 @@ data Video = Video { vidId :: Text
                    , publishedAt :: Text
                    } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
+makeUrlFromId :: Video -> Text
+makeUrlFromId v = append "https://www.youtube.com/watch?v=" (vidId v)
+
 $(deriveSafeCopy 0 'base ''Subscription)
 $(deriveSafeCopy 0 'base ''Video)
 
@@ -195,8 +199,20 @@ extractVideo item =
         valuepublishedat = vidpublishedAt snip in
     let valueid = videoId $ vidresourceId snip in
     Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat }
-                   
 
--- | fetches videos of Subscriptions and returns the videos
-updateVideos :: [Subscription] -> [Video]
-updateVideos subs = [] 
+
+responseToVideo :: Maybe (YoutubeResponse YoutubeVideo) -> Maybe Video
+responseToVideo Nothing = Nothing
+responseToVideo (Just res) = extractVideo $ head $ items res
+    
+-- filterVidsForDate :: Data.Time -> [Video] -> [Video]
+-- filterVidsForDate date = filter \v -> publishedAt 
+                                      
+
+updateVideos :: C.Manager -> AccessToken -> [Subscription] -> IO [Video]
+updateVideos mgr tk subs =
+  (fmap catMaybes) $ sequence (map (\s -> (fmap responseToVideo) (getPlaylistItemsFromPlaylist mgr tk s))
+            ( take 3 subs))
+
+
+
