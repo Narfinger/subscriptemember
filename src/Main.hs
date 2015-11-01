@@ -140,6 +140,6 @@ main = do
   bracket (openLocalState initialServerState)
           createCheckpointAndClose
          (\acid -> do 
-              newAccessTokenOrNothing acid;
+              newAccessTokenOrRefresh acid;
                 simpleHTTP nullConf (handlers acid mgr)            
          )

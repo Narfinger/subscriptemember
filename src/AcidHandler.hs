@@ -104,11 +104,22 @@ saveNewToken acid = do
   return ()
 
 -- | If no token in Acid DB we get a new token
-newAccessTokenOrNothing :: AcidState ServerState -> IO ()
-newAccessTokenOrNothing acid = do
+newAccessTokenOrRefresh :: AcidState ServerState -> IO ()
+newAccessTokenOrRefresh acid = do
   tk <- query' acid GetAccessToken
-  let newToken = isNothing tk
-  when newToken (saveNewToken acid)
+  case tk of
+    Nothing -> (saveNewToken acid)
+    Just x -> refreshAccessToken acid
+  return ()
+
+-- | refreshes token
+refreshAccessToken :: AcidState ServerState -> IO ()
+refreshAccessToken acid = do
+  mgr <- C.newManager C.conduitManagerSettings
+  otk <- (fmap fromJust) $ query' acid GetAccessToken
+  tk <- getRefreshToken mgr otk
+  update' acid (WriteAccessToken tk)
+  print ("old access: " ++ (show $ expiresIn otk) ++ "  new in: " ++ (show $ expiresIn tk))
   return ()
 
 -- | get token

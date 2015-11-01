@@ -1,11 +1,14 @@
 {-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
     TypeFamilies, OverloadedStrings #-}
 
-module GoogleHandler ( getToken ) where
+module GoogleHandler ( getToken
+                     , getRefreshToken
+                     ) where
 
 import qualified Data.ByteString.Char8         as BS
+import           Data.Maybe                    ( fromJust )
 import qualified Network.HTTP.Conduit as C
-import           Keys                          (googleKey)
+import           Keys                          ( googleKey )
 import           Network.OAuth.OAuth2
 
 
@@ -26,3 +29,9 @@ getToken mgr = do
     (Right token) <- fetchAccessToken mgr googleKey code
     return token
 
+getRefreshToken :: C.Manager -> AccessToken -> IO AccessToken
+getRefreshToken mgr tk =
+  let rtk = fromJust $ refreshToken tk in
+  do
+  (Right tk' ) <- fetchRefreshToken mgr googleKey rtk
+  return tk'
