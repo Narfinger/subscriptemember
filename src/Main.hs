@@ -2,9 +2,10 @@
     TypeFamilies, OverloadedStrings #-}  
 module Main where
 
+import           Control.Concurrent ( forkIO )
 import           Control.Exception ( bracket )
 import           Control.Monad        ( msum )
-import           Control.Monad.Trans ( liftIO )
+import           Control.Monad.Trans
 import           Data.Acid  ( AcidState, openLocalState )
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.Acid.Local      ( createCheckpointAndClose )
@@ -14,8 +15,8 @@ import           Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
-                            , nullConf, ok
-                            , simpleHTTP, toResponse )
+                                      , nullConf, ok, seeOther
+                                      , simpleHTTP, toResponse )
 import           AcidHandler
 import           YoutubeApi
 import           Network.OAuth.OAuth2
@@ -50,6 +51,8 @@ indexPage vs time =
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
                                      "WARNING: 50 YOUTUBE LIMIT IS NOT YET IMPLEMENTED"
+                                   H.div ! A.class_ "row" $ do
+                                     "WARNING: I THINK I LOSE CREDENTIALS EVERY DAY?"
                                    H.div ! A.class_ "row" $ do
                                      H.toHtml t
                                      H.table ! A.class_ "table table-striped" $ do
@@ -97,16 +100,22 @@ subsAndUpdateHandler :: AcidState ServerState -> C.Manager -> AccessToken -> Ser
 subsAndUpdateHandler acid mgr tk = do
   s <- liftIO (updateSubscriptions mgr tk)
   subs <- update' acid (UpdateSubs s)
-  ok $ toResponse $ subPage subs
+  seeOther ("/"::String) $ toResponse ()
 
-upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
-upvidsHandler acid mgr tk = do
+upvids :: AcidState ServerState -> C.Manager -> AccessToken -> IO ()
+upvids acid mgr tk = do
   subs <- query' acid GetSubs
   s <- liftIO (updateVideos mgr tk subs)
   oldvids <- query' acid GetVids
   let nvids = s ++ oldvids
   nvids <- update' acid (WriteVids nvids)
-  indexHandler acid
+  return ()
+  
+upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
+upvidsHandler acid mgr tk = do
+  let fn = upvids acid mgr tk
+  lift (forkIO fn);
+  seeOther ("/"::String) $ toResponse ()
 
 indexHandler:: AcidState ServerState  -> ServerPartT IO Response
 indexHandler acid = do
@@ -123,7 +132,7 @@ handlers acid mgr = do
        , dir "subs" $ subsHandler acid
        , dir "upvids" $ upvidsHandler acid mgr jtk
        , indexHandler acid
-       ]  
+       ]
     
 main :: IO ()
 main = do

@@ -17,6 +17,7 @@ import qualified Data.ByteString.Lazy              as BL
 import           Data.Data            ( Data, Typeable )
 import           Data.Maybe
 import           Data.SafeCopy        ( base, deriveSafeCopy )
+import           Data.Time
 import           Data.Text                     (Text, unpack, append)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
@@ -209,10 +210,13 @@ responseToVideo (Just res) = extractVideo $ head $ items res
 -- filterVidsForDate date = filter \v -> publishedAt 
                                       
 
+filterAndSortVids :: UTCTime -> [Video] -> [Video]
+filterAndSortVids t v = v
+
 updateVideos :: C.Manager -> AccessToken -> [Subscription] -> IO [Video]
 updateVideos mgr tk subs =
   (fmap catMaybes) $ sequence (map (\s -> (fmap responseToVideo) (getPlaylistItemsFromPlaylist mgr tk s))
-            ( take 3 subs))
+                               subs)
 
 
 
