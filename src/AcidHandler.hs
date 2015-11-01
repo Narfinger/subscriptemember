@@ -19,6 +19,7 @@ import           Data.Time
 import           Data.Time.Clock.POSIX
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
+import           HelperFunctions ( deleteNth )
 import GoogleHandler
 import YoutubeApi
 
@@ -91,8 +92,15 @@ writeVids v = do
   put $ vs{videos = v}
   return v
 
+deleteVid :: Int -> Update ServerState [Video]
+deleteVid i = do
+  vs@ServerState{..} <- get
+  let v = deleteNth i videos
+  put $ vs{videos = v }
+  return v
+
 $(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'updateSubs, 'getSubs, 'getLastRefreshed, 'writeLastRefreshed,
-                            'getVids, 'writeVids])
+                            'getVids, 'writeVids, 'deleteVid])
 
 -- | helper functions that asks a new token and saves it 
 saveNewToken :: AcidState ServerState -> IO ()
@@ -104,12 +112,15 @@ saveNewToken acid = do
   return ()
 
 -- | If no token in Acid DB we get a new token
+
+
+-- this is more complicated becuase i think we kill the refresh token or something if we just update it
 newAccessTokenOrRefresh :: AcidState ServerState -> IO ()
 newAccessTokenOrRefresh acid = do
   tk <- query' acid GetAccessToken
   case tk of
     Nothing -> (saveNewToken acid)
-    Just x -> refreshAccessToken acid
+    Just x -> return () --refreshAccessToken acid
   return ()
 
 -- | refreshes token

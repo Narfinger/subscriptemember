@@ -3,6 +3,7 @@ module HelperFunctions ( firstLetterDown
                        , thumbnailsLabelChange
                        , subscriptionLabelChange
                        , videoLabelChange
+                       , deleteNth
                        ) where
 
 import qualified Data.Char as Char    ( toLower )
@@ -32,3 +33,9 @@ videoLabelChange "vidresourceId" = "resourceId"
 videoLabelChange "vidpublishedAt" = "publishedAt"
 videoLabelChange "vidtitle" = "title"
 videoLabelChange x = x
+
+
+deleteNth :: Int -> [a] -> [a]
+deleteNth i xs =
+  let (ys,zs) = splitAt i xs in
+  ys ++ (tail zs)

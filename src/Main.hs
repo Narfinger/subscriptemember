@@ -15,7 +15,7 @@ import           Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
-                                      , nullConf, ok, seeOther
+                                      , nullConf, ok, seeOther, path
                                       , simpleHTTP, toResponse )
 import           AcidHandler
 import           YoutubeApi
@@ -37,22 +37,25 @@ bodyTemplate body =
           H.h1 "Youtube Subscriptemember"
           body
 
-videoTemplate :: Video -> H.Html
-videoTemplate v =
+videoTemplate :: (Int, Video) -> H.Html
+videoTemplate (i,v) =
+  let deletelink =  "/delete/" ++ (show i) in
   H.tr $ do
     H.td $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)
     H.td $ do H.toHtml $ videotitle v
     H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeUrlFromId v) $ do "Play"
+    H.td $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete" 
 
 indexPage :: [Video] -> UTCTime -> H.Html
-indexPage vs time =
-  let t = formatTime defaultTimeLocale "Last Refreshed: %k:%M:%S %e.%m" time in
+indexPage videos time =
+  let t = formatTime defaultTimeLocale "Last Refreshed: %k:%M:%S %e.%m" time
+      vs = zip [0,1..] videos in
   bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
                                      "WARNING: 50 YOUTUBE LIMIT IS NOT YET IMPLEMENTED"
                                    H.div ! A.class_ "row" $ do
-                                     "WARNING: I THINK I LOSE CREDENTIALS EVERY DAY?"
+                                     "WARNING: I STILL NEED TO FILTER"
                                    H.div ! A.class_ "row" $ do
                                      H.toHtml t
                                      H.table ! A.class_ "table table-striped" $ do
@@ -117,6 +120,11 @@ upvidsHandler acid mgr tk = do
   lift (forkIO fn);
   seeOther ("/"::String) $ toResponse ()
 
+deleteHandler :: AcidState ServerState -> Int -> ServerPartT IO Response
+deleteHandler acid i = do
+  update' acid (DeleteVid i)
+  seeOther ("/"::String) $ toResponse ()
+
 indexHandler:: AcidState ServerState  -> ServerPartT IO Response
 indexHandler acid = do
   time <- query' acid GetLastRefreshed
@@ -131,6 +139,7 @@ handlers acid mgr = do
   msum [ dir "subsUp" $ subsAndUpdateHandler acid mgr jtk
        , dir "subs" $ subsHandler acid
        , dir "upvids" $ upvidsHandler acid mgr jtk
+       , dir "delete" $ path $ \i -> deleteHandler acid i
        , indexHandler acid
        ]
     
