@@ -22,7 +22,8 @@ import           Data.Text                     (Text, unpack, append)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
 import Debug.Trace (trace)
-import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange )
+import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange
+                                 , parseGoogleTime )
 
 -- | Base url for asking Youtube questions to google api
 baseurl :: B.ByteString
@@ -136,7 +137,7 @@ data Subscription = Subscription { sid :: Text
 data Video = Video { vidId :: Text
                    , videotitle :: Text
                    , vidThumbnail :: Text
-                   , publishedAt :: Text
+                   , publishedAt :: UTCTime
                    } deriving (Eq, Ord, Read, Show, Data, Typeable)
 
 makeUrlFromId :: Video -> Text
@@ -197,7 +198,7 @@ extractVideo item =
   Just snip -> let valuetitle = vidtitle snip in
     let valuethumb = url $ def $ vidthumbnails snip in
     let valuetitle = vidtitle snip
-        valuepublishedat = vidpublishedAt snip in
+        valuepublishedat = parseGoogleTime $ vidpublishedAt snip in
     let valueid = videoId $ vidresourceId snip in
     Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat }
 
@@ -211,11 +212,12 @@ responseToVideo (Just res) = extractVideo $ head $ items res
                                       
 
 filterAndSortVids :: UTCTime -> [Video] -> [Video]
-filterAndSortVids t v = v
+filterAndSortVids t = filter (\v -> (publishedAt v)> t)
 
-updateVideos :: C.Manager -> AccessToken -> [Subscription] -> IO [Video]
-updateVideos mgr tk subs =
-  (fmap catMaybes) $ sequence (map (\s -> (fmap responseToVideo) (getPlaylistItemsFromPlaylist mgr tk s))
+updateVideos :: C.Manager -> AccessToken -> UTCTime -> [Subscription] -> IO [Video]
+updateVideos mgr tk time subs =
+  let fn =  (filterAndSortVids time) . catMaybes in
+  (fmap fn) $ sequence (map (\s -> (fmap responseToVideo) (getPlaylistItemsFromPlaylist mgr tk s))
                                subs)
 
 

@@ -108,10 +108,13 @@ subsAndUpdateHandler acid mgr tk = do
 upvids :: AcidState ServerState -> C.Manager -> AccessToken -> IO ()
 upvids acid mgr tk = do
   subs <- query' acid GetSubs
-  s <- liftIO (updateVideos mgr tk subs)
+  date <- query' acid GetLastRefreshed
+  s <- liftIO (updateVideos mgr tk date subs)
   oldvids <- query' acid GetVids
   let nvids = s ++ oldvids
   nvids <- update' acid (WriteVids nvids)
+  now <- getCurrentTime
+  tmp <- update' acid (WriteLastRefreshed now)
   return ()
   
 upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response

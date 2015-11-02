@@ -4,9 +4,14 @@ module HelperFunctions ( firstLetterDown
                        , subscriptionLabelChange
                        , videoLabelChange
                        , deleteNth
+                       , parseGoogleTime
                        ) where
 
 import qualified Data.Char as Char    ( toLower )
+import           Data.List as L
+import           Data.Text as T
+import qualified Data.Time as TI
+import           Data.Time.Clock.POSIX
 
 -- | takes a string and lowers the first character
 firstLetterDown :: String -> String
@@ -37,5 +42,8 @@ videoLabelChange x = x
 
 deleteNth :: Int -> [a] -> [a]
 deleteNth i xs =
-  let (ys,zs) = splitAt i xs in
-  ys ++ (tail zs)
+  let (ys,zs) = L.splitAt i xs in
+  ys ++ (L.tail zs)
+
+parseGoogleTime :: T.Text -> TI.UTCTime
+parseGoogleTime t = posixSecondsToUTCTime 1
