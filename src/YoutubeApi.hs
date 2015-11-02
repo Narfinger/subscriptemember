@@ -16,6 +16,7 @@ import qualified Data.ByteString.Char8             as BC
 import qualified Data.ByteString.Lazy              as BL
 import           Data.Data            ( Data, Typeable )
 import           Data.Maybe
+import qualified Data.List                         as L
 import           Data.SafeCopy        ( base, deriveSafeCopy )
 import           Data.Time
 import           Data.Text                     (Text, unpack, append)
@@ -138,7 +139,10 @@ data Video = Video { vidId :: Text
                    , videotitle :: Text
                    , vidThumbnail :: Text
                    , publishedAt :: UTCTime
-                   } deriving (Eq, Ord, Read, Show, Data, Typeable)
+                   } deriving (Eq, Read, Show, Data, Typeable)
+
+instance Ord where
+  (<) = \x,\y -> (publishedAt y) < (publishedAt z)
 
 makeUrlFromId :: Video -> Text
 makeUrlFromId v = append "https://www.youtube.com/watch?v=" (vidId v)
@@ -207,12 +211,8 @@ responseToVideo :: Maybe (YoutubeResponse YoutubeVideo) -> Maybe Video
 responseToVideo Nothing = Nothing
 responseToVideo (Just res) = extractVideo $ head $ items res
     
--- filterVidsForDate :: Data.Time -> [Video] -> [Video]
--- filterVidsForDate date = filter \v -> publishedAt 
-                                      
-
 filterAndSortVids :: UTCTime -> [Video] -> [Video]
-filterAndSortVids t = filter (\v -> (publishedAt v)> t)
+filterAndSortVids t xs = L.sort $ filter (\v -> (publishedAt v)> t) xs
 
 updateVideos :: C.Manager -> AccessToken -> UTCTime -> [Subscription] -> IO [Video]
 updateVideos mgr tk time subs =
