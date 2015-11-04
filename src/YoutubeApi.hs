@@ -141,8 +141,8 @@ data Video = Video { vidId :: Text
                    , publishedAt :: UTCTime
                    } deriving (Eq, Read, Show, Data, Typeable)
 
-instance Ord where
-  (<) = \x,\y -> (publishedAt y) < (publishedAt z)
+instance Ord Video where
+  (<=) = \x -> \y -> (publishedAt x) <= (publishedAt y)
 
 makeUrlFromId :: Video -> Text
 makeUrlFromId v = append "https://www.youtube.com/watch?v=" (vidId v)
