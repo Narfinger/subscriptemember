@@ -106,6 +106,20 @@ decode :: FromJSON a => Either BL.ByteString a -> Maybe a
 decode (Left l) =  Nothing
 decode (Right x) = Just x
 
+
+pagesAppend :: FromJSON (YoutubeResponse a) => (YoutubeResponse a) -> [YoutubeItems a] -> [YoutubeItems a]
+pagesAppend x y = (items x) ++ y
+
+-- check out how i can do this lazyly
+getJSONWithPages :: FromJSON (YoutubeResponse a) => C.Manager -> AccessToken -> String -> Maybe Text -> IO [YoutubeItems a]
+getJSONWithPages _   _     _       Nothing = return []
+getJSONWithPages mgr token url (Just pagetoken) = do
+  let newurl = BC.pack (url ++ "pageToken=" ++ (unpack pagetoken) ::String)
+  firstresp <- (fmap decode) (authGetJSON mgr token newurl :: (FromJSON (YoutubeResponse a) => IO (OAuth2Result (YoutubeResponse a))))
+  let justfirstresp = fromJust firstresp
+  sndresp <- getJSONWithPages mgr token (BC.unpack baseurl) (nextPageToken justfirstresp)
+  return $ pagesAppend justfirstresp sndresp
+  
 -- | returns my subscriptions as a YoutubeResponse YoutubeSubscription
 getSubscriptionsForMe :: C.Manager -> AccessToken -> IO (Maybe (YoutubeResponse YoutubeSubscription))
 getSubscriptionsForMe mgr token =
