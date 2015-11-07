@@ -5,6 +5,7 @@ module HelperFunctions ( firstLetterDown
                        , videoLabelChange
                        , deleteNth
                        , parseGoogleTime
+                       , groupOn
                        ) where
 
 import qualified Data.Char as Char    ( toLower )
@@ -47,3 +48,9 @@ deleteNth i xs =
 
 parseGoogleTime :: T.Text -> TI.UTCTime
 parseGoogleTime t = posixSecondsToUTCTime 1
+
+groupOn :: Int -> [a] -> [[a]]
+groupOn _ [] = []
+groupOn n l
+  | n > 0 = (L.take n l) : (groupOn n (L.drop n l))
+  | otherwise = error "Negative n"

@@ -24,7 +24,7 @@ import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
 import Debug.Trace (trace)
 import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange
-                                 , parseGoogleTime )
+                                 , parseGoogleTime, groupOn )
 
 -- | Base url for asking Youtube questions to google api
 baseurl :: B.ByteString
@@ -93,12 +93,14 @@ textToByteString :: Text -> BC.ByteString
 textToByteString = BC.pack . unpack
 
 -- | constructs query using baseurl and the given bytestring
-constructQuery :: B.ByteString -> B.ByteString
-constructQuery = B.append baseurl
+constructQuery :: BC.ByteString -> BC.ByteString
+constructQuery = BC.append baseurl
 
+constructQueryString :: String -> String
+constructQueryString v = (BC.unpack baseurl) ++ v
 
 -- | this constructs a query with comma separated inputs (comma is %2C in url code)
-constructMultipleQuery :: B.ByteString -> [B.ByteString] -> B.ByteString
+constructMultipleQuery :: BC.ByteString -> [BC.ByteString] -> BC.ByteString
 constructMultipleQuery b list = B.append baseurl $ B.append b $ B.intercalate "%2C" list
 
 -- | shorthand to decode a return from authGetJSON
@@ -110,28 +112,39 @@ decode (Right x) = Just x
 pagesAppend :: FromJSON (YoutubeResponse a) => (YoutubeResponse a) -> [YoutubeItems a] -> [YoutubeItems a]
 pagesAppend x y = (items x) ++ y
 
+getJSON :: FromJSON (YoutubeResponse a) => C.Manager -> AccessToken -> String -> IO (YoutubeResponse a)
+getJSON mgr token url = do
+  let burl = BC.pack url
+  resp <- (fmap decode) (authGetJSON mgr token burl :: (FromJSON (YoutubeResponse a) => IO (OAuth2Result (YoutubeResponse a))))
+  return $ fromJust resp
+
 -- check out how i can do this lazyly
 getJSONWithPages :: FromJSON (YoutubeResponse a) => C.Manager -> AccessToken -> String -> Maybe Text -> IO [YoutubeItems a]
 getJSONWithPages _   _     _       Nothing = return []
 getJSONWithPages mgr token url (Just pagetoken) = do
-  let newurl = BC.pack (url ++ "pageToken=" ++ (unpack pagetoken) ::String)
-  firstresp <- (fmap decode) (authGetJSON mgr token newurl :: (FromJSON (YoutubeResponse a) => IO (OAuth2Result (YoutubeResponse a))))
-  let justfirstresp = fromJust firstresp
-  sndresp <- getJSONWithPages mgr token (BC.unpack baseurl) (nextPageToken justfirstresp)
-  return $ pagesAppend justfirstresp sndresp
+  let newurl = url ++ "&pageToken=" ++ (unpack pagetoken) ::String
+  firstresp <- getJSON mgr token newurl
+  sndresp <- getJSONWithPages mgr token (BC.unpack baseurl) (nextPageToken firstresp)
+  return $ pagesAppend firstresp sndresp
+
+authGetJSONPages :: FromJSON (YoutubeResponse a) => C.Manager -> AccessToken -> String -> IO [YoutubeItems a]
+authGetJSONPages mgr token url = do
+  resp <- getJSON mgr token url
+  (fmap (pagesAppend resp))  $ (getJSONWithPages mgr token url (nextPageToken resp))
   
 -- | returns my subscriptions as a YoutubeResponse YoutubeSubscription
-getSubscriptionsForMe :: C.Manager -> AccessToken -> IO (Maybe (YoutubeResponse YoutubeSubscription))
+getSubscriptionsForMe :: C.Manager -> AccessToken -> IO [YoutubeItems YoutubeSubscription]
 getSubscriptionsForMe mgr token =
-  let url = constructQuery "/subscriptions?&maxResults=50&part=snippet&mine=True" in
-  fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))
+  let url = constructQueryString "/subscriptions?&maxResults=50&part=snippet&mine=True" in
+  authGetJSONPages mgr token url :: (IO [YoutubeItems YoutubeSubscription])
+  --fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))
   
 
 -- | Given subscriptions, returns channel info as YoutubeResponse ContentDetails for all subscriptions in [Subscription] 
 getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse ContentDetails))
 getUploadPlaylistForChannel mgr token channels =
-  let channelids = map (textToByteString . sid) channels in 
-  let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&fields=items&id=" channelids in
+  let channelids = map (textToByteString . sid) (groupOn 50 channels) in
+  let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&id=" channelids in
   (fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse ContentDetails))))
 
 
@@ -181,9 +194,8 @@ constructSubscriptionMaybe x =
 -- collapseMaybeList (Just x) = catMaybes x  
 
 -- | Parses a list of Maybe Youtuberesponse YoutubeSubscription and returns the data parsed into a Subscription list 
-extractSubscriptions :: Maybe (YoutubeResponse YoutubeSubscription) -> [Subscription] 
-extractSubscriptions Nothing = []
-extractSubscriptions (Just x) = mapMaybe constructSubscriptionMaybe (items x)
+extractSubscriptions :: [YoutubeItems YoutubeSubscription] -> [Subscription] 
+extractSubscriptions xs = catMaybes $ map constructSubscriptionMaybe xs
 
 -- | fetch subscriptions and returns them into a list
 updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
