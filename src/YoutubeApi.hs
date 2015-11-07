@@ -6,6 +6,7 @@ module YoutubeApi ( updateSubscriptions
                   , updateVideos
                   , makeUrlFromId
                   , Video(..)      -- these are the general types we use for saving
+                  , channelUrl
                   , Subscription(..) -- same for subscriptions
                   ) where
 
@@ -141,11 +142,11 @@ getSubscriptionsForMe mgr token =
   
 
 -- | Given subscriptions, returns channel info as YoutubeResponse ContentDetails for all subscriptions in [Subscription] 
-getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO (Maybe (YoutubeResponse ContentDetails))
+getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO [Maybe (YoutubeResponse ContentDetails)]
 getUploadPlaylistForChannel mgr token channels =
-  let channelids = map (textToByteString . sid) (groupOn 50 channels) in
-  let url = constructMultipleQuery "/channels?part=contentDetails&maxResults=50&id=" channelids in
-  (fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse ContentDetails))))
+  let channelids = (map . map) (textToByteString . sid) (groupOn 50 channels) in
+  let urls = map (constructMultipleQuery "/channels?part=contentDetails&maxResults=50&id=") channelids in
+  sequence $ map (\xs -> (fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails))))) urls
 
 
 getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Maybe (YoutubeResponse (YoutubeVideo)))
@@ -160,6 +161,9 @@ data Subscription = Subscription { sid :: Text
                                  , uploadPlaylist :: Text
                                  , thumbnail :: Text
                                  } deriving (Eq, Ord, Read, Show, Data, Typeable)
+
+channelUrl :: Subscription -> Text
+channelUrl s = append ("https://www.youtube.com/channel/" ::Text)  (sid s) 
 
 -- | Main Datastructure for storing videos
 data Video = Video { vidId :: Text
@@ -198,11 +202,12 @@ extractSubscriptions :: [YoutubeItems YoutubeSubscription] -> [Subscription]
 extractSubscriptions xs = catMaybes $ map constructSubscriptionMaybe xs
 
 -- | fetch subscriptions and returns them into a list
-updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
+--updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
 updateSubscriptions m tk = do
-  subs <- (fmap extractSubscriptions) (getSubscriptionsForMe m tk)
+  subs <- fmap extractSubscriptions $  getSubscriptionsForMe m tk
   uploadsStuff <- getUploadPlaylistForChannel m tk subs
-  return (extractPlaylist subs uploadsStuff)
+  let groupedSubs = groupOn 50 subs
+  return $ L.concat $ (L.zipWith extractPlaylist groupedSubs uploadsStuff)
    
 
 constructPlaylistIds :: YoutubeItems ContentDetails -> Maybe Text

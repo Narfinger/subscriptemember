@@ -73,28 +73,28 @@ indexPage videos time =
                                                     H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
                                    H.div ! A.class_ "row" $ do
                                      H.a ! A.href  "/upvids" $ do "Update Videos"
-                    
-
-                      
-                      
 
 subtotr :: Subscription -> H.Html
 subtotr s =  H.tr $ do
   H.td $ do H.img ! A.src (H.preEscapedTextValue $ thumbnail s) ! A.width "30" ! A.height "30"
-  H.td $ do H.toHtml $ show $ channelname s
+  H.td $ do H.a ! A.href (H.toValue $ channelUrl s) $ do
+              H.toHtml $ show $ channelname s
   H.td $ do H.toHtml $ show $ sid s
   H.td $ do H.toHtml $ show $ uploadPlaylist s
 
 subPage :: [Subscription] -> H.Html
 subPage s = bodyTemplate $
-            H.table ! A.class_ "table table-striped" $ do
-              H.tr $ do
-                H.th "Icon"
-                H.th "Channel Name"
-                H.th "Channel ID"
-                H.th "Upload Playlist ID"
-              H.tr $ do
-                mapM_ subtotr s
+            H.div ! A.class_ "row" $ do
+              H.p $ H.toHtml $ ("Number of Subscriptions: " ++  (show $ length s))
+              H.div ! A.class_ "row" $ do
+                H.table ! A.class_ "table table-striped" $ do
+                  H.tr $ do
+                    H.th "Icon"
+                    H.th "Channel Name"
+                    H.th "Channel ID"
+                    H.th "Upload Playlist ID"
+                  H.tr $ do
+                    mapM_ subtotr s
 
 subsHandler :: AcidState ServerState -> ServerPartT IO Response
 subsHandler acid  = do
