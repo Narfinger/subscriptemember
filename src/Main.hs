@@ -39,6 +39,13 @@ bodyTemplate body =
           H.h1 "Youtube Subscriptemember"
           body
 
+
+tokenPage :: AccessToken -> H.Html
+tokenPage tk =
+  bodyTemplate $ do
+    H.div ! A.class_ "row" $ do
+      H.toHtml $ show tk
+
 videoTemplate :: (Int, Video) -> H.Html
 videoTemplate (i,v) =
   let deletelink =  "/delete/" ++ (show i) in
@@ -68,11 +75,14 @@ indexPage videos time =
                                        mapM_ videoTemplate vs
                     H.div ! A.class_ "col-md-4" $ do
                                    H.div ! A.class_ "row" $ do
-                                                    H.a ! A.href  "/subs" $ do "See Subscriptions"
+                                     H.a ! A.href  "/subs" $ do "See Subscriptions"
                                    H.div ! A.class_ "row" $ do
-                                                    H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
+                                     H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
                                    H.div ! A.class_ "row" $ do
                                      H.a ! A.href  "/upvids" $ do "Update Videos"
+                                   H.div ! A.class_ "row" $ do
+                                     H.a ! A.href "/token" $ do "See Token"
+                                  
 
 subtotr :: Subscription -> H.Html
 subtotr s =  H.tr $ do
@@ -130,6 +140,10 @@ deleteHandler acid i = do
   update' acid (DeleteVid i)
   seeOther ("/"::String) $ toResponse ()
 
+tokenHandler :: AccessToken -> ServerPartT IO Response
+tokenHandler tk = do
+  ok $ toResponse $ tokenPage tk
+
 indexHandler:: AcidState ServerState  -> ServerPartT IO Response
 indexHandler acid = do
   time <- query' acid GetLastRefreshed
@@ -145,6 +159,7 @@ handlers acid mgr = do
        , dir "subs" $ subsHandler acid
        , dir "upvids" $ upvidsHandler acid mgr jtk
        , dir "delete" $ path $ \i -> deleteHandler acid i
+       , dir "token" $ tokenHandler jtk
        , indexHandler acid
        ]
     
