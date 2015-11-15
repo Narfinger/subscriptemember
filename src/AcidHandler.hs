@@ -120,7 +120,7 @@ newAccessTokenOrRefresh acid = do
   tk <- query' acid GetAccessToken
   case tk of
     Nothing -> (saveNewToken acid)
-    Just x -> return () --refreshAccessToken acid
+    Just x -> refreshAccessToken acid
   return ()
 
 -- | refreshes token
@@ -131,6 +131,7 @@ refreshAccessToken acid = do
   tk <- getRefreshToken mgr otk
   update' acid (WriteAccessToken tk)
   print ("old access: " ++ (show $ expiresIn otk) ++ "  new in: " ++ (show $ expiresIn tk))
+  print $ show tk
   return ()
 
 -- | get token

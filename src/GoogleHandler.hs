@@ -20,10 +20,14 @@ import           Network.OAuth.OAuth2
 googleScopeYoutube :: QueryParams
 googleScopeYoutube = [("scope", "https://www.googleapis.com/auth/youtube.readonly")]
 
+googleAccessOffline :: QueryParams
+googleAccessOffline = [("access_type", "offline")
+                      ,("approval_prompt", "force")]
+
 -- | Setup with google to get new token
 getToken :: C.Manager -> IO AccessToken
 getToken mgr = do
-    BS.putStrLn $ authorizationUrl googleKey `appendQueryParam` googleScopeYoutube
+    BS.putStrLn $ authorizationUrl googleKey `appendQueryParam` (googleScopeYoutube++ googleAccessOffline)
     putStrLn "visit the url and paste code here: "
     code <- fmap BS.pack getLine
     (Right token) <- fetchAccessToken mgr googleKey code
@@ -33,5 +37,5 @@ getRefreshToken :: C.Manager -> AccessToken -> IO AccessToken
 getRefreshToken mgr tk =
   let rtk = fromJust $ refreshToken tk in
   do
-  (Right tk' ) <- fetchRefreshToken mgr googleKey rtk
-  return tk'
+    (Right tk' ) <- fetchRefreshToken mgr googleKey rtk
+    return tk'
