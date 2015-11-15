@@ -31,7 +31,7 @@ bodyTemplate body =
       H.script ! A.src "https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js" $ ""
       H.script ! A.src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" $ ""
       H.meta ! A.httpEquiv "refresh"
-        ! A.content "60"
+        ! A.content "30"
       H.link ! A.rel "stylesheet" ! A.type_ "text/css" ! A.href "style.css"
     H.body $ do
       H.div ! A.class_ "container" $ do
@@ -82,6 +82,8 @@ indexPage videos time =
                                      H.a ! A.href  "/upvids" $ do "Update Videos"
                                    H.div ! A.class_ "row" $ do
                                      H.a ! A.href "/token" $ do "See Token"
+                                   H.div ! A.class_ "row" $ do
+                                     H.a ! A.href "/cleanall" $ do "Delete All Videos"
                                   
 
 subtotr :: Subscription -> H.Html
@@ -144,6 +146,11 @@ tokenHandler :: AccessToken -> ServerPartT IO Response
 tokenHandler tk = do
   ok $ toResponse $ tokenPage tk
 
+cleanAllHandler :: AcidState ServerState -> ServerPartT IO Response
+cleanAllHandler acid = do
+  update' acid DeleteAll
+  seeOther ("/"::String) $ toResponse ()
+
 indexHandler:: AcidState ServerState  -> ServerPartT IO Response
 indexHandler acid = do
   time <- query' acid GetLastRefreshed
@@ -159,6 +166,7 @@ handlers acid mgr = do
        , dir "subs" $ subsHandler acid
        , dir "upvids" $ upvidsHandler acid mgr jtk
        , dir "delete" $ path $ \i -> deleteHandler acid i
+       , dir "cleanall" $ cleanAllHandler acid
        , dir "token" $ tokenHandler jtk
        , indexHandler acid
        ]

@@ -99,8 +99,14 @@ deleteVid i = do
   put $ vs{videos = v }
   return v
 
+deleteAll :: Update ServerState [Video]
+deleteAll = do
+  vs@ServerState{..} <- get
+  put $ vs{videos = []}
+  return []
+
 $(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'updateSubs, 'getSubs, 'getLastRefreshed, 'writeLastRefreshed,
-                            'getVids, 'writeVids, 'deleteVid])
+                            'getVids, 'writeVids, 'deleteVid, 'deleteAll])
 
 -- | helper functions that asks a new token and saves it 
 saveNewToken :: C.Manager -> AcidState ServerState -> IO ()
