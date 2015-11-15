@@ -165,10 +165,10 @@ handlers acid mgr = do
     
 main :: IO ()
 main = do
-  mgr <- C.newManager C.conduitManagerSettings
+  mgr <- C.newManager C.tlsManagerSettings
   bracket (openLocalState initialServerState)
           createCheckpointAndClose
          (\acid -> do 
-              newAccessTokenOrRefresh acid;
+              newAccessTokenOrRefresh mgr acid;
                 simpleHTTP nullConf (handlers acid mgr)            
          )

@@ -103,31 +103,26 @@ $(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'updateSubs, 'ge
                             'getVids, 'writeVids, 'deleteVid])
 
 -- | helper functions that asks a new token and saves it 
-saveNewToken :: AcidState ServerState -> IO ()
-saveNewToken acid = do
-  mgr <- C.newManager C.conduitManagerSettings
+saveNewToken :: C.Manager -> AcidState ServerState -> IO ()
+saveNewToken mgr acid = do
   token <- getToken mgr
-  C.closeManager mgr
   update' acid (WriteAccessToken token)
   return ()
 
 -- | If no token in Acid DB we get a new token
-
-
 -- this is more complicated becuase i think we kill the refresh token or something if we just update it
-newAccessTokenOrRefresh :: AcidState ServerState -> IO ()
-newAccessTokenOrRefresh acid = do
+newAccessTokenOrRefresh :: C.Manager -> AcidState ServerState -> IO ()
+newAccessTokenOrRefresh mgr acid = do
   tk <- query' acid GetAccessToken
   case tk of
-    Nothing -> (saveNewToken acid)
-    Just x -> refreshAccessToken acid
+    Nothing -> saveNewToken mgr acid
+    Just x -> refreshAccessToken mgr acid
   return ()
 
 -- | refreshes token
-refreshAccessToken :: AcidState ServerState -> IO ()
-refreshAccessToken acid = do
-  mgr <- C.newManager C.conduitManagerSettings
-  otk <- (fmap fromJust) $ query' acid GetAccessToken
+refreshAccessToken :: C.Manager -> AcidState ServerState -> IO ()
+refreshAccessToken mgr acid = do
+  otk <- fromJust <$> query' acid GetAccessToken
   tk <- getRefreshToken mgr otk
   update' acid (WriteAccessToken tk)
   print ("old access: " ++ (show $ expiresIn otk) ++ "  new in: " ++ (show $ expiresIn tk))

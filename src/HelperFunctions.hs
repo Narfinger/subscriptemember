@@ -44,7 +44,7 @@ videoLabelChange x = x
 deleteNth :: Int -> [a] -> [a]
 deleteNth i xs =
   let (ys,zs) = L.splitAt i xs in
-  ys ++ (L.tail zs)
+  ys ++ L.tail zs
 
 parseGoogleTime :: T.Text -> TI.UTCTime
 parseGoogleTime t = posixSecondsToUTCTime 1
@@ -52,5 +52,5 @@ parseGoogleTime t = posixSecondsToUTCTime 1
 groupOn :: Int -> [a] -> [[a]]
 groupOn _ [] = []
 groupOn n l
-  | n > 0 = (L.take n l) : (groupOn n (L.drop n l))
+  | n > 0 = L.take n l : (groupOn n (L.drop n l))
   | otherwise = error "Negative n"
