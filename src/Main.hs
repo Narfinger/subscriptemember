@@ -62,10 +62,6 @@ indexPage videos time =
   bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
-                                     "WARNING: 50 YOUTUBE LIMIT IS NOT YET IMPLEMENTED"
-                                   H.div ! A.class_ "row" $ do
-                                     "WARNING: I STILL NEED TO FILTER"
-                                   H.div ! A.class_ "row" $ do
                                      H.toHtml t
                                      H.table ! A.class_ "table table-striped" $ do
                                        H.tr $ do
