@@ -2,7 +2,6 @@
     TypeFamilies, OverloadedStrings #-}
 
 module GoogleHandler ( getToken
-                     , getRefreshToken
                      ) where
 
 import qualified Data.ByteString.Char8         as BS
@@ -32,10 +31,3 @@ getToken mgr = do
     code <- fmap BS.pack getLine
     (Right token) <- fetchAccessToken mgr googleKey code
     return token
-
-getRefreshToken :: C.Manager -> AccessToken -> IO AccessToken
-getRefreshToken mgr tk =
-  let rtk = fromJust $ refreshToken tk in
-  do
-    (Right tk' ) <- fetchRefreshToken mgr googleKey rtk
-    return tk'

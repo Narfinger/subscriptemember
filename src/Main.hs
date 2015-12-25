@@ -9,6 +9,7 @@ import           Control.Monad.Trans
 import           Data.Acid  ( AcidState, openLocalState )
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.Acid.Local      ( createCheckpointAndClose )
+import qualified Data.ByteString as B
 import           Data.Maybe ( fromJust )
 import           Data.Time
 import           Text.Blaze ((!))
@@ -40,11 +41,13 @@ bodyTemplate body =
           body
 
 
-tokenPage :: AccessToken -> H.Html
-tokenPage tk =
+tokenPage :: AccessToken -> B.ByteString -> H.Html
+tokenPage tk rtk =
   bodyTemplate $ do
     H.div ! A.class_ "row" $ do
       H.toHtml $ show tk
+    H.div ! A.class_ "row" $ do
+      H.toHtml $ show rtk
 
 videoTemplate :: (Int, Video) -> H.Html
 videoTemplate (i,v) =
@@ -138,9 +141,9 @@ deleteHandler acid i = do
   update' acid (DeleteVid i)
   seeOther ("/"::String) $ toResponse ()
 
-tokenHandler :: AccessToken -> ServerPartT IO Response
-tokenHandler tk = do
-  ok $ toResponse $ tokenPage tk
+tokenHandler :: AccessToken -> B.ByteString -> ServerPartT IO Response
+tokenHandler tk rtk = do
+  ok $ toResponse $ tokenPage tk rtk
 
 cleanAllHandler :: AcidState ServerState -> ServerPartT IO Response
 cleanAllHandler acid = do
@@ -157,13 +160,15 @@ handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
 handlers acid mgr = do
 --  vs <- acidGetVideos acid
   tk <- acidGetAccessToken acid
+  rtk <- acidGetRefreshToken acid
   let jtk = fromJust tk
+  let jrtk = fromJust rtk
   msum [ dir "subsUp" $ subsAndUpdateHandler acid mgr jtk
        , dir "subs" $ subsHandler acid
        , dir "upvids" $ upvidsHandler acid mgr jtk
        , dir "delete" $ path $ \i -> deleteHandler acid i
        , dir "cleanall" $ cleanAllHandler acid
-       , dir "token" $ tokenHandler jtk
+       , dir "token" $ tokenHandler jtk jrtk
        , indexHandler acid
        ]
     

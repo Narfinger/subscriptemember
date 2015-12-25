@@ -10,8 +10,8 @@ import           Control.Monad.Reader ( ask )
 import           Control.Monad.State  ( get, put )
 import           Control.Monad.Trans
 import           Data.Data            ( Data, Typeable )
-import           Data.Acid            ( AcidState, Query, Update
-                            , makeAcidic )
+import           Data.Acid            ( AcidState, Query, Update, makeAcidic )
+import           Data.ByteString
 import           Data.Maybe
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.SafeCopy        ( base, deriveSafeCopy )
@@ -35,6 +35,7 @@ data ServerState = ServerState { videos :: [Video]
                                , subscriptions :: [Subscription]
                                , lastRefreshed :: UTCTime 
                                , token :: Maybe AccessToken
+                               , rtoken :: Maybe ByteString
                                } deriving (Eq, Ord, Read, Show, Data, Typeable)
                                          
 $(deriveSafeCopy 0 'base ''ServerState)
@@ -44,6 +45,7 @@ initialServerState = ServerState { videos = []
                                  , subscriptions = []
                                  , lastRefreshed =  posixSecondsToUTCTime 0
                                  , token = Nothing
+                                 , rtoken = Nothing
                                  }
 
 
@@ -68,6 +70,17 @@ writeAccessToken :: AccessToken -> Update ServerState AccessToken
 writeAccessToken tk = do
   vs@ServerState{..} <- get
   put $ vs { token = Just tk }
+  return tk
+  
+-- | Acid query of Refresh Token
+getRefreshToken :: Query ServerState (Maybe ByteString)
+getRefreshToken = rtoken <$> ask
+
+-- | Acid update of Refresh Token
+writeRefreshToken :: Maybe ByteString -> Update ServerState (Maybe ByteString)
+writeRefreshToken tk = do
+  vs@ServerState{..} <- get
+  put $ vs { rtoken = tk }
   return tk
 
 -- | Acid query of lastRefreshed
@@ -105,14 +118,15 @@ deleteAll = do
   put $ vs{videos = []}
   return []
 
-$(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'updateSubs, 'getSubs, 'getLastRefreshed, 'writeLastRefreshed,
-                            'getVids, 'writeVids, 'deleteVid, 'deleteAll])
+$(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'getRefreshToken, 'writeRefreshToken, 'updateSubs, 'getSubs, 'getLastRefreshed
+                           ,'writeLastRefreshed,'getVids, 'writeVids, 'deleteVid, 'deleteAll])
 
 -- | helper functions that asks a new token and saves it 
 saveNewToken :: C.Manager -> AcidState ServerState -> IO ()
 saveNewToken mgr acid = do
-  token <- getToken mgr
-  update' acid (WriteAccessToken token)
+  tk <- getToken mgr
+  update' acid (WriteAccessToken tk)
+  update' acid (WriteRefreshToken (refreshToken tk ))
   return ()
 
 -- | If no token in Acid DB we get a new token
@@ -122,19 +136,23 @@ newAccessTokenOrRefresh mgr acid = do
   tk <- query' acid GetAccessToken
   case tk of
     Nothing -> saveNewToken mgr acid
-    Just x -> refreshAccessToken mgr acid
+    Just x -> return ()
+    -- Just x -> refreshAccessToken mgr acid
   return ()
 
 -- | refreshes token
-refreshAccessToken :: C.Manager -> AcidState ServerState -> IO ()
-refreshAccessToken mgr acid = do
-  otk <- fromJust <$> query' acid GetAccessToken
-  tk <- getRefreshToken mgr otk
-  update' acid (WriteAccessToken tk)
-  print ("old access: " ++ (show $ expiresIn otk) ++ "  new in: " ++ (show $ expiresIn tk))
-  print $ show tk
-  return ()
+-- refreshAccessToken :: C.Manager -> AcidState ServerState -> IO ()
+-- refreshAccessToken mgr acid = do
+--   otk <- fromJust <$> query' acid GetAccessToken
+--   tk <- getRefreshToken mgr otk
+--   update' acid (WriteAccessToken tk)
+--   print ("old access: " ++ (show $ expiresIn otk) ++ "  new in: " ++ (show $ expiresIn tk))
+--   print $ show tk
+--   return ()
 
 -- | get token
 acidGetAccessToken :: Control.Monad.Trans.MonadIO m => AcidState ServerState -> m (Maybe AccessToken)
 acidGetAccessToken acid = query' acid GetAccessToken
+
+acidGetRefreshToken :: Control.Monad.Trans.MonadIO m => AcidState ServerState -> m (Maybe ByteString)
+acidGetRefreshToken acid = query' acid GetRefreshToken
