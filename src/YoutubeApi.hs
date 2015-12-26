@@ -148,7 +148,6 @@ getUploadPlaylistForChannel mgr token channels =
   let urls = map (constructMultipleQuery "/channels?part=contentDetails&maxResults=50&id=") channelids in
   mapM (\xs -> (fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails))))) urls
 
-
 getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Maybe (YoutubeResponse YoutubeVideo))
 getPlaylistItemsFromPlaylist mgr token subscription =
    let askvalue = textToByteString $ uploadPlaylist subscription in
@@ -192,11 +191,6 @@ constructSubscriptionMaybe x =
     let n = url $ def $ thumbnails nx in
     Just Subscription {sid = fromJust r, channelname = t, uploadPlaylist="", thumbnail = n}
 
--- | catMaybes lifted to work on a Maybe [a] and returns a [a] which can be empty
--- collapseMaybeList :: Maybe [Maybe a] -> [a]
--- collapseMaybeList Nothing = []
--- collapseMaybeList (Just x) = catMaybes x  
-
 -- | Parses a list of Maybe Youtuberesponse YoutubeSubscription and returns the data parsed into a Subscription list 
 extractSubscriptions :: [YoutubeItems YoutubeSubscription] -> [Subscription] 
 extractSubscriptions xs = mapMaybe constructSubscriptionMaybe xs
@@ -208,15 +202,15 @@ updateSubscriptions m tk = do
   uploadsStuff <- getUploadPlaylistForChannel m tk subs
   let groupedSubs = groupOn 50 subs
   return $ L.concat $ L.zipWith extractPlaylist groupedSubs uploadsStuff
-   
 
+-- | construct playlistid from response
 constructPlaylistIds :: YoutubeItems ContentDetails -> Maybe Text
 constructPlaylistIds x =
   let c = contentDetails x in
   case c of
   Nothing -> Nothing
   Just r -> Just (uploads $ relatedPlaylists r) 
-  
+
 extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse ContentDetails) -> [Subscription]
 extractPlaylist _ Nothing = []
 extractPlaylist subs (Just x) =
@@ -224,7 +218,7 @@ extractPlaylist subs (Just x) =
   let construct id s =  s{uploadPlaylist = id} in 
   zipWith construct ids subs
 
-
+-- | extract video from response
 extractVideo :: YoutubeItems YoutubeVideo -> Maybe Video
 extractVideo item =
   let s = snippet item in
@@ -237,11 +231,11 @@ extractVideo item =
     let valueid = videoId $ vidresourceId snip in
     Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat }
 
-
 responseToVideo :: Maybe (YoutubeResponse YoutubeVideo) -> Maybe Video
 responseToVideo Nothing = Nothing
 responseToVideo (Just res) = extractVideo $ head $ items res
-    
+
+-- this is wrong
 filterAndSortVids :: UTCTime -> [Video] -> [Video]
 filterAndSortVids t xs = L.sort $ filter (\v -> publishedAt v > t) xs
 

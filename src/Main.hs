@@ -19,6 +19,7 @@ import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
                                       , nullConf, ok, seeOther, path
                                       , simpleHTTP, toResponse )
 import           AcidHandler
+import           HelperFunctions
 import           YoutubeApi
 import           Network.OAuth.OAuth2
 import qualified Network.HTTP.Conduit as C
@@ -55,6 +56,7 @@ videoTemplate (i,v) =
   H.tr $ do
     H.td $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)
     H.td $ do H.toHtml $ videotitle v
+    H.td $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
     H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeUrlFromId v) $ do "Play"
     H.td $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete" 
 

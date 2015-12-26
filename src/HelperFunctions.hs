@@ -5,6 +5,7 @@ module HelperFunctions ( firstLetterDown
                        , videoLabelChange
                        , deleteNth
                        , parseGoogleTime
+                       , ourPrettyPrintTime
                        , groupOn
                        ) where
 
@@ -33,6 +34,7 @@ subscriptionLabelChange :: String -> String
 subscriptionLabelChange "subscriptiontitle" = "title"
 subscriptionLabelChange x = x
 
+-- | mapping labelchanges for video
 videoLabelChange :: String -> String
 videoLabelChange "vidthumbnails" = "thumbnails"
 videoLabelChange "vidresourceId" = "resourceId"
@@ -41,13 +43,25 @@ videoLabelChange "vidtitle" = "title"
 videoLabelChange x = x
 
 
+-- | removes the nth element of a list
 deleteNth :: Int -> [a] -> [a]
 deleteNth i xs =
   let (ys,zs) = L.splitAt i xs in
   ys ++ L.tail zs
 
+-- | rfc3339 format string because I could not find it in the default library.
+-- | This is an approximation of the real format because i don't quite understand it
+-- | example date: 2015-11-08T20:10:43.000Z
+rfc3339TimeFormat :: String
+rfc3339TimeFormat = "%Y-%m-%dT%H:%M:%S.000Z"
+
+-- | parse from text to UTCTime as the google format
 parseGoogleTime :: T.Text -> TI.UTCTime
-parseGoogleTime t = posixSecondsToUTCTime 1
+parseGoogleTime t = TI.parseTimeOrError True TI.defaultTimeLocale rfc3339TimeFormat (unpack t)
+
+-- | format the time for our thing
+ourPrettyPrintTime :: TI.UTCTime -> String
+ourPrettyPrintTime = TI.formatTime TI.defaultTimeLocale "%m-%d - %H:%M"
 
 groupOn :: Int -> [a] -> [[a]]
 groupOn _ [] = []
