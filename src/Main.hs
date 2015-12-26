@@ -179,5 +179,7 @@ main = do
           createCheckpointAndClose
          (\acid -> do 
               newAccessTokenOrRefresh mgr acid;
+              print "Token found, doing refresh token";
+              refreshAccessToken mgr acid;
                 simpleHTTP nullConf (handlers acid mgr)            
          )

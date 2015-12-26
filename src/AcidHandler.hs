@@ -140,15 +140,13 @@ newAccessTokenOrRefresh mgr acid = do
     -- Just x -> refreshAccessToken mgr acid
   return ()
 
--- | refreshes token
--- refreshAccessToken :: C.Manager -> AcidState ServerState -> IO ()
--- refreshAccessToken mgr acid = do
---   otk <- fromJust <$> query' acid GetAccessToken
---   tk <- getRefreshToken mgr otk
---   update' acid (WriteAccessToken tk)
---   print ("old access: " ++ (show $ expiresIn otk) ++ "  new in: " ++ (show $ expiresIn tk))
---   print $ show tk
---   return ()
+-- | refreshes Token
+refreshAccessToken :: C.Manager -> AcidState ServerState -> IO ()
+refreshAccessToken mgr acid = do
+  rtk <- fromJust <$> query' acid GetRefreshToken
+  tk <- getNewAccessTokenFromRefreshToken rtk mgr
+  update' acid (WriteAccessToken tk)
+  return ()
 
 -- | get token
 acidGetAccessToken :: Control.Monad.Trans.MonadIO m => AcidState ServerState -> m (Maybe AccessToken)

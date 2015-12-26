@@ -2,6 +2,7 @@
     TypeFamilies, OverloadedStrings #-}
 
 module GoogleHandler ( getToken
+                     , getNewAccessTokenFromRefreshToken
                      ) where
 
 import qualified Data.ByteString.Char8         as BS
@@ -31,3 +32,14 @@ getToken mgr = do
     code <- fmap BS.pack getLine
     (Right token) <- fetchAccessToken mgr googleKey code
     return token
+
+
+-- | Refresh the Token
+getNewAccessTokenFromRefreshToken :: BS.ByteString -> C.Manager -> IO AccessToken
+getNewAccessTokenFromRefreshToken rtk mgr = do
+  let body = [("grant_type", "refresh_token")
+             ,("refresh_token", rtk)]
+             -- the idea is that we need to put a bunch of things into the post request that come from the oauth stuff
+  (Right token) <- doJSONPostRequest mgr googleKey "https://www.googleapis.com/oauth2/v3/token" body
+  print token
+  return token
