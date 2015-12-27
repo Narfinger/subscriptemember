@@ -235,7 +235,7 @@ responseToVideo :: Maybe (YoutubeResponse YoutubeVideo) -> Maybe Video
 responseToVideo Nothing = Nothing
 responseToVideo (Just res) = extractVideo $ head $ items res
 
--- this is wrong
+-- | Filter Videos according to time
 filterAndSortVids :: UTCTime -> [Video] -> [Video]
 filterAndSortVids t xs = L.sort $ filter (\v -> publishedAt v > t) xs
 
@@ -244,5 +244,16 @@ updateVideos mgr tk time subs =
   let fn =  filterAndSortVids time . catMaybes in
   fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs
 
+-- | get Video details for all video in list
+getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse ContentDetails)]
+getVideoDetails mgr token videos =
+  let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
+  let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
+  mapM (\xs -> (fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails))))) urls
 
 
+-- updateVideosWithTime :: C.Manager -> AccessToken -> [Video] -> [Video]
+-- updateVideosWithTime m tk videos = do
+--   extractVideoRuntime <$> getVideoDetails mgr tk videos
+--   L.zipWith 
+  

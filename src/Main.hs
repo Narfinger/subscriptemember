@@ -40,6 +40,7 @@ bodyTemplate body =
         H.div ! A.class_ "row" $ do
           H.h1 $ do
             H.a ! A.href "/" $ do "Youtube Subscriptemember"
+          H.h3 "uploadids are not correctly given to channels"
           body
 
 tokenPage :: AccessToken -> B.ByteString -> H.Html
