@@ -38,9 +38,9 @@ bodyTemplate body =
     H.body $ do
       H.div ! A.class_ "container" $ do
         H.div ! A.class_ "row" $ do
-          H.h1 "Youtube Subscriptemember"
+          H.h1 $ do
+            H.a ! A.href "/" $ do "Youtube Subscriptemember"
           body
-
 
 tokenPage :: AccessToken -> B.ByteString -> H.Html
 tokenPage tk rtk =
