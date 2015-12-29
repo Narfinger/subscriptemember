@@ -203,7 +203,7 @@ updateSubscriptions m tk = do
   let groupedSubs = groupOn 50 subs
   return $ L.concat $ L.zipWith extractPlaylist groupedSubs uploadsStuff
 
--- | construct playlistid from response
+-- | Construct playlistid from response
 constructPlaylistIds :: YoutubeItems ContentDetails -> Maybe Text
 constructPlaylistIds x =
   let c = contentDetails x in
@@ -211,12 +211,18 @@ constructPlaylistIds x =
   Nothing -> Nothing
   Just r -> Just (uploads $ relatedPlaylists r) 
 
+-- | Given a list of subscriptions and a youtube response for this, update the subscription with the uploadPlaylist ids
+-- | At the moment this is pretty dumb because we just zip it
 extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse ContentDetails) -> [Subscription]
-extractPlaylist _ Nothing = []
-extractPlaylist subs (Just x) =
-  let ids = mapMaybe constructPlaylistIds (items x) in
-  let construct id s =  s{uploadPlaylist = id} in 
-  zipWith construct ids subs
+extractPlaylist [] cd = []
+extractPlaylist xs Nothing = []
+extractPlaylist (x:xs) (Just cd) = 
+  let elem = L.find (\y -> (YoutubeApi.id y) == (sid x)) (items cd) in
+  case elem of
+  Nothing -> []
+  Just el -> 
+    let i = constructPlaylistIds el  in
+    x{uploadPlaylist = fromJust i} : (extractPlaylist xs (Just cd))
 
 -- | extract video from response
 extractVideo :: YoutubeItems YoutubeVideo -> Maybe Video
