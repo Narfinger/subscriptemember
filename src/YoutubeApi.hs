@@ -98,7 +98,7 @@ constructQuery :: BC.ByteString -> BC.ByteString
 constructQuery = BC.append baseurl
 
 constructQueryString :: String -> String
-constructQueryString v = (BC.unpack baseurl) ++ v
+constructQueryString v = BC.unpack baseurl ++ v
 
 -- | this constructs a query with comma separated inputs (comma is %2C in url code)
 constructMultipleQuery :: BC.ByteString -> [BC.ByteString] -> BC.ByteString
@@ -131,7 +131,7 @@ getJSONWithPages mgr token url (Just pagetoken) = do
 authGetJSONPages :: FromJSON (YoutubeResponse a) => C.Manager -> AccessToken -> String -> IO [YoutubeItems a]
 authGetJSONPages mgr token url = do
   resp <- getJSON mgr token url
-  pagesAppend resp <$> (getJSONWithPages mgr token url (nextPageToken resp))
+  pagesAppend resp <$> getJSONWithPages mgr token url (nextPageToken resp)
   
 -- | returns my subscriptions as a YoutubeResponse YoutubeSubscription
 getSubscriptionsForMe :: C.Manager -> AccessToken -> IO [YoutubeItems YoutubeSubscription]
@@ -146,7 +146,7 @@ getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO 
 getUploadPlaylistForChannel mgr token channels =
   let channelids = (map . map) (textToByteString . sid) (groupOn 50 channels) in
   let urls = map (constructMultipleQuery "/channels?part=contentDetails&maxResults=50&id=") channelids in
-  mapM (\xs -> (fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails))))) urls
+  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails)))) urls
 
 getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Maybe (YoutubeResponse YoutubeVideo))
 getPlaylistItemsFromPlaylist mgr token subscription =
@@ -172,7 +172,7 @@ data Video = Video { vidId :: Text
                    } deriving (Eq, Read, Show, Data, Typeable)
 
 instance Ord Video where
-  x<= y = publishedAt x <= (publishedAt y)
+  x<= y = publishedAt x <= publishedAt y
 
 makeUrlFromId :: Video -> Text
 makeUrlFromId v = append "https://www.youtube.com/watch?v=" (vidId v)
@@ -193,7 +193,7 @@ constructSubscriptionMaybe x =
 
 -- | Parses a list of Maybe Youtuberesponse YoutubeSubscription and returns the data parsed into a Subscription list 
 extractSubscriptions :: [YoutubeItems YoutubeSubscription] -> [Subscription] 
-extractSubscriptions xs = mapMaybe constructSubscriptionMaybe xs
+extractSubscriptions = mapMaybe constructSubscriptionMaybe
 
 -- | fetch subscriptions and returns them into a list
 --updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
@@ -212,18 +212,17 @@ constructPlaylistIds x =
   Just r -> Just (uploads $ relatedPlaylists r) 
 
 -- | Given a list of subscriptions and a youtube response for this, update the subscription with the uploadPlaylist ids
--- | At the moment this is pretty dumb because we just zip it
 extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse ContentDetails) -> [Subscription]
 extractPlaylist [] cd = []
 extractPlaylist xs Nothing = []
 extractPlaylist (x:xs) (Just cd) = 
-  let elem = L.find (\y -> (YoutubeApi.id y) == (sid x)) (items cd) in
+  let elem = L.find (\y -> YoutubeApi.id y == sid x) (items cd) in
   case elem of
   Nothing -> []
   Just el -> 
     let i = constructPlaylistIds el  in
-    x{uploadPlaylist = fromJust i} : (extractPlaylist xs (Just cd))
-
+    x{uploadPlaylist = fromJust i} : extractPlaylist xs (Just cd)
+    
 -- | extract video from response
 extractVideo :: YoutubeItems YoutubeVideo -> Maybe Video
 extractVideo item =
@@ -255,7 +254,7 @@ getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResp
 getVideoDetails mgr token videos =
   let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
   let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
-  mapM (\xs -> (fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails))))) urls
+  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails)))) urls
 
 
 -- updateVideosWithTime :: C.Manager -> AccessToken -> [Video] -> [Video]
