@@ -20,7 +20,9 @@ import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
                                       , simpleHTTP, toResponse )
 import           AcidHandler
 import           HelperFunctions
-import           YoutubeApi
+import           YoutubeApiBase
+import           YoutubeApiSubscriptions
+import           YoutubeApiVideos
 import           Network.OAuth.OAuth2
 import qualified Network.HTTP.Conduit as C
 

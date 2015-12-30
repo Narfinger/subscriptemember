@@ -21,7 +21,7 @@ import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
 import           HelperFunctions ( deleteNth )
 import GoogleHandler
-import YoutubeApi
+import YoutubeApiBase
 
 
 deriving instance Eq AccessToken
