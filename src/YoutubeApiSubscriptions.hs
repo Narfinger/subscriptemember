@@ -1,6 +1,5 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts,
-  GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell,
-  TypeFamilies, RecordWildCards, StandaloneDeriving, OverloadedStrings #-}
+{-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
+    TypeFamilies, OverloadedStrings #-}
 
 module YoutubeApiSubscriptions ( updateSubscriptions
                                ) where

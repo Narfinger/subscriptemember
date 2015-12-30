@@ -2,7 +2,19 @@
   GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell,
   TypeFamilies, RecordWildCards, StandaloneDeriving, OverloadedStrings #-}
 
-module YoutubeApiBase  where
+module YoutubeApiBase (PageInfo
+                      , YoutubeResponse
+                      , YoutubeItems
+                      , YoutubeThumbnails
+                      , YoutubeURL
+                      , YoutubeSubscription
+                      , YoutubeResource
+                      , ContentDetails
+                      , RelatedPlaylists
+                      , YoutubeVideo
+                      , constructQueryString
+                      , Subscription(..)
+                      , Video(..))  where
 
 import           Data.Aeson                    (FromJSON)
 import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier, constructorTagModifier )
