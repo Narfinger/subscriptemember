@@ -20,6 +20,7 @@ import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subsc
                                  , parseGoogleTime, groupOn )
 import YoutubeApiBase
 
+-- | JSON query to get playlist items from a subscriptions (not batched)
 getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Maybe (YoutubeResponse YoutubeVideo))
 getPlaylistItemsFromPlaylist mgr token subscription =
    let askvalue = textToByteString $ uploadPlaylist subscription in
@@ -39,6 +40,7 @@ extractVideo item =
     let valueid = videoId $ vidresourceId snip in
     Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat }
 
+-- | Transofmrs a single response to a maybe video using extractVideo
 responseToVideo :: Maybe (YoutubeResponse YoutubeVideo) -> Maybe Video
 responseToVideo Nothing = Nothing
 responseToVideo (Just res) = extractVideo $ head $ items res
@@ -47,6 +49,7 @@ responseToVideo (Just res) = extractVideo $ head $ items res
 filterAndSortVids :: UTCTime -> [Video] -> [Video]
 filterAndSortVids t xs = L.sort $ filter (\v -> publishedAt v > t) xs
 
+-- | Main function that gets called to get the current videos
 updateVideos :: C.Manager -> AccessToken -> UTCTime -> [Subscription] -> IO [Video]
 updateVideos mgr tk time subs =
   let fn =  filterAndSortVids time . catMaybes in
