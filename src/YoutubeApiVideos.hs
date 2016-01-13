@@ -41,9 +41,10 @@ extractVideo item =
     Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat }
 
 -- | Transofmrs a single response to a maybe video using extractVideo
-responseToVideo :: Maybe (YoutubeResponse YoutubeVideo) -> Maybe Video
-responseToVideo Nothing = Nothing
-responseToVideo (Just res) = extractVideo $ head $ items res
+responseToVideo :: Maybe (YoutubeResponse YoutubeVideo) -> [Video]
+responseToVideo Nothing = []
+responseToVideo (Just res) = catMaybes $ map extractVideo $ items res
+--responseToVideo (Just res) = extractVideo $ head $ items res
 
 -- | Filter Videos according to time
 filterAndSortVids :: UTCTime -> [Video] -> [Video]
@@ -52,7 +53,7 @@ filterAndSortVids t xs = L.sort $ filter (\v -> publishedAt v > t) xs
 -- | Main function that gets called to get the current videos
 updateVideos :: C.Manager -> AccessToken -> UTCTime -> [Subscription] -> IO [Video]
 updateVideos mgr tk time subs =
-  let fn =  filterAndSortVids time . catMaybes in
+  let fn =  filterAndSortVids time . concat in
   fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs
 
 -- | get Video details for all video in list
