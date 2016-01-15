@@ -43,6 +43,7 @@ bodyTemplate body =
           H.h1 $ do
             H.a ! A.href "/" $ do "Youtube Subscriptemember"
           H.h3 "uploadids are not correctly given to channels"
+          H.h3 "allow adding youtube urls"
           body
 
 tokenPage :: AccessToken -> B.ByteString -> H.Html
@@ -61,7 +62,7 @@ videoTemplate (i,v) =
     H.td $ do H.toHtml $ videotitle v
     H.td $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
     H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeUrlFromId v) $ do "Play"
-    H.td $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete" 
+    H.td $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete"
 
 indexPage :: [Video] -> UTCTime -> H.Html
 indexPage videos time =
