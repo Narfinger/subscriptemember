@@ -70,25 +70,30 @@ indexPage videos time =
       vs = zip [0,1..] videos in
   bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
-                                   H.div ! A.class_ "row" $ do
-                                     H.toHtml t
-                                     H.table ! A.class_ "table table-striped" $ do
-                                       H.tr $ do
-                                         H.th "Thumbnail"
-                                         H.th "Title"
-                                         H.th "PlayButton"
-                                       mapM_ videoTemplate vs
-                    H.div ! A.class_ "col-md-4" $ do
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href  "/subs" $ do "See Subscriptions"
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href  "/upvids" $ do "Update Videos"
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href "/token" $ do "See Token"
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href "/cleanall" $ do "Delete All Videos"
+                      H.div ! A.class_ "row" $ do
+                        "Add Youtube Url"
+                        H.form ! A.action "add" $ do
+                          H.input ! A.type_ "text" ! A.name "link"
+                          H.input ! A.type_ "submit" ! A.value "Add"
+                        H.div ! A.class_ "row" $ do
+                          H.toHtml t
+                          H.table ! A.class_ "table table-striped" $ do
+                            H.tr $ do
+                              H.th "Thumbnail"
+                              H.th "Title"
+                              H.th "PlayButton"
+                            mapM_ videoTemplate vs
+                      H.div ! A.class_ "col-md-4" $ do
+                        H.div ! A.class_ "row" $ do
+                          H.a ! A.href  "/subs" $ do "See Subscriptions"
+                          H.div ! A.class_ "row" $ do
+                            H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
+                          H.div ! A.class_ "row" $ do
+                            H.a ! A.href  "/upvids" $ do "Update Videos"
+                          H.div ! A.class_ "row" $ do
+                            H.a ! A.href "/token" $ do "See Token"
+                          H.div ! A.class_ "row" $ do
+                            H.a ! A.href "/cleanall" $ do "Delete All Videos"
                                   
 
 subtotr :: Subscription -> H.Html
@@ -147,6 +152,11 @@ deleteHandler acid i = do
   update' acid (DeleteVid i)
   seeOther ("/"::String) $ toResponse ()
 
+addLinkHandler :: AcidState ServerState -> String -> ServerPartT IO Response
+addLinkHandler acid s = do
+  update' acid (AddLink s)
+  seeOther ("/"::String) $ toResponse ()
+
 tokenHandler :: AccessToken -> B.ByteString -> ServerPartT IO Response
 tokenHandler tk rtk = do
   ok $ toResponse $ tokenPage tk rtk
@@ -173,6 +183,7 @@ handlers acid mgr = do
        , dir "subs" $ subsHandler acid
        , dir "upvids" $ upvidsHandler acid mgr jtk
        , dir "delete" $ path $ \i -> deleteHandler acid i
+       , dir "add"    $ path $ \s -> addLinkHandler acid s
        , dir "cleanall" $ cleanAllHandler acid
        , dir "token" $ tokenHandler jtk jrtk
        , indexHandler acid
