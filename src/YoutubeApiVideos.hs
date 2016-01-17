@@ -1,7 +1,8 @@
 {-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
     TypeFamilies, OverloadedStrings #-}
 module YoutubeApiVideos (updateVideos
-                        , makeUrlFromId) where
+                        , makeUrlFromId
+                        , addLink) where
 
 import           Data.Aeson                    (FromJSON)
 import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier, constructorTagModifier )
@@ -13,7 +14,7 @@ import           Data.Maybe
 import qualified Data.List                         as L
 import           Data.SafeCopy        ( base, deriveSafeCopy )
 import           Data.Time
-import           Data.Text                     (Text, unpack, append)
+import           Data.Text                     (Text, unpack, append, takeEnd)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
 import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange
@@ -69,3 +70,11 @@ getVideoDetails mgr token videos =
 --   extractVideoRuntime <$> getVideoDetails mgr tk videos
 --   L.zipWith 
   
+
+-- example youtube url: https://www.youtube.com/watch?v=
+addLink :: Text -> IO [Video]
+addLink s =
+  let v = Video { vidId = takeEnd 32 s } in
+  do
+    vn <- getVideoDetails v;
+    return vn
