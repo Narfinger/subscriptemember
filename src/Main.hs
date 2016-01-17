@@ -69,31 +69,30 @@ indexPage videos time =
   let t = formatTime defaultTimeLocale "Last Refreshed: %k:%M:%S %e.%m" time
       vs = zip [0,1..] videos in
   bodyTemplate $ do
-                    H.div ! A.class_ "col-md-8" $ do
-                      H.div ! A.class_ "row" $ do
-                        "Add Youtube Url"
-                        H.form ! A.action "add" $ do
-                          H.input ! A.type_ "text" ! A.name "link"
-                          H.input ! A.type_ "submit" ! A.value "Add"
-                        H.div ! A.class_ "row" $ do
-                          H.toHtml t
-                          H.table ! A.class_ "table table-striped" $ do
-                            H.tr $ do
-                              H.th "Thumbnail"
-                              H.th "Title"
-                              H.th "PlayButton"
-                            mapM_ videoTemplate vs
-                      H.div ! A.class_ "col-md-4" $ do
-                        H.div ! A.class_ "row" $ do
-                          H.a ! A.href  "/subs" $ do "See Subscriptions"
-                          H.div ! A.class_ "row" $ do
-                            H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
-                          H.div ! A.class_ "row" $ do
-                            H.a ! A.href  "/upvids" $ do "Update Videos"
-                          H.div ! A.class_ "row" $ do
-                            H.a ! A.href "/token" $ do "See Token"
-                          H.div ! A.class_ "row" $ do
-                            H.a ! A.href "/cleanall" $ do "Delete All Videos"
+    H.div ! A.class_ "col-md-8" $ do
+      H.div ! A.class_ "row" $ do
+        H.toHtml t
+        H.table ! A.class_ "table table-striped" $ do
+          H.tr $ do
+            H.th "Thumbnail"
+            H.th "Title"
+            H.th "PlayButton"
+          mapM_ videoTemplate vs
+    H.div ! A.class_ "col-md-4" $ do
+      H.div ! A.class_ "row" $ do
+        H.form ! A.action "add" $ do
+          H.input ! A.type_ "text" ! A.name "link" ! A.placeholder "Add Video"
+          H.input ! A.type_ "submit" ! A.value "Add"
+      H.div ! A.class_ "row" $ do
+        H.a ! A.href  "/subs" $ do "See Subscriptions"
+      H.div ! A.class_ "row" $ do
+        H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
+      H.div ! A.class_ "row" $ do
+        H.a ! A.href  "/upvids" $ do "Update Videos"
+      H.div ! A.class_ "row" $ do
+        H.a ! A.href "/token" $ do "See Token"
+      H.div ! A.class_ "row" $ do
+        H.a ! A.href "/cleanall" $ do "Delete All Videos"
                                   
 
 subtotr :: Subscription -> H.Html
