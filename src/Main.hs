@@ -151,10 +151,10 @@ deleteHandler acid i = do
   update' acid (DeleteVid i)
   seeOther ("/"::String) $ toResponse ()
 
-addLinkHandler :: AcidState ServerState -> String -> ServerPartT IO Response
-addLinkHandler acid s = do
+addLinkHandler :: AcidState ServerState -> C.Manager -> AccessToken -> String -> ServerPartT IO Response
+addLinkHandler acid mgr tk s = do
   vids <- query' acid GetVids
-  v <- addLink mgr tk; 
+  v <- addLink mgr tk s; 
   update' acid (WriteVids (v:vids)) 
   seeOther ("/"::String) $ toResponse ()
 
@@ -184,7 +184,7 @@ handlers acid mgr = do
        , dir "subs" $ subsHandler acid
        , dir "upvids" $ upvidsHandler acid mgr jtk
        , dir "delete" $ path $ \i -> deleteHandler acid i
-       , dir "add"    $ path $ \s -> addLinkHandler acid s
+       , dir "add"    $ path $ \s -> addLinkHandler acid mgr jtk s
        , dir "cleanall" $ cleanAllHandler acid
        , dir "token" $ tokenHandler jtk jrtk
        , indexHandler acid

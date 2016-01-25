@@ -58,22 +58,19 @@ updateVideos mgr tk time subs =
   fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs
 
 -- | get Video details for all video in list
-getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse ContentDetails)]
+getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse YoutubeVideo)]
 getVideoDetails mgr token videos =
   let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
   let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
-  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails)))) urls
-
+  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse YoutubeVideo)))) urls
 
 -- updateVideosWithTime :: C.Manager -> AccessToken -> [Video] -> [Video]
 -- updateVideosWithTime m tk videos = do
 --   extractVideoRuntime <$> getVideoDetails mgr tk videos
 --   L.zipWith 
-  
-
+ 
 -- example youtube url: https://www.youtube.com/watch?v=
 addLink :: C.Manager -> AccessToken -> Text -> IO Video
 addLink mgr tk s =
   let v = Video { vidId = takeEnd 32 s } in
-  do
-    head $ head $ mapM (responseToVideo) (getVideoDetails mgr tk [v])
+  head <$> head <$> (fmap $ (map responseToVideo)) (getVideoDetails mgr tk [v])
