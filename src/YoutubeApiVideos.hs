@@ -72,9 +72,8 @@ getVideoDetails mgr token videos =
   
 
 -- example youtube url: https://www.youtube.com/watch?v=
-addLink :: Text -> IO [Video]
-addLink s =
+addLink :: C.Manager -> AccessToken -> Text -> IO Video
+addLink mgr tk s =
   let v = Video { vidId = takeEnd 32 s } in
   do
-    vn <- getVideoDetails v;
-    return vn
+    head $ head $ mapM (responseToVideo) (getVideoDetails mgr tk [v])

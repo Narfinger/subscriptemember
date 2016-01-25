@@ -153,7 +153,9 @@ deleteHandler acid i = do
 
 addLinkHandler :: AcidState ServerState -> String -> ServerPartT IO Response
 addLinkHandler acid s = do
-  update' acid (AddLink s)
+  vids <- query' acid GetVids
+  v <- addLink mgr tk; 
+  update' acid (WriteVids (v:vids)) 
   seeOther ("/"::String) $ toResponse ()
 
 tokenHandler :: AccessToken -> B.ByteString -> ServerPartT IO Response
