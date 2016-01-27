@@ -14,7 +14,7 @@ import           Data.Maybe
 import qualified Data.List                         as L
 import           Data.SafeCopy        ( base, deriveSafeCopy )
 import           Data.Time
-import           Data.Text                     (Text, unpack, append, takeEnd)
+import           Data.Text                     (Text, unpack, pack, append, takeEnd)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
 import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange
@@ -68,9 +68,13 @@ getVideoDetails mgr token videos =
 -- updateVideosWithTime m tk videos = do
 --   extractVideoRuntime <$> getVideoDetails mgr tk videos
 --   L.zipWith 
- 
+
+
+
+  
 -- example youtube url: https://www.youtube.com/watch?v=
-addLink :: C.Manager -> AccessToken -> Text -> IO Video
+addLink :: C.Manager -> AccessToken -> String -> IO Video
 addLink mgr tk s =
-  let v = Video { vidId = takeEnd 32 s } in
+  let st = pack s in
+  let v = Video { vidId = takeEnd 32 st } in
   head <$> head <$> (fmap $ (map responseToVideo)) (getVideoDetails mgr tk [v])

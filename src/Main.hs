@@ -80,7 +80,7 @@ indexPage videos time =
           mapM_ videoTemplate vs
     H.div ! A.class_ "col-md-4" $ do
       H.div ! A.class_ "row" $ do
-        H.form ! A.action "add" $ do
+        H.form ! A.action "add" ! A.method "GET" $ do
           H.input ! A.type_ "text" ! A.name "link" ! A.placeholder "Add Video"
           H.input ! A.type_ "submit" ! A.value "Add"
       H.div ! A.class_ "row" $ do
@@ -153,10 +153,12 @@ deleteHandler acid i = do
 
 addLinkHandler :: AcidState ServerState -> C.Manager -> AccessToken -> String -> ServerPartT IO Response
 addLinkHandler acid mgr tk s = do
+  liftIO $ putStrLn $ show s
   vids <- query' acid GetVids
-  v <- addLink mgr tk s; 
+  v <- liftIO (addLink mgr tk s)
+  liftIO $ putStrLn $ show v
   update' acid (WriteVids (v:vids)) 
-  seeOther ("/"::String) $ toResponse ()
+  seeOther ("/blubber"::String) $ toResponse ()
 
 tokenHandler :: AccessToken -> B.ByteString -> ServerPartT IO Response
 tokenHandler tk rtk = do
