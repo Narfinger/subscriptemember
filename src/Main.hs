@@ -17,7 +17,7 @@ import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
                                       , nullConf, ok, seeOther, path
-                                      , simpleHTTP, toResponse )
+                                      , simpleHTTP, toResponse, look )
 import           AcidHandler
 import           HelperFunctions
 import           YoutubeApiBase
@@ -151,8 +151,9 @@ deleteHandler acid i = do
   update' acid (DeleteVid i)
   seeOther ("/"::String) $ toResponse ()
 
-addLinkHandler :: AcidState ServerState -> C.Manager -> AccessToken -> String -> ServerPartT IO Response
-addLinkHandler acid mgr tk s = do
+addLinkHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
+addLinkHandler acid mgr tk = do
+  s <- look "link"
   liftIO $ putStrLn $ show s
   vids <- query' acid GetVids
   v <- liftIO (addLink mgr tk s)
@@ -186,7 +187,7 @@ handlers acid mgr = do
        , dir "subs" $ subsHandler acid
        , dir "upvids" $ upvidsHandler acid mgr jtk
        , dir "delete" $ path $ \i -> deleteHandler acid i
-       , dir "add"    $ path $ \s -> addLinkHandler acid mgr jtk s
+       , dir "add"    $ addLinkHandler acid mgr jtk
        , dir "cleanall" $ cleanAllHandler acid
        , dir "token" $ tokenHandler jtk jrtk
        , indexHandler acid
