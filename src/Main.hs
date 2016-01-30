@@ -35,7 +35,7 @@ bodyTemplate body =
       H.script ! A.src "https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js" $ ""
       H.script ! A.src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" $ ""
       H.meta ! A.httpEquiv "refresh"
-        ! A.content "30"
+        ! A.content "120"
       H.link ! A.rel "stylesheet" ! A.type_ "text/css" ! A.href "style.css"
     H.body $ do
       H.div ! A.class_ "container" $ do
