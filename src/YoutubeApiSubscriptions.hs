@@ -44,7 +44,7 @@ extractSubscriptions :: [YoutubeItems YoutubeSubscription] -> [Subscription]
 extractSubscriptions = mapMaybe constructSubscriptionMaybe
 
 -- | fetch subscriptions and returns them into a list
---updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
+updateSubscriptions :: C.Manager -> AccessToken -> IO [Subscription]
 updateSubscriptions m tk = do
   subs <- extractSubscriptions <$> getSubscriptionsForMe m tk
   uploadsStuff <- getUploadPlaylistForChannel m tk subs

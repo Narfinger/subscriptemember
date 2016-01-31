@@ -88,6 +88,8 @@ indexPage videos time =
                                    H.div ! A.class_ "row" $ do
                                      H.a ! A.href "/token" $ do "See Token"
                                    H.div ! A.class_ "row" $ do
+                                     H.a ! A.href "/tokenrefresh" $ do "Refresh Token"
+                                   H.div ! A.class_ "row" $ do
                                      H.a ! A.href "/cleanall" $ do "Delete All Videos"
                                   
 
@@ -147,6 +149,11 @@ deleteHandler acid i = do
   update' acid (DeleteVid i)
   seeOther ("/"::String) $ toResponse ()
 
+tokenRefreshHandler :: AcidState ServerState -> C.Manager -> ServerPartT IO Response
+tokenRefreshHandler acid mgr = do
+  lift (refreshAccessToken mgr acid);
+  seeOther ("/"::String) $ toResponse () 
+
 tokenHandler :: AccessToken -> B.ByteString -> ServerPartT IO Response
 tokenHandler tk rtk = do
   ok $ toResponse $ tokenPage tk rtk
@@ -174,6 +181,7 @@ handlers acid mgr = do
        , dir "upvids" $ upvidsHandler acid mgr jtk
        , dir "delete" $ path $ \i -> deleteHandler acid i
        , dir "cleanall" $ cleanAllHandler acid
+       , dir "tokenrefresh" $ tokenRefreshHandler acid mgr
        , dir "token" $ tokenHandler jtk jrtk
        , indexHandler acid
        ]
