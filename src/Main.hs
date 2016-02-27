@@ -58,8 +58,8 @@ videoTemplate :: (Int, Video) -> H.Html
 videoTemplate (i,v) =
   let deletelink =  "/delete/" ++ (show i) in
   H.tr $ do
-    H.td $ do H.toHtml $ channelNameFromMaybe $ subscription v
     H.td $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)
+    H.td $ do H.toHtml $ channelNameFromMaybe $ subscription v
     H.td $ do H.toHtml $ videotitle v
     H.td $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
     H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeUrlFromId v) $ do "Play"
@@ -76,6 +76,7 @@ indexPage videos time =
                                      H.table ! A.class_ "table table-striped" $ do
                                        H.tr $ do
                                          H.th "Thumbnail"
+                                         H.th "Channel"
                                          H.th "Title"
                                          H.th "PlayButton"
                                        mapM_ videoTemplate vs
