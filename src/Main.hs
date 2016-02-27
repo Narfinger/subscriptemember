@@ -58,6 +58,7 @@ videoTemplate :: (Int, Video) -> H.Html
 videoTemplate (i,v) =
   let deletelink =  "/delete/" ++ (show i) in
   H.tr $ do
+    H.td $ do H.toHtml $ channelNameFromMaybe $ subscription v
     H.td $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)
     H.td $ do H.toHtml $ videotitle v
     H.td $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v

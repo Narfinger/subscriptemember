@@ -21,11 +21,11 @@ import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subsc
 import YoutubeApiBase
 
 -- | JSON query to get playlist items from a subscriptions (not batched)
-getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Maybe (YoutubeResponse YoutubeVideo))
+getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Subscription, Maybe (YoutubeResponse YoutubeVideo))
 getPlaylistItemsFromPlaylist mgr token subscription =
    let askvalue = textToByteString $ uploadPlaylist subscription in
    let url = constructQuery (BC.append "/playlistItems?part=snippet&playlistId="  askvalue) in
-   fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse YoutubeVideo)))
+   sequence (subscription, fmap decode (authGetJSON mgr token url :: IO (OAuth2Result (YoutubeResponse YoutubeVideo))))
     
 -- | extract video from response
 extractVideo :: YoutubeItems YoutubeVideo -> Maybe Video
@@ -38,12 +38,13 @@ extractVideo item =
     let valuetitle = vidtitle snip
         valuepublishedat = parseGoogleTime $ vidpublishedAt snip in
     let valueid = videoId $ vidresourceId snip in
-    Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat }
+    Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat
+               , subscription = Nothing }
 
 -- | Transofmrs a single response to a maybe video using extractVideo
-responseToVideo :: Maybe (YoutubeResponse YoutubeVideo) -> [Video]
-responseToVideo Nothing = []
-responseToVideo (Just res) = catMaybes $ map extractVideo $ items res
+responseToVideo :: (Subscription, Maybe (YoutubeResponse YoutubeVideo)) -> [Video]
+responseToVideo (_, Nothing) = []
+responseToVideo (s, Just res) = map (\v -> v {subscription = Just s}) (catMaybes $ map extractVideo $ items res)
 --responseToVideo (Just res) = extractVideo $ head $ items res
 
 -- | Filter Videos according to time
@@ -55,7 +56,7 @@ updateVideos :: C.Manager -> AccessToken -> UTCTime -> [Subscription] -> IO [Vid
 updateVideos mgr tk time subs =
   let fn =  filterAndSortVids time . concat in
   fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs
-
+  
 -- | get Video details for all video in list
 getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse ContentDetails)]
 getVideoDetails mgr token videos =
