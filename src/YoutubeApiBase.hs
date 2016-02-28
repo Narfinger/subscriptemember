@@ -21,8 +21,7 @@ module YoutubeApiBase (PageInfo(..)
                       , constructMultipleQuery
                       , decode
                       , makeUrlFromId
-                      , channelUrl
-                      , channelNameFromMaybe)  where
+                      , channelUrl)  where
 
 import           Data.Aeson                    (FromJSON)
 import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier, constructorTagModifier )
@@ -169,11 +168,6 @@ data Video = Video { vidId :: Text
                    , publishedAt :: UTCTime
                    , subscription :: Maybe Subscription
                    } deriving (Eq, Read, Show, Data, Typeable)
-
-
-channelNameFromMaybe :: Maybe Subscription -> Text
-channelNameFromMaybe Nothing = ""
-channelNameFromMaybe (Just x) = channelname x
 
 instance Ord Video where
   x<= y = publishedAt x <= publishedAt y

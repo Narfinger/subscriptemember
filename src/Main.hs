@@ -10,7 +10,7 @@ import           Data.Acid  ( AcidState, openLocalState )
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.Acid.Local      ( createCheckpointAndClose )
 import qualified Data.ByteString as B
-import           Data.Maybe ( fromJust )
+import           Data.Maybe ( fromJust, maybe )
 import           Data.Time
 import           Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H
@@ -59,7 +59,7 @@ videoTemplate (i,v) =
   let deletelink =  "/delete/" ++ (show i) in
   H.tr $ do
     H.td $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)
-    H.td $ do H.toHtml $ channelNameFromMaybe $ subscription v
+    H.td $ do H.toHtml $ maybe "" channelname $ subscription v
     H.td $ do H.toHtml $ videotitle v
     H.td $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
     H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeUrlFromId v) $ do "Play"
