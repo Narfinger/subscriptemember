@@ -22,7 +22,7 @@ executable subscriptemember
   -- other-extensions:
   ghc-options:        -threaded -with-rtsopts=-N
   build-depends:       base >= 4.8 && <4.9
-                     , hoauth2 >= 0.4.8
+                     , hoauth2 >= 0.5.3
                      , aeson  >= 0.9.0.1
                      , bytestring >= 0.10.6.0
                      , text >= 1.2.1.3
