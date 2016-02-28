@@ -114,7 +114,7 @@ subPage s = bodyTemplate $
                     H.th "Channel Name"
                     H.th "Channel ID"
                     H.th "Upload Playlist ID"
-                  H.tr $ do
+                  H.tr $ 
                     mapM_ subtotr s
 
 subsHandler :: AcidState ServerState -> ServerPartT IO Response
@@ -157,8 +157,7 @@ tokenRefreshHandler acid mgr = do
   seeOther ("/"::String) $ toResponse () 
 
 tokenHandler :: AccessToken -> B.ByteString -> ServerPartT IO Response
-tokenHandler tk rtk = do
-  ok $ toResponse $ tokenPage tk rtk
+tokenHandler tk rtk = ok $ toResponse $ tokenPage tk rtk
 
 cleanAllHandler :: AcidState ServerState -> ServerPartT IO Response
 cleanAllHandler acid = do

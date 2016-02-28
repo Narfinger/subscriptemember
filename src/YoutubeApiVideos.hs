@@ -44,7 +44,7 @@ extractVideo item =
 -- | Transofmrs a single response to a maybe video using extractVideo
 responseToVideo :: (Subscription, Maybe (YoutubeResponse YoutubeVideo)) -> [Video]
 responseToVideo (_, Nothing) = []
-responseToVideo (s, Just res) = map (\v -> v {subscription = Just s}) (catMaybes $ map extractVideo $ items res)
+responseToVideo (s, Just res) = map (\v -> v {subscription = Just s}) (mapMaybe extractVideo $ items res)
 --responseToVideo (Just res) = extractVideo $ head $ items res
 
 -- | Filter Videos according to time
