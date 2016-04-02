@@ -15,6 +15,7 @@ module YoutubeApiBase (PageInfo(..)
                       , constructQueryString
                       , Subscription(..)
                       , Video(..)
+                      , YVideo(..)
                       , authGetJSONPages
                       , textToByteString
                       , constructQuery
@@ -145,11 +146,6 @@ authGetJSONPages mgr token url = do
   resp <- getJSON mgr token url
   pagesAppend resp <$> getJSONWithPages mgr token url (nextPageToken resp)
 
-makeUrlFromId :: Video -> Text
-makeUrlFromId v = append "https://www.youtube.com/watch?v=" (vidId v)
-
-
-
 -- | Main Datastructure for storing subscriptions
 data Subscription = Subscription { sid :: Text
                                  , channelname :: Text
@@ -160,8 +156,11 @@ data Subscription = Subscription { sid :: Text
 channelUrl :: Subscription -> Text
 channelUrl s = append ("https://www.youtube.com/channel/" ::Text)  (sid s) 
 
--- | Main Datastructure for storing videos
-data Video = Video { vidId :: Text
+class Video a where
+  makeUrlFromId :: Video a -> Text
+
+-- | Main Datastructure for storing Youtube Videos
+data YVideo = Video { vidId :: Text
                    , videotitle :: Text
                    , vidThumbnail :: Text
                    , publishedAt :: UTCTime
@@ -170,6 +169,10 @@ data Video = Video { vidId :: Text
 
 instance Ord Video where
   x<= y = publishedAt x <= publishedAt y
+
+instance Video YVideo where
+  makeUrlFromId v = append "https://www.youtube.com/watch?v=" (vidId v)
+
 
 $(deriveSafeCopy 0 'base ''Subscription)
 $(deriveSafeCopy 0 'base ''Video)

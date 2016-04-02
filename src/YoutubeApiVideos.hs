@@ -1,7 +1,6 @@
 {-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
     TypeFamilies, OverloadedStrings #-}
-module YoutubeApiVideos (updateVideos
-                        , makeUrlFromId) where
+module YoutubeApiVideos (updateVideos) where
 
 import qualified Data.ByteString.Char8             as BC
 import           Data.Maybe
@@ -50,11 +49,11 @@ updateVideos mgr tk time subs =
   fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs
   
 -- | get Video details for all video in list
---getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse ContentDetails)]
---getVideoDetails mgr token videos =
---  let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
---  let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
---  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails)))) urls
+getVideoDetails :: C.Manager -> AccessToken -> [YVideo] -> IO [Maybe (YoutubeResponse ContentDetails)]
+getVideoDetails mgr token videos =
+  let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
+  let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
+  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails)))) urls
 
 
 -- updateVideosWithTime :: C.Manager -> AccessToken -> [Video] -> [Video]
