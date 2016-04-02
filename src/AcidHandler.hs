@@ -5,7 +5,6 @@
 
 module AcidHandler where
 
-import           Control.Monad        ( when )
 import           Control.Monad.Reader ( ask )
 import           Control.Monad.State  ( get, put )
 import           Control.Monad.Trans
@@ -125,8 +124,8 @@ $(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'getRefreshToken
 saveNewToken :: C.Manager -> AcidState ServerState -> IO ()
 saveNewToken mgr acid = do
   tk <- getToken mgr
-  update' acid (WriteAccessToken tk)
-  update' acid (WriteRefreshToken (refreshToken tk ))
+  _ <- update' acid (WriteAccessToken tk)
+  _ <- update' acid (WriteRefreshToken (refreshToken tk ))
   return ()
 
 -- | If no token in Acid DB we get a new token
@@ -136,7 +135,7 @@ newAccessTokenOrRefresh mgr acid = do
   tk <- query' acid GetAccessToken
   case tk of
     Nothing -> saveNewToken mgr acid
-    Just x -> return ()
+    Just _ -> return ()
     -- Just x -> refreshAccessToken mgr acid
   return ()
 
@@ -145,7 +144,7 @@ refreshAccessToken :: C.Manager -> AcidState ServerState -> IO ()
 refreshAccessToken mgr acid = do
   rtk <- fromJust <$> query' acid GetRefreshToken
   tk <- getNewAccessTokenFromRefreshToken rtk mgr
-  update' acid (WriteAccessToken tk)
+  _ <- update' acid (WriteAccessToken tk)
   return ()
 
 -- | get token

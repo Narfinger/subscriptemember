@@ -13,7 +13,6 @@ import qualified Data.Char as Char    ( toLower )
 import           Data.List as L
 import           Data.Text as T
 import qualified Data.Time as TI
-import           Data.Time.Clock.POSIX
 
 -- | takes a string and lowers the first character
 firstLetterDown :: String -> String

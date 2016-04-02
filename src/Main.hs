@@ -10,7 +10,7 @@ import           Data.Acid  ( AcidState, openLocalState )
 import           Data.Acid.Advanced   ( query', update' )
 import           Data.Acid.Local      ( createCheckpointAndClose )
 import qualified Data.ByteString as B
-import           Data.Maybe ( fromJust, maybe )
+import           Data.Maybe ( fromJust )
 import           Data.Time
 import           Text.Blaze ((!))
 import qualified Text.Blaze.Html5 as H

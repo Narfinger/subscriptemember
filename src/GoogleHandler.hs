@@ -6,7 +6,6 @@ module GoogleHandler ( getToken
                      ) where
 
 import qualified Data.ByteString.Char8         as BS
-import           Data.Maybe                    ( fromJust )
 import qualified Network.HTTP.Conduit as C
 import           Keys                          ( googleKey )
 import           Network.OAuth.OAuth2

@@ -30,14 +30,13 @@ import qualified Data.ByteString.Char8             as BC
 import qualified Data.ByteString.Lazy              as BL
 import           Data.Data            ( Data, Typeable )
 import           Data.Maybe
-import qualified Data.List                         as L
+--import qualified Data.List                         as L
 import           Data.SafeCopy        ( base, deriveSafeCopy )
 import           Data.Time
 import           Data.Text                     (Text, unpack, append)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange
-                                 , parseGoogleTime, groupOn )
+import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange)
 
 
 -- | Base url for asking Youtube questions to google api
@@ -119,7 +118,7 @@ constructMultipleQuery b list = B.append baseurl $ B.append b $ B.intercalate "%
 
 -- | shorthand to decode a return from authGetJSON
 decode :: FromJSON a => Either BL.ByteString a -> Maybe a
-decode (Left l) =  Nothing
+decode (Left _) =  Nothing
 decode (Right x) = Just x
 
 

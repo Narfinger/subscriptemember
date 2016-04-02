@@ -4,28 +4,19 @@
 module YoutubeApiSubscriptions ( updateSubscriptions
                                ) where
 
-import           Data.Aeson                    (FromJSON)
-import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier, constructorTagModifier )
-import qualified Data.ByteString                   as B
-import qualified Data.ByteString.Char8             as BC
-import qualified Data.ByteString.Lazy              as BL
-import           Data.Data            ( Data, Typeable )
 import           Data.Maybe
 import qualified Data.List                         as L
-import           Data.SafeCopy        ( base, deriveSafeCopy )
-import           Data.Time
-import           Data.Text                     (Text, unpack, append)
+import           Data.Text                     (Text)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange
-                                 , parseGoogleTime, groupOn )
+import           HelperFunctions ( groupOn )
 import YoutubeApiBase
 
 -- | returns my subscriptions as a YoutubeResponse YoutubeSubscription
 getSubscriptionsForMe :: C.Manager -> AccessToken -> IO [YoutubeItems YoutubeSubscription]
 getSubscriptionsForMe mgr token =
-  let url = constructQueryString "/subscriptions?&maxResults=50&part=snippet&mine=True" in
-  authGetJSONPages mgr token url :: (IO [YoutubeItems YoutubeSubscription])
+  let qurl = constructQueryString "/subscriptions?&maxResults=50&part=snippet&mine=True" in
+  authGetJSONPages mgr token qurl :: (IO [YoutubeItems YoutubeSubscription])
   --fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))  
 
 -- | Takes YoutubeItem YoutubeSubscription and parses the data into a Subscription object if it exists
@@ -69,11 +60,11 @@ constructPlaylistIds x =
 
 -- | Given a list of subscriptions and a youtube response for this, update the subscription with the uploadPlaylist ids
 extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse ContentDetails) -> [Subscription]
-extractPlaylist [] cd = []
-extractPlaylist xs Nothing = []
+extractPlaylist [] _ = []
+extractPlaylist _ Nothing = []
 extractPlaylist (x:xs) (Just cd) = 
-  let elem = L.find (\y -> YoutubeApiBase.id y == sid x) (items cd) in
-  case elem of
+  let velem = L.find (\y -> YoutubeApiBase.id y == sid x) (items cd) in
+  case velem of
   Nothing -> []
   Just el -> 
     let i = constructPlaylistIds el  in
