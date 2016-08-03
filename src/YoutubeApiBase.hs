@@ -15,13 +15,13 @@ module YoutubeApiBase (PageInfo(..)
                       , constructQueryString
                       , Subscription(..)
                       , Video(..)
-                      , YVideo(..)
+                      , VURL(..)
                       , authGetJSONPages
                       , textToByteString
                       , constructQuery
                       , constructMultipleQuery
                       , decode
-                      , makeUrlFromId
+                      , makeURLFromVideo
                       , channelUrl)  where
 
 import           Data.Aeson                    (FromJSON)
@@ -156,24 +156,29 @@ data Subscription = Subscription { sid :: Text
 channelUrl :: Subscription -> Text
 channelUrl s = append ("https://www.youtube.com/channel/" ::Text)  (sid s) 
 
-class Video a where
-  makeUrlFromId :: Video a -> Text
+
+data VURL = YTURL Text
+          | GBURL Text
+          deriving (Eq, Read, Show, Data, Typeable)
+
+makeURLFromVURL :: VURL -> Text
+makeURLFromVURL (YTURL a) = append "https://www.youtube.com/watch?v=" a
+makeURLFromVURL (GBURL a) = append "NOTHING" a
 
 -- | Main Datastructure for storing Youtube Videos
-data YVideo = Video { vidId :: Text
+data Video = Video { vidId :: Text
                    , videotitle :: Text
                    , vidThumbnail :: Text
                    , publishedAt :: UTCTime
                    , subscription :: Maybe Subscription
+                   , videoURL :: VURL
                    } deriving (Eq, Read, Show, Data, Typeable)
 
-instance Ord Video where
-  x<= y = publishedAt x <= publishedAt y
 
-instance Video YVideo where
-  makeUrlFromId v = append "https://www.youtube.com/watch?v=" (vidId v)
+makeURLFromVideo :: Video -> Text
+makeURLFromVideo v = makeURLFromVURL $ videoURL v
 
-
+$(deriveSafeCopy 0 'base ''VURL)
 $(deriveSafeCopy 0 'base ''Subscription)
 $(deriveSafeCopy 0 'base ''Video)
 
