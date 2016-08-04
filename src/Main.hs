@@ -22,7 +22,7 @@ import           AcidHandler
 import           HelperFunctions
 import           YoutubeApiBase
 import           YoutubeApiSubscriptions
-import           YoutubeApiVideos
+import qualified YoutubeApiVideos as YTV 
 import           Network.OAuth.OAuth2
 import qualified Network.HTTP.Conduit as C
 
@@ -132,7 +132,7 @@ upvids :: AcidState ServerState -> C.Manager -> AccessToken -> IO ()
 upvids acid mgr tk = do
   subs <- query' acid GetSubs
   date <- query' acid GetLastRefreshed
-  s <- liftIO (updateVideos mgr tk date subs)
+  s <- liftIO (YTV.updateVideos mgr tk date subs)
   oldvids <- query' acid GetVids
   let nvids = s ++ oldvids
   nvids <- update' acid (WriteVids nvids)
