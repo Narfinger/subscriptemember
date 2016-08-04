@@ -23,6 +23,7 @@ import           HelperFunctions
 import           YoutubeApiBase
 import           YoutubeApiSubscriptions
 import qualified YoutubeApiVideos as YTV 
+import qualified GiantBombVideos as GBV
 import           Network.OAuth.OAuth2
 import qualified Network.HTTP.Conduit as C
 
@@ -133,8 +134,9 @@ upvids acid mgr tk = do
   subs <- query' acid GetSubs
   date <- query' acid GetLastRefreshed
   s <- liftIO (YTV.updateVideos mgr tk date subs)
+  s' <- liftIO (GBV.updateVideos mgr tk date)
   oldvids <- query' acid GetVids
-  let nvids = s ++ oldvids
+  let nvids = s ++ s' ++ oldvids
   nvids <- update' acid (WriteVids nvids)
   now <- getCurrentTime
   tmp <- update' acid (WriteLastRefreshed now)
