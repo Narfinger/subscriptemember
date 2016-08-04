@@ -37,7 +37,7 @@ import           Data.SafeCopy        ( base, deriveSafeCopy )
 import           Data.Time
 import           Data.Text                     (Text, unpack, append)
 import qualified Network.HTTP.Conduit as C
-import           Network.OAuth.OAuth2
+import           Network.OAuth.OAuth2 ( authGetJSON, AccessToken, OAuth2Result )
 import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange)
 
 
