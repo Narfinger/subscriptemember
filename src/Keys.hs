@@ -16,5 +16,5 @@ googleKey = OAuth2 { oauthClientId = "XXXXXX.apps.googleusercontent.com"
                    , oauthAccessTokenEndpoint = "https://www.googleapis.com/oauth2/v3/token"
                    }
 
-gbkey :: Text
-gbkey = "nothingisakey"
+gbKey :: String
+gbKey = "nothingisakey"
