@@ -62,7 +62,7 @@ videoTemplate (i,v) =
     H.td $ do H.toHtml $ maybe "" channelname $ subscription v
     H.td $ do H.toHtml $ videotitle v
     H.td $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
-    H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeUrlFromId v) $ do "Play"
+    H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeURLFromVideo v) $ do "Play"
     H.td $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete"
 
 indexPage :: [Video] -> UTCTime -> H.Html

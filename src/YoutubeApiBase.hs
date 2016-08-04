@@ -156,10 +156,9 @@ data Subscription = Subscription { sid :: Text
 channelUrl :: Subscription -> Text
 channelUrl s = append ("https://www.youtube.com/channel/" ::Text)  (sid s) 
 
-
 data VURL = YTURL Text
           | GBURL Text
-          deriving (Eq, Read, Show, Data, Typeable)
+          deriving (Eq, Read, Show, Data, Typeable, Ord)
 
 makeURLFromVURL :: VURL -> Text
 makeURLFromVURL (YTURL a) = append "https://www.youtube.com/watch?v=" a
@@ -173,6 +172,9 @@ data Video = Video { vidId :: Text
                    , subscription :: Maybe Subscription
                    , videoURL :: VURL
                    } deriving (Eq, Read, Show, Data, Typeable)
+
+instance Ord Video where
+  x<= y = publishedAt x <= publishedAt y
 
 
 makeURLFromVideo :: Video -> Text

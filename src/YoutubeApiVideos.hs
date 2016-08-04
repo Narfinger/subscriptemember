@@ -8,7 +8,7 @@ import qualified Data.List                         as L
 import           Data.Time
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( parseGoogleTime )
+import           HelperFunctions ( parseGoogleTime, groupOn )
 import YoutubeApiBase
 
 -- | JSON query to get playlist items from a subscriptions (not batched)
@@ -25,12 +25,12 @@ extractVideo item =
   case s of
   Nothing -> Nothing
   Just snip ->
-    let valuethumb = url $ def $ vidthumbnails snip in
-    let valuetitle = vidtitle snip
-        valuepublishedat = parseGoogleTime $ vidpublishedAt snip in
-    let valueid = videoId $ vidresourceId snip in
+    let valuethumb = url $ def $ vidthumbnails snip
+        valuetitle = vidtitle snip
+        valuepublishedat = parseGoogleTime $ vidpublishedAt snip
+        valueid = videoId $ vidresourceId snip in
     Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat
-               , subscription = Nothing }
+               , subscription = Nothing, videoURL = YTURL (fromMaybe "" valueid) }
 
 -- | Transofmrs a single response to a maybe video using extractVideo
 responseToVideo :: (Subscription, Maybe (YoutubeResponse YoutubeVideo)) -> [Video]
@@ -49,7 +49,7 @@ updateVideos mgr tk time subs =
   fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs
   
 -- | get Video details for all video in list
-getVideoDetails :: C.Manager -> AccessToken -> [YVideo] -> IO [Maybe (YoutubeResponse ContentDetails)]
+getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse ContentDetails)]
 getVideoDetails mgr token videos =
   let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
   let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
