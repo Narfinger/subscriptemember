@@ -2,6 +2,7 @@
 
 module Keys where
 
+import Data.Text
 import           Network.OAuth.OAuth2
 
 -- | oauthCallback = Just "https://developers.google.com/oauthplayground"
@@ -14,3 +15,6 @@ googleKey = OAuth2 { oauthClientId = "XXXXXX.apps.googleusercontent.com"
                    , oauthOAuthorizeEndpoint = "https://accounts.google.com/o/oauth2/auth"
                    , oauthAccessTokenEndpoint = "https://www.googleapis.com/oauth2/v3/token"
                    }
+
+gbkey :: Text
+gbkey = "nothingisakey"

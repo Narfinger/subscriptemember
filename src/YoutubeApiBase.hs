@@ -17,6 +17,7 @@ module YoutubeApiBase (PageInfo(..)
                       , Video(..)
                       , VURL(..)
                       , authGetJSONPages
+                      , getJSON
                       , textToByteString
                       , constructQuery
                       , constructMultipleQuery
@@ -126,10 +127,10 @@ decode (Right x) = Just x
 pagesAppend :: FromJSON (YoutubeResponse a) => YoutubeResponse a -> [YoutubeItems a] -> [YoutubeItems a]
 pagesAppend x y = items x ++ y
 
-getJSON :: FromJSON (YoutubeResponse a) => C.Manager -> AccessToken -> String -> IO (YoutubeResponse a)
+getJSON :: FromJSON a => C.Manager -> AccessToken -> String -> IO (a)
 getJSON mgr token url = do
   let burl = BC.pack url
-  resp <- fmap decode (authGetJSON mgr token burl :: (FromJSON (YoutubeResponse a) => IO (OAuth2Result (YoutubeResponse a))))
+  resp <- fmap decode (authGetJSON mgr token burl :: (FromJSON a => IO (OAuth2Result a)))
   return $ fromJust resp
 
 -- check out how i can do this lazyly
