@@ -5,6 +5,7 @@ module HelperFunctions ( firstLetterDown
                        , videoLabelChange
                        , deleteNth
                        , parseGoogleTime
+                       , parseGiantBombTime
                        , ourPrettyPrintTime
                        , groupOn
                        ) where
@@ -57,6 +58,15 @@ rfc3339TimeFormat = "%Y-%m-%dT%H:%M:%S.000Z"
 -- | parse from text to UTCTime as the google format
 parseGoogleTime :: T.Text -> TI.UTCTime
 parseGoogleTime t = TI.parseTimeOrError True TI.defaultTimeLocale rfc3339TimeFormat (unpack t)
+
+-- | giant bomb time format
+-- | example date: 2016-08-03 14:47:00
+giantBombTimeFormat :: String
+giantBombTimeFormat = "%Y-%m-%d %H:%M:%S"
+
+-- | parse GiantBomb time Format
+parseGiantBombTime :: T.Text -> TI.UTCTime
+parseGiantBombTime t = TI.parseTimeOrError True TI.defaultTimeLocale giantBombTimeFormat (unpack t)
 
 -- | format the time for our thing
 ourPrettyPrintTime :: TI.UTCTime -> String

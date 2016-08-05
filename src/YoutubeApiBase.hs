@@ -163,7 +163,7 @@ data VURL = YTURL Text
 
 makeURLFromVURL :: VURL -> Text
 makeURLFromVURL (YTURL a) = append "https://www.youtube.com/watch?v=" a
-makeURLFromVURL (GBURL a) = append "NOTHING" a
+makeURLFromVURL (GBURL a) = a
 
 -- | Main Datastructure for storing Youtube Videos
 data Video = Video { vidId :: Text
