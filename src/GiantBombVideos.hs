@@ -57,7 +57,7 @@ extractVideo :: GiantBombVideo -> Video
 extractVideo s =
   let gbs = Subscription { sid = "-1", channelname = "Giant Bomb", uploadPlaylist = "-1", thumbnail = "-1" } in
     Video {vidId = "", videotitle = name s, vidThumbnail = medium_url $ image s, publishedAt = parseGiantBombTime $ publish_date s, subscription = Just gbs
-          , videoURL = GBURL (site_detail_url s)}
+          , videoURL = GBURL (site_detail_url s), duration = length_seconds s}
 
 -- | Filter Videos according to time
 filterAndSortVids :: UTCTime -> [Video] -> [Video]

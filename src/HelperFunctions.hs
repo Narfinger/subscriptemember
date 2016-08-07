@@ -7,6 +7,7 @@ module HelperFunctions ( firstLetterDown
                        , parseGoogleTime
                        , parseGiantBombTime
                        , ourPrettyPrintTime
+                       , ourPrettyDurationTime
                        , groupOn
                        ) where
 
@@ -67,6 +68,16 @@ giantBombTimeFormat = "%Y-%m-%d %H:%M:%S"
 -- | parse GiantBomb time Format
 parseGiantBombTime :: T.Text -> TI.UTCTime
 parseGiantBombTime t = TI.parseTimeOrError True TI.defaultTimeLocale giantBombTimeFormat (unpack t)
+
+-- | prints integer to duration
+ourPrettyDurationTime :: Int -> String
+ourPrettyDurationTime secs =
+  let s = secs `mod` 60
+      m = (secs `div` 60 ) `mod` 60
+      h = ((secs `div` 60 ) `div` 60) `mod` 24 in
+    let first = if h /= 0 then (show h) ++ ":" ++ (show m)
+              else if m /= 0 then (show m) else "" in
+    first ++ ":" ++ (show s)
 
 -- | format the time for our thing
 ourPrettyPrintTime :: TI.UTCTime -> String

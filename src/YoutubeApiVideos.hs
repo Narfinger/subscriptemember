@@ -30,7 +30,7 @@ extractVideo item =
         valuepublishedat = parseGoogleTime $ vidpublishedAt snip
         valueid = videoId $ vidresourceId snip in
     Just Video { vidId = fromJust valueid, videotitle = valuetitle, vidThumbnail = valuethumb, publishedAt = valuepublishedat
-               , subscription = Nothing, videoURL = YTURL (fromMaybe "" valueid) }
+               , subscription = Nothing, videoURL = YTURL (fromMaybe "" valueid), duration = 0 }
 
 -- | Transofmrs a single response to a maybe video using extractVideo
 responseToVideo :: (Subscription, Maybe (YoutubeResponse YoutubeVideo)) -> [Video]
@@ -49,11 +49,11 @@ updateVideos mgr tk time subs =
   fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs
   
 -- | get Video details for all video in list
-getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse ContentDetails)]
-getVideoDetails mgr token videos =
-  let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
-  let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
-  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails)))) urls
+-- getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse ContentDetails)]
+-- getVideoDetails mgr token videos =
+--   let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
+--   let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
+--   mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails)))) urls
 
 
 -- updateVideosWithTime :: C.Manager -> AccessToken -> [Video] -> [Video]

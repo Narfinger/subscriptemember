@@ -63,6 +63,7 @@ videoTemplate (i,v) =
     H.td $ do H.toHtml $ maybe "" channelname $ subscription v
     H.td $ do H.toHtml $ videotitle v
     H.td $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
+    H.td $ do H.toHtml $ ourPrettyDurationTime $ duration v
     H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeURLFromVideo v) $ do "Play"
     H.td $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete"
 
@@ -79,6 +80,8 @@ indexPage videos time =
                                          H.th "Thumbnail"
                                          H.th "Channel"
                                          H.th "Title"
+                                         H.th "Published"
+                                         H.th "Duration"
                                          H.th "PlayButton"
                                        mapM_ videoTemplate vs
                     H.div ! A.class_ "col-md-4" $ do

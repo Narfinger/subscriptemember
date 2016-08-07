@@ -80,7 +80,7 @@ data YoutubeResource = YoutubeResource { channelId :: Maybe Text
                                        } deriving (Show)
 
 data ContentDetails = ContentDetails { relatedPlaylists  :: RelatedPlaylists
-                                       } deriving (Show)
+                                     } deriving (Show)
 
 data RelatedPlaylists = RelatedPlaylists { uploads :: Text
                                          } deriving (Show)
@@ -165,11 +165,13 @@ makeURLFromVURL :: VURL -> Text
 makeURLFromVURL (YTURL a) = append "https://www.youtube.com/watch?v=" a
 makeURLFromVURL (GBURL a) = a
 
+
 -- | Main Datastructure for storing Youtube Videos
 data Video = Video { vidId :: Text
                    , videotitle :: Text
                    , vidThumbnail :: Text
                    , publishedAt :: UTCTime
+                   , duration :: Int
                    , subscription :: Maybe Subscription
                    , videoURL :: VURL
                    } deriving (Eq, Read, Show, Data, Typeable)
