@@ -70,11 +70,16 @@ videoTemplate (i,v) =
 indexPage :: [Video] -> UTCTime -> H.Html
 indexPage videos time =
   let t = formatTime defaultTimeLocale "Last Refreshed: %k:%M:%S %e.%m" time
-      vs = zip [0,1..] videos in
+      vs = zip [0,1..] videos
+      l = "Number of Videos: " ++ (show $ length videos)  in
   bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
-                                     H.toHtml t
+                                     H.div ! A.class_ "col-md-4" $ do
+                                       H.toHtml t
+                                     H.div ! A.class_ "col-md-4" $ do
+                                       H.toHtml $ l
+                                   H.div ! A.class_ "row" $ do
                                      H.table ! A.class_ "table table-striped" $ do
                                        H.tr $ do
                                          H.th "Thumbnail"
