@@ -49,6 +49,7 @@ $(deriveJSON defaultOptions ''GiantBombImage)
 $(deriveJSON defaultOptions ''GiantBombVideo)
 
 
+-- | get JSON
 fetchJSON :: C.Request -> C.Manager -> IO (C.Response BL.ByteString)
 fetchJSON = C.httpLbs
 
@@ -80,8 +81,11 @@ getGiantBombResponse mgr = do
     -- print $ (eitherDecode $ C.responseBody $ rt :: Either String (GiantBombResponse GiantBombVideo))
     -- return Nothing
 
+-- | update videos
 updateVideos :: C.Manager -> UTCTime -> IO [Video]
-updateVideos mgr time = responseToVideo <$> getGiantBombResponse mgr 
+updateVideos mgr time =
+  let fn = filterAndSortVids time in
+    fn <$> responseToVideo <$> getGiantBombResponse mgr
   -- let fn =  filterAndSortVids time . concat in
     -- fn <$> (fmap responseToVideo)
   
