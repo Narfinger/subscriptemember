@@ -23,7 +23,8 @@ module YoutubeApiBase (PageInfo(..)
                       , constructMultipleQuery
                       , decode
                       , makeURLFromVideo
-                      , channelUrl)  where
+                      , channelUrl
+                      , filterAndSortVideos)  where
 
 import           Data.Aeson                    (FromJSON)
 import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier, constructorTagModifier )
@@ -32,13 +33,13 @@ import qualified Data.ByteString.Char8             as BC
 import qualified Data.ByteString.Lazy              as BL
 import           Data.Data            ( Data, Typeable )
 import           Data.Maybe
---import qualified Data.List                         as L
+import qualified Data.List                         as L
 import           Data.SafeCopy        ( base, deriveSafeCopy )
 import           Data.Time
 import           Data.Text                     (Text, unpack, append)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2 ( authGetJSON, AccessToken, OAuth2Result )
-import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange)
+import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange, textToByteString)
 
 
 -- | Base url for asking Youtube questions to google api
@@ -103,10 +104,6 @@ $(deriveJSON defaultOptions ''YoutubeResource)
 $(deriveJSON defaultOptions{constructorTagModifier = firstLetterDown} ''RelatedPlaylists)
 $(deriveJSON defaultOptions{fieldLabelModifier = videoLabelChange} ''YoutubeVideo)
 
--- | Text To Bytestring
-textToByteString :: Text -> BC.ByteString
-textToByteString = BC.pack . unpack
-
 -- | constructs query using baseurl and the given bytestring
 constructQuery :: BC.ByteString -> BC.ByteString
 constructQuery = BC.append baseurl
@@ -127,7 +124,7 @@ decode (Right x) = Just x
 pagesAppend :: FromJSON (YoutubeResponse a) => YoutubeResponse a -> [YoutubeItems a] -> [YoutubeItems a]
 pagesAppend x y = items x ++ y
 
-getJSON :: FromJSON a => C.Manager -> AccessToken -> String -> IO (a)
+getJSON :: FromJSON a => C.Manager -> AccessToken -> String -> IO a
 getJSON mgr token url = do
   let burl = BC.pack url
   resp <- fmap decode (authGetJSON mgr token burl :: (FromJSON a => IO (OAuth2Result a)))
@@ -161,6 +158,7 @@ data VURL = YTURL Text
           | GBURL Text
           deriving (Eq, Read, Show, Data, Typeable, Ord)
 
+-- | Converts VURL to appropiate url
 makeURLFromVURL :: VURL -> Text
 makeURLFromVURL (YTURL a) = append "https://www.youtube.com/watch?v=" a
 makeURLFromVURL (GBURL a) = a
@@ -179,7 +177,11 @@ data Video = Video { vidId :: Text
 instance Ord Video where
   x<= y = publishedAt x <= publishedAt y
 
+-- | Filter Videos according to time
+filterAndSortVideos :: UTCTime -> [Video] -> [Video]
+filterAndSortVideos t xs = L.sort $ filter (\v -> publishedAt v > t) xs
 
+-- | Video to url of the video
 makeURLFromVideo :: Video -> Text
 makeURLFromVideo v = makeURLFromVURL $ videoURL v
 

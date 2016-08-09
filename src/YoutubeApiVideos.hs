@@ -4,12 +4,23 @@ module YoutubeApiVideos (updateVideos) where
 
 import qualified Data.ByteString.Char8             as BC
 import           Data.Maybe
-import qualified Data.List                         as L
 import           Data.Time
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( parseGoogleTime, groupOn )
-import YoutubeApiBase
+import           HelperFunctions ( parseGoogleTime, groupOn, textToByteString )
+import           YoutubeApiBase  ( constructQuery
+                                 , decode
+                                 , filterAndSortVideos
+                                 , Subscription(..)
+                                 , VURL(..)
+                                 , Video(..)
+                                 , YoutubeItems(..)
+                                 , YoutubeResponse(..)
+                                 , YoutubeResource(..)
+                                 , YoutubeThumbnails(..)
+                                 , YoutubeURL(..)
+                                 , YoutubeVideo(..)
+                                 )
 
 -- | JSON query to get playlist items from a subscriptions (not batched)
 getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Subscription, Maybe (YoutubeResponse YoutubeVideo))
@@ -38,14 +49,10 @@ responseToVideo (_, Nothing) = []
 responseToVideo (s, Just res) = map (\v -> v {subscription = Just s}) (mapMaybe extractVideo $ items res)
 --responseToVideo (Just res) = extractVideo $ head $ items res
 
--- | Filter Videos according to time
-filterAndSortVids :: UTCTime -> [Video] -> [Video]
-filterAndSortVids t xs = L.sort $ filter (\v -> publishedAt v > t) xs
-
 -- | Main function that gets called to get the current videos
 updateVideos :: C.Manager -> AccessToken -> UTCTime -> [Subscription] -> IO [Video]
 updateVideos mgr tk time subs =
-  let fn =  filterAndSortVids time . concat in
+  let fn =  filterAndSortVideos time . concat in
   fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs
   
 -- | get Video details for all video in list

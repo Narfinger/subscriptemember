@@ -9,11 +9,13 @@ module HelperFunctions ( firstLetterDown
                        , ourPrettyPrintTime
                        , ourPrettyDurationTime
                        , groupOn
+                       , textToByteString
                        ) where
 
+import qualified Data.ByteString.Char8             as BC
 import qualified Data.Char as Char    ( toLower )
 import           Data.List as L
-import           Data.Text as T
+import           Data.Text as T       ( Text, unpack )
 import qualified Data.Time as TI
 
 -- | takes a string and lowers the first character
@@ -71,13 +73,17 @@ parseGiantBombTime t = TI.parseTimeOrError True TI.defaultTimeLocale giantBombTi
 
 -- | prints integer to duration
 ourPrettyDurationTime :: Int -> String
-ourPrettyDurationTime secs =
-  let s = secs `mod` 60
-      m = (secs `div` 60 ) `mod` 60
-      h = ((secs `div` 60 ) `div` 60) `mod` 24 in
-    let first = if h /= 0 then (show h) ++ ":" ++ (show m)
-              else if m /= 0 then (show m) else "" in
-    first ++ ":" ++ (show s)
+ourPrettyDurationTime secs 
+    | h /= 0 = show h ++ ":" ++ (show m) ++ ":" ++ (show s)
+    | m /= 0 =                   show m  ++ ":" ++ (show s)
+    | otherwise =                                   show s
+    where s = secs `mod` 60
+          m = (secs `div` 60 ) `mod` 60
+          h = ((secs `div` 60 ) `div` 60) `mod` 24
+    
+-- | Text To Bytestring
+textToByteString :: T.Text -> BC.ByteString
+textToByteString = BC.pack . T.unpack
 
 -- | format the time for our thing
 ourPrettyPrintTime :: TI.UTCTime -> String
@@ -86,5 +92,5 @@ ourPrettyPrintTime = TI.formatTime TI.defaultTimeLocale "%m-%d - %H:%M"
 groupOn :: Int -> [a] -> [[a]]
 groupOn _ [] = []
 groupOn n l
-  | n > 0 = L.take n l : (groupOn n (L.drop n l))
+  | n > 0 = L.take n l : groupOn n (L.drop n l)
   | otherwise = error "Negative n"

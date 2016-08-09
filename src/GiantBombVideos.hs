@@ -18,6 +18,7 @@ import           HelperFunctions ( parseGiantBombTime )
 import           YoutubeApiBase  ( Video(..)
                                  , Subscription(..)
                                  , VURL(..)
+                                 , filterAndSortVideos
                                  )
 
 data GiantBombResponse a = GiantBombResponse { results :: [a]
@@ -60,10 +61,6 @@ extractVideo s =
     Video {vidId = "", videotitle = name s, vidThumbnail = medium_url $ image s, publishedAt = parseGiantBombTime $ publish_date s, subscription = Just gbs
           , videoURL = GBURL (site_detail_url s), duration = length_seconds s}
 
--- | Filter Videos according to time
-filterAndSortVids :: UTCTime -> [Video] -> [Video]
-filterAndSortVids t xs = L.sort $ filter (\v -> publishedAt v > t) xs
-
 -- | Transofmrs a single response to a maybe video using extractVideo
 responseToVideo :: Maybe (GiantBombResponse GiantBombVideo) -> [Video]
 responseToVideo Nothing  = []
@@ -84,7 +81,7 @@ getGiantBombResponse mgr = do
 -- | update videos
 updateVideos :: C.Manager -> UTCTime -> IO [Video]
 updateVideos mgr time =
-  let fn = filterAndSortVids time in
+  let fn = filterAndSortVideos time in
     fn <$> responseToVideo <$> getGiantBombResponse mgr
   -- let fn =  filterAndSortVids time . concat in
     -- fn <$> (fmap responseToVideo)
