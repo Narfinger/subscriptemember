@@ -71,7 +71,8 @@ indexPage :: [Video] -> UTCTime -> H.Html
 indexPage videos time =
   let t = formatTime defaultTimeLocale "Last Refreshed: %k:%M:%S %e.%m" time
       vs = zip [0,1..] videos
-      l = "Number of Videos: " ++ (show $ length videos)  in
+      l = "Number of Videos: " ++ (show $ length videos)
+      totaltime = "Totaltime: " ++ (ourPrettyDurationTime $ foldl (\x -> \v -> x + duration v) 0 videos) in
   bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
@@ -79,6 +80,8 @@ indexPage videos time =
                                        H.toHtml t
                                      H.div ! A.class_ "col-md-4" $ do
                                        H.toHtml $ l
+                                     H.div ! A.class_ "col-md-4" $ do
+                                       H.toHtml totaltime
                                    H.div ! A.class_ "row" $ do
                                      H.table ! A.class_ "table table-striped" $ do
                                        H.tr $ do
