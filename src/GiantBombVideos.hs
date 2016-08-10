@@ -21,6 +21,9 @@ import           YoutubeApiBase  ( Video(..)
                                  , filterAndSortVideos
                                  )
 
+limit :: String
+limit = "10"
+
 data GiantBombResponse a = GiantBombResponse { results :: [a]
                                              , number_of_page_results :: Int
                                              , number_of_total_results :: Int
@@ -69,7 +72,7 @@ responseToVideo (Just res) = map extractVideo (results res)
 -- | query api to get the last 20 videos
 getGiantBombResponse :: C.Manager -> IO (Maybe (GiantBombResponse GiantBombVideo))
 getGiantBombResponse mgr = do
-  req <- C.parseUrl $ "https://www.giantbomb.com/api/videos/?format=json&limit=1&api_key=" ++ gbKey
+  req <- C.parseUrl $ "https://www.giantbomb.com/api/videos/?format=json&limit=" ++ limit ++ "&api_key=" ++ gbKey
   decode <$> C.responseBody <$> fetchJSON req mgr
     -- debug function
     -- rt <- fetchJSON req mgr
