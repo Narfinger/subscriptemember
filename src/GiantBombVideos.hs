@@ -55,7 +55,9 @@ $(deriveJSON defaultOptions ''GiantBombVideo)
 
 -- | get JSON
 fetchJSON :: C.Request -> C.Manager -> IO (C.Response BL.ByteString)
-fetchJSON = C.httpLbs
+fetchJSON req =
+  let nreq = req { C.requestHeaders = [("User-Agent", "Subscriptemember")] } in 
+  C.httpLbs  nreq 
 
 -- | extract video from response
 extractVideo :: GiantBombVideo -> Video
