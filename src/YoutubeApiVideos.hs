@@ -10,7 +10,8 @@ import           Data.Ord
 import qualified Data.Text as T
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( parseGoogleTime, groupOn, textToByteString, combineWith, parseDuration )
+import           HelperFunctions ( groupOn, textToByteString, combineWith )
+import           ParserHelpers   ( parseGoogleTime, parseDuration )
 import           YoutubeApiBase  ( constructQuery
                                  , constructMultipleQuery
                                  , decode

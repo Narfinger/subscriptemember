@@ -8,9 +8,6 @@ module HelperFunctions ( firstLetterDown
                        , subscriptionLabelChange
                        , videoLabelChange
                        , deleteNth
-                       , parseGoogleTime
-                       , parseGiantBombTime
-                       , parseDuration
                        , ourPrettyPrintTime
                        , ourPrettyDurationTime
                        , groupOn
@@ -22,7 +19,6 @@ import qualified Data.Char as Char    ( toLower )
 import           Data.List as L
 import           Data.Text as T       ( Text, unpack )
 import qualified Data.Time as TI
-import           ParserHelpers
 
 
 -- | takes a string and lowers the first character
@@ -67,28 +63,6 @@ deleteNth :: Int -> [a] -> [a]
 deleteNth i xs =
   let (ys,zs) = L.splitAt i xs in
   ys ++ L.tail zs
-
--- | rfc3339 format string because I could not find it in the default library.
--- | This is an approximation of the real format because i don't quite understand it
--- | example date: 2015-11-08T20:10:43.000Z
-rfc3339TimeFormat :: String
-rfc3339TimeFormat = "%Y-%m-%dT%H:%M:%S.000Z"
-
--- | parse from text to UTCTime as the google format
-parseGoogleTime :: T.Text -> TI.UTCTime
-parseGoogleTime t = TI.parseTimeOrError True TI.defaultTimeLocale rfc3339TimeFormat (unpack t)
-
--- | giant bomb time format
--- | example date: 2016-08-03 14:47:00
-giantBombTimeFormat :: String
-giantBombTimeFormat = "%Y-%m-%d %H:%M:%S"
-
--- | parse GiantBomb time Format
-parseGiantBombTime :: T.Text -> TI.UTCTime
-parseGiantBombTime t = TI.parseTimeOrError True TI.defaultTimeLocale giantBombTimeFormat (unpack t)
-
-parseDuration :: T.Text -> Int
-parseDuration t = 0
 
 -- | prints integer to duration
 ourPrettyDurationTime :: Int -> String

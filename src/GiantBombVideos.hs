@@ -14,7 +14,7 @@ import           Data.Text                     (Text)
 import           Keys                 ( gbKey )
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( parseGiantBombTime )
+import           ParserHelpers   ( parseGiantBombTime )
 import           YoutubeApiBase  ( Video(..)
                                  , Subscription(..)
                                  , VURL(..)
