@@ -1,11 +1,15 @@
 module HelperFunctions ( firstLetterDown
                        , allToURLString
+                       , contentDetailChange
+                       , combineWith
+                       , itemLabelChange
                        , thumbnailsLabelChange
                        , subscriptionLabelChange
                        , videoLabelChange
                        , deleteNth
                        , parseGoogleTime
                        , parseGiantBombTime
+                       , parseDuration
                        , ourPrettyPrintTime
                        , ourPrettyDurationTime
                        , groupOn
@@ -27,6 +31,16 @@ firstLetterDown [] = []
 allToURLString :: a -> String
 allToURLString _ = "url"
 
+-- | mapping labelchange for contentdetail
+contentDetailChange :: String -> String
+contentDetailChange "durationDetails" = "duration"
+contentDetailChange x = x
+
+-- | maps items
+itemLabelChange :: String -> String
+itemLabelChange "iid" = "id"
+itemLabelChange x = x
+
 -- | matches "def" to "default"
 thumbnailsLabelChange :: String -> String
 thumbnailsLabelChange "def" = "default"
@@ -44,7 +58,6 @@ videoLabelChange "vidresourceId" = "resourceId"
 videoLabelChange "vidpublishedAt" = "publishedAt"
 videoLabelChange "vidtitle" = "title"
 videoLabelChange x = x
-
 
 -- | removes the nth element of a list
 deleteNth :: Int -> [a] -> [a]
@@ -71,6 +84,11 @@ giantBombTimeFormat = "%Y-%m-%d %H:%M:%S"
 parseGiantBombTime :: T.Text -> TI.UTCTime
 parseGiantBombTime t = TI.parseTimeOrError True TI.defaultTimeLocale giantBombTimeFormat (unpack t)
 
+-- | parse Duration format
+-- | example times PT2H27M11S, PT10M12S
+parseDuration :: T.Text -> Int
+parseDuration t = 10
+
 -- | prints integer to duration
 ourPrettyDurationTime :: Int -> String
 ourPrettyDurationTime secs 
@@ -94,3 +112,7 @@ groupOn _ [] = []
 groupOn n l
   | n > 0 = L.take n l : groupOn n (L.drop n l)
   | otherwise = error "Negative n"
+
+
+combineWith :: (a -> a -> Ordering) -> (b -> b -> Ordering) -> (a-> b -> c) -> [a] -> [b] -> [c]
+combineWith ord1 ord2 map xr yr = zipWith map (sortBy ord1 xr) (sortBy ord2 yr)

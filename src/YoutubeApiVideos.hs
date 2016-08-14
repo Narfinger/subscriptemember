@@ -3,17 +3,22 @@
 module YoutubeApiVideos (updateVideos) where
 
 import qualified Data.ByteString.Char8             as BC
+import qualified Data.List as L
 import           Data.Maybe
 import           Data.Time
+import           Data.Ord
+import qualified Data.Text as T
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( parseGoogleTime, groupOn, textToByteString )
+import           HelperFunctions ( parseGoogleTime, groupOn, textToByteString, combineWith, parseDuration )
 import           YoutubeApiBase  ( constructQuery
+                                 , constructMultipleQuery
                                  , decode
                                  , filterAndSortVideos
                                  , Subscription(..)
                                  , VURL(..)
                                  , Video(..)
+                                 , YoutubeContentDetails(..)
                                  , YoutubeItems(..)
                                  , YoutubeResponse(..)
                                  , YoutubeResource(..)
@@ -52,19 +57,31 @@ responseToVideo (s, Just res) = map (\v -> v {subscription = Just s}) (mapMaybe 
 -- | Main function that gets called to get the current videos
 updateVideos :: C.Manager -> AccessToken -> UTCTime -> [Subscription] -> IO [Video]
 updateVideos mgr tk time subs =
-  let fn =  filterAndSortVideos time . concat in
-  fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs
-  
+  let fn =  filterAndSortVideos time . concat
+      updtime = updateVideosWithTime mgr tk :: [Video] -> IO [Video] in
+    L.sort <$> (updtime =<< fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs)
+     
+
+      
 -- | get Video details for all video in list
--- getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse ContentDetails)]
--- getVideoDetails mgr token videos =
---   let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
---   let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
---   mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails)))) urls
+getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse YoutubeContentDetails)]
+getVideoDetails mgr token videos =
+  let videoids = (map . map) (textToByteString . vidId) (groupOn 50 videos) in
+  let urls = map (constructMultipleQuery "/videos?part=contentDetails&maxResults=50&id=") videoids in
+  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse YoutubeContentDetails)))) urls
 
+-- | gets the video details and extracts all the items
+getDetailItems :: C.Manager -> AccessToken -> [Video] -> IO [YoutubeItems YoutubeContentDetails]
+getDetailItems mgr tk videos = concat <$> (map items) <$> catMaybes <$> getVideoDetails mgr tk videos
 
--- updateVideosWithTime :: C.Manager -> AccessToken -> [Video] -> [Video]
--- updateVideosWithTime m tk videos = do
---   extractVideoRuntime <$> getVideoDetails mgr tk videos
---   L.zipWith 
-  
+getTime :: YoutubeItems YoutubeContentDetails -> T.Text
+getTime i = fromMaybe "" (durationDetails =<< contentDetails i) 
+
+updateVideosWithTime :: C.Manager -> AccessToken -> [Video] -> IO [Video]
+updateVideosWithTime mgr tk videos =
+  let vsort = comparing vidId
+      csort = comparing iid
+      map = (\x -> \y -> x { duration = parseDuration $ getTime y}) :: Video -> YoutubeItems YoutubeContentDetails -> Video
+      fn = combineWith vsort csort map videos :: [YoutubeItems YoutubeContentDetails] -> [Video] in
+    fn <$> getDetailItems mgr tk videos
+

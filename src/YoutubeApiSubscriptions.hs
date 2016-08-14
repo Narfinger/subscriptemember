@@ -42,28 +42,28 @@ updateSubscriptions m tk = do
   let groupedSubs = groupOn 50 subs
   return $ L.concat $ L.zipWith extractPlaylist groupedSubs uploadsStuff
 
--- | Given subscriptions, returns channel info as YoutubeResponse ContentDetails for all subscriptions in [Subscription] 
-getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO [Maybe (YoutubeResponse ContentDetails)]
+-- | Given subscriptions, returns channel info as YoutubeResponse YoutubeContentDetails for all subscriptions in [Subscription] 
+getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO [Maybe (YoutubeResponse YoutubeContentDetails)]
 getUploadPlaylistForChannel mgr token channels =
   let channelids = (map . map) (textToByteString . sid) (groupOn 50 channels) in
   let urls = map (constructMultipleQuery "/channels?part=contentDetails&maxResults=50&id=") channelids in
-  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse ContentDetails)))) urls
+  mapM (\xs -> fmap decode (authGetJSON mgr token xs :: IO (OAuth2Result (YoutubeResponse YoutubeContentDetails)))) urls
 
 -- | Construct playlistid from response
-constructPlaylistIds :: YoutubeItems ContentDetails -> Maybe Text
+constructPlaylistIds :: YoutubeItems YoutubeContentDetails -> Maybe Text
 constructPlaylistIds x =
   let c = contentDetails x in
   case c of
   Nothing -> Nothing
-  Just r -> Just (uploads $ relatedPlaylists r) 
+  Just r -> Just (uploads $ fromJust $ relatedPlaylists r) 
 
 
 -- | Given a list of subscriptions and a youtube response for this, update the subscription with the uploadPlaylist ids
-extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse ContentDetails) -> [Subscription]
+extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse YoutubeContentDetails) -> [Subscription]
 extractPlaylist [] _ = []
 extractPlaylist _ Nothing = []
 extractPlaylist (x:xs) (Just cd) = 
-  let velem = L.find (\y -> YoutubeApiBase.id y == sid x) (items cd) in
+  let velem = L.find (\y -> YoutubeApiBase.iid y == sid x) (items cd) in
   case velem of
   Nothing -> []
   Just el -> 

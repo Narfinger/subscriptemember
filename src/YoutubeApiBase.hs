@@ -9,7 +9,7 @@ module YoutubeApiBase (PageInfo(..)
                       , YoutubeURL(..)
                       , YoutubeSubscription(..)
                       , YoutubeResource(..)
-                      , ContentDetails(..)
+                      , YoutubeContentDetails(..)
                       , RelatedPlaylists(..)
                       , YoutubeVideo(..)
                       , constructQueryString
@@ -39,7 +39,8 @@ import           Data.Time
 import           Data.Text                     (Text, unpack, append)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2 ( authGetJSON, AccessToken, OAuth2Result )
-import           HelperFunctions ( firstLetterDown, thumbnailsLabelChange, subscriptionLabelChange, videoLabelChange, textToByteString)
+import           HelperFunctions ( firstLetterDown, contentDetailChange, itemLabelChange, thumbnailsLabelChange, subscriptionLabelChange
+                                 , videoLabelChange, textToByteString)
 
 
 -- | Base url for asking Youtube questions to google api
@@ -55,7 +56,7 @@ data YoutubeResponse a = YoutubeResponse { nextPageToken :: Maybe Text
                                          , items :: [YoutubeItems a]
                                          } deriving (Show)
                                                     
-data YoutubeItems a = YoutubeItems { id :: Text
+data YoutubeItems a = YoutubeItems { iid :: Text
                                    , snippet :: Maybe a
                                    , contentDetails :: Maybe a
                                    } deriving (Show)
@@ -80,8 +81,9 @@ data YoutubeResource = YoutubeResource { channelId :: Maybe Text
                                        , videoId :: Maybe Text
                                        } deriving (Show)
 
-data ContentDetails = ContentDetails { relatedPlaylists  :: RelatedPlaylists
-                                     } deriving (Show)
+data YoutubeContentDetails = YoutubeContentDetails { relatedPlaylists  :: Maybe RelatedPlaylists
+                                                   , durationDetails :: Maybe Text
+                                                   } deriving (Show)
 
 data RelatedPlaylists = RelatedPlaylists { uploads :: Text
                                          } deriving (Show)
@@ -95,11 +97,11 @@ data YoutubeVideo = YoutubeVideo { vidpublishedAt :: Text
 
 $(deriveJSON defaultOptions ''PageInfo)
 $(deriveJSON defaultOptions ''YoutubeResponse)
-$(deriveJSON defaultOptions ''YoutubeItems)
+$(deriveJSON defaultOptions{fieldLabelModifier = itemLabelChange} ''YoutubeItems)
 $(deriveJSON defaultOptions{fieldLabelModifier = thumbnailsLabelChange} ''YoutubeThumbnails)
 $(deriveJSON defaultOptions ''YoutubeURL)
 $(deriveJSON defaultOptions{fieldLabelModifier = subscriptionLabelChange} ''YoutubeSubscription)
-$(deriveJSON defaultOptions ''ContentDetails)
+$(deriveJSON defaultOptions{fieldLabelModifier = contentDetailChange} ''YoutubeContentDetails)
 $(deriveJSON defaultOptions ''YoutubeResource)
 $(deriveJSON defaultOptions{constructorTagModifier = firstLetterDown} ''RelatedPlaylists)
 $(deriveJSON defaultOptions{fieldLabelModifier = videoLabelChange} ''YoutubeVideo)
