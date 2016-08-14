@@ -17,7 +17,7 @@ cabal-version:       >=1.10
                      
 executable subscriptemember
   main-is:             Main.hs
-  other-modules:       Keys, AcidHandler, GoogleHandler, GiantBombVideos, HelperFunctions, YoutubeApiBase, YoutubeApiSubscriptions
+  other-modules:       Keys, AcidHandler, GoogleHandler, GiantBombVideos, HelperFunctions, ParserHelpers, YoutubeApiBase, YoutubeApiSubscriptions
                      , YoutubeApiVideos
   -- other-extensions:
   ghc-options:        -threaded -with-rtsopts=-N
