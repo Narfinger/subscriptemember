@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module HelperFunctions ( firstLetterDown
                        , allToURLString
                        , contentDetailChange
@@ -21,6 +22,8 @@ import qualified Data.Char as Char    ( toLower )
 import           Data.List as L
 import           Data.Text as T       ( Text, unpack )
 import qualified Data.Time as TI
+import qualified Text.Parsec as P
+
 
 -- | takes a string and lowers the first character
 firstLetterDown :: String -> String
@@ -84,10 +87,29 @@ giantBombTimeFormat = "%Y-%m-%d %H:%M:%S"
 parseGiantBombTime :: T.Text -> TI.UTCTime
 parseGiantBombTime t = TI.parseTimeOrError True TI.defaultTimeLocale giantBombTimeFormat (unpack t)
 
+
+data ParsedTime = ParsedTime { hours :: Int
+                             , minutes :: Int
+                             , seconds :: Int
+                             } deriving (Show)
+
+parseNat :: P.Stream s m Char => P.ParsecT s u m Integer
+parseNat = read <$> P.many1 P.digit
+
+durationParser :: P.Stream s m Char => P.ParsecT s u m ParsedTime
+durationParser = do
+  x <- P.string "PT"
+  h <- P.try parseNat P.char "H" 
+  -- m <- P.try parseNat P.char "M"
+  -- s <- P.try parseNat P.char "S"
+  return $ ParsedTime { hours = h, minutes = 0, seconds = 0}
+
 -- | parse Duration format
 -- | example times PT2H27M11S, PT10M12S
+
+
 parseDuration :: T.Text -> Int
-parseDuration t = 10
+parseDuration t = 0
 
 -- | prints integer to duration
 ourPrettyDurationTime :: Int -> String
