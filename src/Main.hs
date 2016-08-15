@@ -91,6 +91,7 @@ indexPage videos time =
                                          H.th "Published"
                                          H.th "Duration"
                                          H.th "PlayButton"
+                                         H.th "DeleteButton"
                                        mapM_ videoTemplate vs
                     H.div ! A.class_ "col-md-4" $ do
                                    H.div ! A.class_ "row" $ do
