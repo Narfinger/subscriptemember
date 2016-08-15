@@ -19,6 +19,7 @@ import qualified Data.Char as Char    ( toLower )
 import           Data.List as L
 import           Data.Text as T       ( Text, unpack )
 import qualified Data.Time as TI
+import Text.Printf (printf)
 
 
 -- | takes a string and lowers the first character
@@ -67,9 +68,9 @@ deleteNth i xs =
 -- | prints integer to duration
 ourPrettyDurationTime :: Int -> String
 ourPrettyDurationTime secs 
-    | h /= 0 = show h ++ ":" ++ (show m) ++ ":" ++ (show s)
-    | m /= 0 =                   show m  ++ ":" ++ (show s)
-    | otherwise =                                   show s
+    | h /= 0 = show h ++ ":" ++ printf "%02d" m ++ ":" ++ printf "%02d" s
+    | m /= 0 =                  printf "%02d" m ++ ":" ++ printf "%02d" s
+    | otherwise =                                         printf "%02d" s
     where s = secs `mod` 60
           m = (secs `div` 60 ) `mod` 60
           h = ((secs `div` 60 ) `div` 60) `mod` 24
