@@ -34,14 +34,20 @@ data ParsedTime = ParsedTime { hours :: Integer
 parseNat :: Stream s m Char => ParsecT s u m Integer
 parseNat = read <$> many1 digit
 
+parseTimeString :: Stream s m Char => String -> ParsecT s u m Integer
+parseTimeString s = do
+  x <- parseNat
+  string s
+  return x
+
 -- | Parser for duration format
 -- | example times PT2H27M11S, PT10M12S
 durationParser :: Stream s m Char => ParsecT s u m ParsedTime
 durationParser = do
   x <- string "PT"
-  h <- try $ parseNat ; lookAhead (string "H")
-  m <- try $ parseNat ; lookAhead (string "M")
-  s <- try $ parseNat ; lookAhead (string "S")
+  h <- option 0 (try (parseTimeString "H"))
+  m <- option 0 (try (parseTimeString "M"))
+  s <- option 0 (try (parseTimeString "S"))
   return $ ParsedTime { hours = h, minutes = m, seconds = s}
 
 -- | Helper function to make ParsedTime to Integer
@@ -51,6 +57,6 @@ parsedTimeToSecs p = fromIntegral $ (hours p)  * 60 * 60 + (minutes p) * 60 + (s
 -- | parse Duration format
 parseDuration :: T.Text -> Int
 parseDuration t =
+  let val = parse durationParser "" t in
   let errorfn = (\x -> -1) in
-    either errorfn parsedTimeToSecs (parse durationParser "" t)
-    
+    either errorfn parsedTimeToSecs val
