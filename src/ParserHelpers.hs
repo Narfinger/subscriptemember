@@ -25,26 +25,32 @@ giantBombTimeFormat = "%Y-%m-%d %H:%M:%S"
 parseGiantBombTime :: T.Text -> TI.UTCTime
 parseGiantBombTime t = TI.parseTimeOrError True TI.defaultTimeLocale giantBombTimeFormat (unpack t)
 
--- data ParsedTime = ParsedTime { hours :: Int
---                              , minutes :: Int
---                              , seconds :: Int
---                              } deriving (Show)
+data ParsedTime = ParsedTime { hours :: Integer
+                             , minutes :: Integer
+                             , seconds :: Integer
+                             } deriving (Show)
 
--- parseNat :: Stream s m Char => ParsecT s u m Integer
--- parseNat = read <$> many1 digit
+-- | Parser that parses natural numbers
+parseNat :: Stream s m Char => ParsecT s u m Integer
+parseNat = read <$> many1 digit
 
--- durationParser :: Stream s m Char => ParsecT s u m (Maybe ParsedTime)
--- durationParser = do
---   x <- string "PT"
---   h <- try parseNat char "H" 
---   -- m <- P.try parseNat P.char "M"
---   -- s <- P.try parseNat P.char "S"
---   --if h == 0 && m = 0 && s = 0 then return $ Nothing else
---   return $ Just (ParsedTime { hours = h, minutes = 0, seconds = 0})
+-- | Parser for duration format
+-- | example times PT2H27M11S, PT10M12S
+durationParser :: Stream s m Char => ParsecT s u m ParsedTime
+durationParser = do
+  x <- string "PT"
+  h <- try $ parseNat ; lookAhead (string "H")
+  m <- try $ parseNat ; lookAhead (string "M")
+  s <- try $ parseNat ; lookAhead (string "S")
+  return $ ParsedTime { hours = h, minutes = m, seconds = s}
+
+-- | Helper function to make ParsedTime to Integer
+parsedTimeToSecs :: ParsedTime -> Int
+parsedTimeToSecs p = fromIntegral $ (hours p)  * 60 * 60 + (minutes p) * 60 + (seconds p)
 
 -- | parse Duration format
--- | example times PT2H27M11S, PT10M12S
-
-
 parseDuration :: T.Text -> Int
-parseDuration t = 0
+parseDuration t =
+  let errorfn = (\x -> -1) in
+    either errorfn parsedTimeToSecs (parse durationParser "" t)
+    
