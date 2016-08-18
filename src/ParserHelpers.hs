@@ -48,15 +48,14 @@ durationParser = do
   h <- option 0 (try (parseTimeString "H"))
   m <- option 0 (try (parseTimeString "M"))
   s <- option 0 (try (parseTimeString "S"))
-  return $ ParsedTime { hours = h, minutes = m, seconds = s}
+  return ParsedTime { hours = h, minutes = m, seconds = s}
 
 -- | Helper function to make ParsedTime to Integer
 parsedTimeToSecs :: ParsedTime -> Int
-parsedTimeToSecs p = fromIntegral $ (hours p)  * 60 * 60 + (minutes p) * 60 + (seconds p)
+parsedTimeToSecs p = fromIntegral $ hours p  * 60 * 60 + minutes p * 60 + seconds p
 
 -- | parse Duration format
 parseDuration :: T.Text -> Int
 parseDuration t =
-  let val = parse durationParser "" t in
-  let errorfn = (\x -> -1) in
-    either errorfn parsedTimeToSecs val
+  let errorfn x = -1 in
+    either errorfn parsedTimeToSecs $ parse durationParser "" t

@@ -73,7 +73,7 @@ getVideoDetails mgr token videos =
 
 -- | gets the video details and extracts all the items
 getDetailItems :: C.Manager -> AccessToken -> [Video] -> IO [YoutubeItems YoutubeContentDetails]
-getDetailItems mgr tk videos = concat <$> (map items) <$> catMaybes <$> getVideoDetails mgr tk videos
+getDetailItems mgr tk videos = concat <$> map items <$> catMaybes <$> getVideoDetails mgr tk videos
 
 getTime :: YoutubeItems YoutubeContentDetails -> T.Text
 getTime i = fromMaybe "" (durationDetails =<< contentDetails i) 
@@ -82,7 +82,7 @@ updateVideosWithTime :: C.Manager -> AccessToken -> [Video] -> IO [Video]
 updateVideosWithTime mgr tk videos =
   let vsort = comparing vidId
       csort = comparing iid
-      map = (\x -> \y -> x { duration = parseDuration $ getTime y}) :: Video -> YoutubeItems YoutubeContentDetails -> Video
+      map = (\ x y -> x { duration = parseDuration $ getTime y}) :: Video -> YoutubeItems YoutubeContentDetails -> Video
       fn = combineWith vsort csort map videos :: [YoutubeItems YoutubeContentDetails] -> [Video] in
     fn <$> getDetailItems mgr tk videos
 
