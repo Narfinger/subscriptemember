@@ -20,8 +20,8 @@ executable subscriptemember
   other-modules:       Keys, AcidHandler, GoogleHandler, GiantBombVideos, HelperFunctions, ParserHelpers, YoutubeApiBase, YoutubeApiSubscriptions
                      , YoutubeApiVideos
   -- other-extensions:
-  ghc-options:        -threaded -with-rtsopts=-N
-  build-depends:       base >= 4.8 && <4.9
+  ghc-options:        -threaded
+  build-depends:       base >= 4.8
                      , hoauth2 >= 0.5.3
                      , aeson  >= 0.9.0.1
                      , bytestring >= 0.10.6.0
@@ -30,9 +30,8 @@ executable subscriptemember
                      , mtl >= 2.2.1
                      , acid-state >= 0.13.0
                      , safecopy >= 0.8.6
-                     , happstack-server
                      , blaze-html >= 0.8.1.1
-                     , happstack-server >= 7.4.5
+                     , happstack-server >= 7.4.6
                      , network-uri >= 2.6.0.3
                      , blaze-markup >= 0.7.0.3
                      , time >= 1.5.0.1
