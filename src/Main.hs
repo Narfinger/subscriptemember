@@ -43,8 +43,6 @@ bodyTemplate body =
         H.div ! A.class_ "row" $ do
           H.h1 $ do
             H.a ! A.href "/" $ do "Youtube Subscriptemember"
-          H.h3 "uploadids are not correctly given to channels"
-          H.h3 "allow adding youtube urls"
           body
 
 tokenPage :: AccessToken -> B.ByteString -> H.Html
@@ -59,13 +57,13 @@ videoTemplate :: (Int, Video) -> H.Html
 videoTemplate (i,v) =
   let deletelink =  "/delete/" ++ (show i) in
   H.tr $ do
-    H.td $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)
-    H.td $ do H.toHtml $ maybe "" channelname $ subscription v
-    H.td $ do H.toHtml $ videotitle v
-    H.td $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
-    H.td $ do H.toHtml $ ourPrettyDurationTime $ duration v
-    H.td $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeURLFromVideo v) $ do "Play"
-    H.td $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete"
+    H.td ! A.class_ "col-md-2" $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)
+    H.td ! A.class_ "col-md-2" $ do H.toHtml $ maybe "" channelname $ subscription v
+    H.td ! A.class_ "col-md-4" $ do H.toHtml $ videotitle v
+    H.td ! A.class_ "col-md-2" $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
+    H.td ! A.class_ "col-md-1" $ do H.toHtml $ ourPrettyDurationTime $ duration v
+    H.td ! A.class_ "col-md-1" $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeURLFromVideo v) $ do "Play"
+    H.td ! A.class_ "col-md-1" $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete"
 
 indexPage :: [Video] -> UTCTime -> H.Html
 indexPage videos time =
@@ -90,10 +88,10 @@ indexPage videos time =
                                          H.th "Title"
                                          H.th "Published"
                                          H.th "Duration"
-                                         H.th "PlayButton"
-                                         H.th "DeleteButton"
+                                         H.th "Play"
+                                         H.th "Delete"
                                        mapM_ videoTemplate vs
-                    H.div ! A.class_ "col-md-4" $ do
+                    H.div ! A.class_ "col-md-2" $ do
                                    H.div ! A.class_ "row" $ do
                                      H.a ! A.href  "/subs" $ do "See Subscriptions"
                                    H.div ! A.class_ "row" $ do
