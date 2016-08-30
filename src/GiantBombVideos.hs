@@ -10,7 +10,7 @@ import qualified Data.ByteString.Lazy              as BL
 import           Data.Maybe
 import qualified Data.List                         as L
 import           Data.Time
-import           Data.Text                     (Text)
+import qualified Data.Text                         as T
 import           Keys                 ( gbKey )
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
@@ -27,25 +27,25 @@ limit = "10"
 data GiantBombResponse a = GiantBombResponse { results :: [a]
                                              , number_of_page_results :: Int
                                              , number_of_total_results :: Int
-                                             , error :: Text
+                                             , error :: T.Text
                                              } deriving (Show)
 
-data GiantBombImage = GiantBombImage { medium_url :: Text
-                                     , icon_url :: Text
-                                     , screen_url :: Text
-                                     , small_url :: Text
-                                     , super_url :: Text
-                                     , thumb_url :: Text
-                                     , tiny_url :: Text
+data GiantBombImage = GiantBombImage { medium_url :: T.Text
+                                     , icon_url :: T.Text
+                                     , screen_url :: T.Text
+                                     , small_url :: T.Text
+                                     , super_url :: T.Text
+                                     , thumb_url :: T.Text
+                                     , tiny_url :: T.Text
                                      } deriving (Show)
 
 
-data GiantBombVideo = GiantBombVideo { name :: Text
+data GiantBombVideo = GiantBombVideo { name :: T.Text
                                      , image :: GiantBombImage
                                      , length_seconds :: Int
-                                     , publish_date :: Text
-                                     , site_detail_url :: Text
-                                     , deck :: Text
+                                     , publish_date :: T.Text
+                                     , site_detail_url :: T.Text
+                                     , deck :: T.Text
                                      } deriving (Show)
 
 $(deriveJSON defaultOptions ''GiantBombResponse)
@@ -59,11 +59,17 @@ fetchJSON req =
   let nreq = req { C.requestHeaders = [("User-Agent", "Subscriptemember")] } in 
   C.httpLbs  nreq 
 
+
+-- | giantbomb at the moment returns https in json but does not serve images over https hence we fix this
+fixthumb :: T.Text -> T.Text
+fixthumb t = T.append "http" $ T.drop 5 t
+
 -- | extract video from response
 extractVideo :: GiantBombVideo -> Video
 extractVideo s =
-  let gbs = Subscription { sid = "-1", channelname = "Giant Bomb", uploadPlaylist = "-1", thumbnail = "-1" } in
-    Video {vidId = "", videotitle = name s, vidThumbnail = medium_url $ image s, publishedAt = parseGiantBombTime $ publish_date s, subscription = Just gbs
+  let fixedthumbnail = fixthumb $ medium_url $ image s  
+      gbs = Subscription { sid = "-1", channelname = "Giant Bomb", uploadPlaylist = "-1", thumbnail = "-1" } in
+    Video {vidId = "", videotitle = name s, vidThumbnail = fixedthumbnail, publishedAt = parseGiantBombTime $ publish_date s, subscription = Just gbs
           , videoURL = GBURL (site_detail_url s), duration = length_seconds s}
 
 -- | Transofmrs a single response to a maybe video using extractVideo
