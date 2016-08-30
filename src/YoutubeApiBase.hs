@@ -177,7 +177,7 @@ data Video = Video { vidId :: Text
                    } deriving (Eq, Read, Show, Data, Typeable)
 
 instance Ord Video where
-  x<= y = publishedAt x <= publishedAt y
+  x<= y = publishedAt x >= publishedAt y
 
 -- | Filter Videos according to time
 filterAndSortVideos :: UTCTime -> [Video] -> [Video]

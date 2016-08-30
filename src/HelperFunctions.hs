@@ -70,7 +70,7 @@ ourPrettyDurationTime :: Int -> String
 ourPrettyDurationTime secs 
     | h /= 0 = show h ++ ":" ++ printf "%02d" m ++ ":" ++ printf "%02d" s
     | m /= 0 =                  printf "%02d" m ++ ":" ++ printf "%02d" s
-    | otherwise =                                         printf "%02d" s
+    | otherwise =                                 "0:" ++ printf "%02d" s
     where s = secs `mod` 60
           m = (secs `div` 60 ) `mod` 60
           h = ((secs `div` 60 ) `div` 60) `mod` 24

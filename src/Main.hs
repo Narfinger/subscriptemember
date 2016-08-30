@@ -146,7 +146,7 @@ upvids acid mgr tk = do
   s <- liftIO (YTV.updateVideos mgr tk date subs)
   s' <- liftIO (GBV.updateVideos mgr date)
   oldvids <- query' acid GetVids
-  let nvids = s ++ s' ++ oldvids
+  let nvids = s' ++ s ++ oldvids
   nvids <- update' acid (WriteVids nvids)
   now <- getCurrentTime
   tmp <- update' acid (WriteLastRefreshed now)
