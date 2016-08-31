@@ -67,7 +67,7 @@ fixthumb t = T.append "http" $ T.drop 5 t
 -- | extract video from response
 extractVideo :: GiantBombVideo -> Video
 extractVideo s =
-  let fixedthumbnail = fixthumb $ medium_url $ image s  
+  let fixedthumbnail = fixthumb $ thumb_url $ image s  
       gbs = Subscription { sid = "-1", channelname = "Giant Bomb", uploadPlaylist = "-1", thumbnail = "-1" } in
     Video {vidId = "", videotitle = name s, vidThumbnail = fixedthumbnail, publishedAt = parseGiantBombTime $ publish_date s, subscription = Just gbs
           , videoURL = GBURL (site_detail_url s), duration = length_seconds s}
