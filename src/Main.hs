@@ -19,7 +19,7 @@ import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
                                       , nullConf, ok, seeOther, path
                                       , simpleHTTP, toResponse )
 import           AcidHandler
-import           HelperFunctions
+import           HelperFunctions ( formatUTCToLocal, ourPrettyPrintTime, ourPrettyDurationTime )
 import           YoutubeApiBase
 import           YoutubeApiSubscriptions
 import qualified YoutubeApiVideos as YTV 
@@ -65,17 +65,16 @@ videoTemplate (i,v) =
     H.td ! A.class_ "col-md-1" $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeURLFromVideo v) $ do "Play"
     H.td ! A.class_ "col-md-1" $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete"
 
-indexPage :: [Video] -> UTCTime -> H.Html
+indexPage :: [Video] -> String -> H.Html
 indexPage videos time =
-  let t = formatTime defaultTimeLocale "Last Refreshed: %k:%M:%S %e.%m" time
-      vs = zip [0,1..] videos
+  let vs = zip [0,1..] videos
       l = "Number of Videos: " ++ (show $ length videos)
       totaltime = "Totaltime: " ++ (ourPrettyDurationTime $ foldl (\x -> \v -> x + duration v) 0 videos) in
   bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
                                      H.div ! A.class_ "col-md-4" $ do
-                                       H.toHtml t
+                                       H.toHtml time
                                      H.div ! A.class_ "col-md-4" $ do
                                        H.toHtml $ l
                                      H.div ! A.class_ "col-md-4" $ do
@@ -176,11 +175,12 @@ cleanAllHandler acid = do
   update' acid DeleteAll
   seeOther ("/"::String) $ toResponse ()
 
-indexHandler:: AcidState ServerState  -> ServerPartT IO Response
+indexHandler :: AcidState ServerState  -> ServerPartT IO Response
 indexHandler acid = do
   time <- query' acid GetLastRefreshed
+  formatedTime <- lift (formatUTCToLocal time)
   vs <- query' acid GetVids
-  ok $ toResponse $ indexPage vs time
+  ok $ toResponse $ indexPage vs formatedTime
 
 handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
 handlers acid mgr = do

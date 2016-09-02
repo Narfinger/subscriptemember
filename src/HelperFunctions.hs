@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, TemplateHaskell #-}
 module HelperFunctions ( firstLetterDown
                        , allToURLString
                        , contentDetailChange
@@ -12,6 +12,7 @@ module HelperFunctions ( firstLetterDown
                        , ourPrettyDurationTime
                        , groupOn
                        , textToByteString
+                       , formatUTCToLocal
                        ) where
 
 import qualified Data.ByteString.Char8             as BC
@@ -19,6 +20,8 @@ import qualified Data.Char as Char    ( toLower )
 import           Data.List as L
 import           Data.Text as T       ( Text, unpack )
 import qualified Data.Time as TI
+import Data.Time.LocalTime.TimeZone.Series ( TimeZoneSeries, utcToLocalTime' )
+import Data.Time.LocalTime.TimeZone.Olson.TH (loadTZFile)
 import Text.Printf (printf)
 
 
@@ -92,3 +95,12 @@ groupOn n l
 
 combineWith :: (a -> a -> Ordering) -> (b -> b -> Ordering) -> (a-> b -> c) -> [a] -> [b] -> [c]
 combineWith ord1 ord2 map xr yr = zipWith map (sortBy ord1 xr) (sortBy ord2 yr)
+
+localTimeZoneSeries :: TimeZoneSeries
+localTimeZoneSeries = $(loadTZFile "/etc/localtime")
+
+formatUTCToLocal :: TI.UTCTime -> IO String
+formatUTCToLocal t = do
+  tz <- TI.getCurrentTimeZone
+  let lt = (TI.utcToLocalTime tz t)
+  return $ TI.formatTime TI.defaultTimeLocale "Last Refreshed: %H:%M:%S, %e.%m.%_Y" lt
