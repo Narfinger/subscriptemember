@@ -1,9 +1,12 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, TemplateHaskell #-}
 module ParserHelpers ( parseGoogleTime, parseGiantBombTime, parseDuration ) where
 
 import           Data.Text as T       ( Text, unpack )
 import qualified Data.Time as TI
+import Data.Time.LocalTime.TimeZone.Series ( TimeZoneSeries, localTimeToUTC' )
+import Data.Time.LocalTime.TimeZone.Olson.TH (loadTZFile)
 import Text.Parsec
+
 
 
 -- | rfc3339 format string because I could not find it in the default library.
@@ -21,9 +24,15 @@ parseGoogleTime t = TI.parseTimeOrError True TI.defaultTimeLocale rfc3339TimeFor
 giantBombTimeFormat :: String
 giantBombTimeFormat = "%Y-%m-%d %H:%M:%S"
 
+-- | GiantBomb is in San Francisco
+gbTimeZoneSeries :: TimeZoneSeries
+gbTimeZoneSeries = $(loadTZFile "/usr/share/zoneinfo/America/Los_Angeles")
+
 -- | parse GiantBomb time Format
 parseGiantBombTime :: T.Text -> TI.UTCTime
-parseGiantBombTime t = TI.parseTimeOrError True TI.defaultTimeLocale giantBombTimeFormat (unpack t)
+parseGiantBombTime t =
+  let gblocaltime = TI.parseTimeOrError True TI.defaultTimeLocale giantBombTimeFormat (unpack t) :: TI.LocalTime in
+    localTimeToUTC' gbTimeZoneSeries gblocaltime
 
 data ParsedTime = ParsedTime { hours :: Integer
                              , minutes :: Integer
