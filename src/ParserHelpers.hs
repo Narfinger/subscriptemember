@@ -65,6 +65,4 @@ parsedTimeToSecs p = fromIntegral $ hours p  * 60 * 60 + minutes p * 60 + second
 
 -- | parse Duration format
 parseDuration :: T.Text -> Int
-parseDuration t =
-  let errorfn x = -1 in
-    either errorfn parsedTimeToSecs $ parse durationParser "" t
+parseDuration t = either (const (-1)) parsedTimeToSecs $ parse durationParser "" t

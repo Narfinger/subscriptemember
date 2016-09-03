@@ -68,8 +68,8 @@ videoTemplate (i,v) =
 indexPage :: [Video] -> String -> H.Html
 indexPage videos time =
   let vs = zip [0,1..] videos
-      l = "Number of Videos: " ++ (show $ length videos)
-      totaltime = "Totaltime: " ++ (ourPrettyDurationTime $ foldl (\x -> \v -> x + duration v) 0 videos) in
+      l = "Number of Videos: " ++ show $ (length videos)
+      totaltime = "Totaltime: " ++ ourPrettyDurationTime (foldl (\ x v -> x + duration v) 0 videos) in
   bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
