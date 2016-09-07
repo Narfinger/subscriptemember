@@ -38,48 +38,48 @@ bodyTemplate body =
       H.meta ! A.httpEquiv "refresh"
         ! A.content "120"
       H.link ! A.rel "stylesheet" ! A.type_ "text/css" ! A.href "style.css"
-    H.body $ do
-      H.div ! A.class_ "container" $ do
+    H.body $
+      H.div ! A.class_ "container" $
         H.div ! A.class_ "row" $ do
-          H.h1 $ do
-            H.a ! A.href "/" $ do "Youtube Subscriptemember"
+          H.h1 $
+            H.a ! A.href "/" $ "Youtube Subscriptemember"
           body
 
 tokenPage :: AccessToken -> B.ByteString -> H.Html
 tokenPage tk rtk =
   bodyTemplate $ do
-    H.div ! A.class_ "row" $ do
+    H.div ! A.class_ "row" $
       H.toHtml $ show tk
-    H.div ! A.class_ "row" $ do
+    H.div ! A.class_ "row" $
       H.toHtml $ show rtk
 
 videoTemplate :: (Int, Video) -> H.Html
 videoTemplate (i,v) =
-  let deletelink =  "/delete/" ++ (show i) in
+  let deletelink =  "/delete/" ++ show i in
   H.tr $ do
-    H.td ! A.class_ "col-md-2" $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)  ! A.alt "Thumbnail" ! A.style "max-width:200px;"
-    H.td ! A.class_ "col-md-2" $ do H.toHtml $ maybe "" channelname $ subscription v
-    H.td ! A.class_ "col-md-4" $ do H.toHtml $ videotitle v
-    H.td ! A.class_ "col-md-2" $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
-    H.td ! A.class_ "col-md-1" $ do H.toHtml $ ourPrettyDurationTime $ duration v
-    H.td ! A.class_ "col-md-1" $ do H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeURLFromVideo v) $ do "Play"
-    H.td ! A.class_ "col-md-1" $ do H.toHtml $ H.a ! A.href (H.toValue deletelink) $ do "Delete"
+    H.td ! A.class_ "col-md-2" $ H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)  ! A.alt "Thumbnail" ! A.style "max-width:200px;"
+    H.td ! A.class_ "col-md-2" $ H.toHtml $ maybe "" channelname $ subscription v
+    H.td ! A.class_ "col-md-4" $ H.toHtml $ videotitle v
+    H.td ! A.class_ "col-md-2" $ H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
+    H.td ! A.class_ "col-md-1" $ H.toHtml $ ourPrettyDurationTime $ duration v
+    H.td ! A.class_ "col-md-1" $ H.toHtml $ H.a ! A.href (H.preEscapedTextValue $ makeURLFromVideo v) $ "Play"
+    H.td ! A.class_ "col-md-1" $ H.toHtml $ H.a ! A.href (H.toValue deletelink) $ "Delete"
 
 indexPage :: [Video] -> String -> H.Html
 indexPage videos time =
   let vs = zip [0,1..] videos
-      l = "Number of Videos: " ++ (show $ (length videos))
+      l = "Number of Videos: " ++ show (length videos)
       totaltime = "Totaltime: " ++ ourPrettyDurationTime (foldl (\ x v -> x + duration v) 0 videos) in
-  bodyTemplate $ do
+    bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
                                    H.div ! A.class_ "row" $ do
-                                     H.div ! A.class_ "col-md-4" $ do
+                                     H.div ! A.class_ "col-md-4" $
                                        H.toHtml time
-                                     H.div ! A.class_ "col-md-4" $ do
-                                       H.toHtml $ l
-                                     H.div ! A.class_ "col-md-4" $ do
+                                     H.div ! A.class_ "col-md-4" $
+                                       H.toHtml l
+                                     H.div ! A.class_ "col-md-4" $
                                        H.toHtml totaltime
-                                   H.div ! A.class_ "row" $ do
+                                   H.div ! A.class_ "row" $
                                      H.table ! A.class_ "table table-striped" $ do
                                        H.tr $ do
                                          H.th "Thumbnail"
@@ -91,33 +91,33 @@ indexPage videos time =
                                          H.th "Delete"
                                        mapM_ videoTemplate vs
                     H.div ! A.class_ "col-md-2" $ do
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href  "/subs" $ do "See Subscriptions"
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href  "/subsUp" $ do "Update and see Subscriptions"
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href  "/upvids" $ do "Update Videos"
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href "/token" $ do "See Token"
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href "/tokenrefresh" $ do "Refresh Token"
-                                   H.div ! A.class_ "row" $ do
-                                     H.a ! A.href "/cleanall" $ do "Delete All Videos"
+                                   H.div ! A.class_ "row" $
+                                     H.a ! A.href  "/subs" $ "See Subscriptions"
+                                   H.div ! A.class_ "row" $
+                                     H.a ! A.href  "/subsUp" $ "Update and see Subscriptions"
+                                   H.div ! A.class_ "row" $
+                                     H.a ! A.href  "/upvids" $ "Update Videos"
+                                   H.div ! A.class_ "row" $
+                                     H.a ! A.href "/token" $ "See Token"
+                                   H.div ! A.class_ "row" $
+                                     H.a ! A.href "/tokenrefresh" $ "Refresh Token"
+                                   H.div ! A.class_ "row" $
+                                     H.a ! A.href "/cleanall" $ "Delete All Videos"
                                   
 
 subtotr :: Subscription -> H.Html
 subtotr s =  H.tr $ do
-  H.td $ do H.img ! A.src (H.preEscapedTextValue $ thumbnail s) ! A.width "30" ! A.height "30"
-  H.td $ do H.a ! A.href (H.toValue $ channelUrl s) $ do
+  H.td $ H.img ! A.src (H.preEscapedTextValue $ thumbnail s) ! A.width "30" ! A.height "30"
+  H.td $ H.a ! A.href (H.toValue $ channelUrl s) $
               H.toHtml $ show $ channelname s
-  H.td $ do H.toHtml $ show $ sid s
-  H.td $ do H.toHtml $ show $ uploadPlaylist s
+  H.td $ H.toHtml $ show $ sid s
+  H.td $ H.toHtml $ show $ uploadPlaylist s
 
 subPage :: [Subscription] -> H.Html
 subPage s = bodyTemplate $
             H.div ! A.class_ "row" $ do
-              H.p $ H.toHtml $ ("Number of Subscriptions: " ++  (show $ length s))
-              H.div ! A.class_ "row" $ do
+              H.p $ H.toHtml ("Number of Subscriptions: " ++  show (length s))
+              H.div ! A.class_ "row" $
                 H.table ! A.class_ "table table-striped" $ do
                   H.tr $ do
                     H.th "Icon"
