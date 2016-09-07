@@ -29,7 +29,7 @@ import qualified Network.HTTP.Conduit as C
 
 bodyTemplate :: H.Html ->H.Html
 bodyTemplate body =
-  H.html $ do
+  H.docTypeHtml $ do
     H.head $ do
       H.title "Subscriptemember"
       H.link ! A.rel "stylesheet" ! A.href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"
@@ -57,7 +57,7 @@ videoTemplate :: (Int, Video) -> H.Html
 videoTemplate (i,v) =
   let deletelink =  "/delete/" ++ (show i) in
   H.tr $ do
-    H.td ! A.class_ "col-md-2" $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)
+    H.td ! A.class_ "col-md-2" $ do H.toHtml $ H.img ! A.src (H.preEscapedTextValue $ vidThumbnail v)  ! A.alt "Thumbnail" ! A.style "max-width:200px;"
     H.td ! A.class_ "col-md-2" $ do H.toHtml $ maybe "" channelname $ subscription v
     H.td ! A.class_ "col-md-4" $ do H.toHtml $ videotitle v
     H.td ! A.class_ "col-md-2" $ do H.toHtml $ show $ ourPrettyPrintTime $ publishedAt v
@@ -68,7 +68,7 @@ videoTemplate (i,v) =
 indexPage :: [Video] -> String -> H.Html
 indexPage videos time =
   let vs = zip [0,1..] videos
-      l = "Number of Videos: " ++ show $ (length videos)
+      l = "Number of Videos: " ++ (show $ (length videos))
       totaltime = "Totaltime: " ++ ourPrettyDurationTime (foldl (\ x v -> x + duration v) 0 videos) in
   bodyTemplate $ do
                     H.div ! A.class_ "col-md-8" $ do
