@@ -96,3 +96,4 @@ combineWith ord1 ord2 map xr yr = zipWith map (sortBy ord1 xr) (sortBy ord2 yr)
 
 formatUTCToLocal :: TI.UTCTime -> IO String
 formatUTCToLocal t = TI.formatTime TI.defaultTimeLocale "Last Refreshed: %H:%M:%S, %e.%m.%_Y" .(`TI.utcToLocalTime` t) <$> TI.getCurrentTimeZone 
+

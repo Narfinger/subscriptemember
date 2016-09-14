@@ -12,12 +12,12 @@ import           Data.Acid.Local      ( createCheckpointAndClose )
 import qualified Data.ByteString as B
 import           Data.Maybe ( fromJust )
 import           Data.Time
+import           Data.Text ( Text(..) )
 import           Text.Blaze ((!))
+import           Text.Blaze.Renderer.Text (renderHtml)
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
-import           Happstack.Server     ( Response, ServerPart, ServerPartT, dir
-                                      , nullConf, ok, seeOther, path
-                                      , simpleHTTP, toResponse )
+import Web.Spock
 import           AcidHandler
 import           HelperFunctions ( formatUTCToLocal, ourPrettyPrintTime, ourPrettyDurationTime )
 import           YoutubeApiBase
@@ -26,6 +26,15 @@ import qualified YoutubeApiVideos as YTV
 import qualified GiantBombVideos as GBV
 import           Network.OAuth.OAuth2
 import qualified Network.HTTP.Conduit as C
+
+
+data Sess = EmptySession
+
+
+
+blaze :: MonadIO m => H.Html -> ActionCtxT ctx m a
+blaze = renderHtml
+-- blaze = lazyBytes . renderHtml
 
 bodyTemplate :: H.Html ->H.Html
 bodyTemplate body =
@@ -127,16 +136,16 @@ subPage s = bodyTemplate $
                   H.tr $ 
                     mapM_ subtotr s
 
-subsHandler :: AcidState ServerState -> ServerPartT IO Response
+--subsHandler :: AcidState ServerState -> ServerPartT IO Response
 subsHandler acid  = do
   subs <- query' acid GetSubs  
-  ok $ toResponse $ subPage subs
+  blaze $ subPage subs
 
-subsAndUpdateHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
+-- subsAndUpdateHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
 subsAndUpdateHandler acid mgr tk = do
   s <- liftIO (updateSubscriptions mgr tk)
   subs <- update' acid (UpdateSubs s)
-  seeOther ("/subs"::String) $ toResponse ()
+  redirect ("/subs"::Text)
 
 upvids :: AcidState ServerState -> C.Manager -> AccessToken -> IO ()
 upvids acid mgr tk = do
@@ -151,54 +160,53 @@ upvids acid mgr tk = do
   tmp <- update' acid (WriteLastRefreshed now)
   return ()
   
-upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
+-- upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
 upvidsHandler acid mgr tk = do
   let fn = upvids acid mgr tk
   lift (forkIO fn);
-  seeOther ("/"::String) $ toResponse ()
+  redirect ("/"::Text)
 
-deleteHandler :: AcidState ServerState -> Int -> ServerPartT IO Response
+-- deleteHandler :: AcidState ServerState -> Int -> ServerPartT IO Response
 deleteHandler acid i = do
   update' acid (DeleteVid i)
-  seeOther ("/"::String) $ toResponse ()
+  redirect ("/"::Text)
 
-tokenRefreshHandler :: AcidState ServerState -> C.Manager -> ServerPartT IO Response
+-- tokenRefreshHandler :: AcidState ServerState -> C.Manager -> ServerPartT IO Response
 tokenRefreshHandler acid mgr = do
   lift (refreshAccessToken mgr acid);
-  seeOther ("/"::String) $ toResponse () 
+  redirect ("/"::Text)
 
-tokenHandler :: AccessToken -> B.ByteString -> ServerPartT IO Response
-tokenHandler tk rtk = ok $ toResponse $ tokenPage tk rtk
+-- tokenHandler :: AccessToken -> B.ByteString -> ServerPartT IO Response
+tokenHandler tk rtk = blaze $ tokenPage tk rtk
 
-cleanAllHandler :: AcidState ServerState -> ServerPartT IO Response
+-- cleanAllHandler :: AcidState ServerState -> ServerPartT IO Response
 cleanAllHandler acid = do
   update' acid DeleteAll
-  seeOther ("/"::String) $ toResponse ()
+  redirect ("/"::Text)
 
-indexHandler :: AcidState ServerState  -> ServerPartT IO Response
+-- indexHandler :: AcidState ServerState  -> ServerPartT IO Response
 indexHandler acid = do
   time <- query' acid GetLastRefreshed
   formatedTime <- lift (formatUTCToLocal time)
   vs <- query' acid GetVids
-  ok $ toResponse $ indexPage vs formatedTime
+  blaze $ indexPage vs formatedTime
 
-handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
+-- handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
 handlers acid mgr = do
 --  vs <- acidGetVideos acid
   tk <- acidGetAccessToken acid
   rtk <- acidGetRefreshToken acid
   let jtk = fromJust tk
   let jrtk = fromJust rtk
-  msum [ dir "subsUp" $ subsAndUpdateHandler acid mgr jtk
-       , dir "subs" $ subsHandler acid
-       , dir "upvids" $ upvidsHandler acid mgr jtk
-       , dir "delete" $ path $ \i -> deleteHandler acid i
-       , dir "cleanall" $ cleanAllHandler acid
-       , dir "tokenrefresh" $ tokenRefreshHandler acid mgr
-       , dir "token" $ tokenHandler jtk jrtk
-       , indexHandler acid
-       ]
-    
+  get "subsUp"  $ subsAndUpdateHandler acid mgr jtk
+  get "subs"    $ subsHandler acid
+  get "upvids"  $ upvidsHandler acid mgr jtk
+  get ("delete" <//> var) $ (\i -> deleteHandler acid i)
+  get "cleanall"  $ cleanAllHandler acid
+  get "tokenrefresh" $ tokenRefreshHandler acid mgr
+  get "token" $ tokenHandler jtk jrtk
+  get root $ indexHandler acid
+  
 main :: IO ()
 main = do
   mgr <- C.newManager C.tlsManagerSettings
@@ -208,5 +216,6 @@ main = do
               newAccessTokenOrRefresh mgr acid;
               print "Token found, doing refresh token";
               refreshAccessToken mgr acid;
-                simpleHTTP nullConf (handlers acid mgr)            
+              spockCfg <- defaultSpockCfg EmptySession PCNoDatabase ()
+              runSpock 8000 (spock spockCfg handlers)
          )
