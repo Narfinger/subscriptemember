@@ -1,26 +1,32 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts,
-  GeneralizedNewtypeDeriving, MultiParamTypeClasses, TemplateHaskell,
-  TypeFamilies, RecordWildCards, OverloadedStrings,
-  StandaloneDeriving #-}
+{-# LANGUAGE CPP                        #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 module AcidHandler where
 
-import           Control.Monad.Reader ( ask )
-import           Control.Monad.State  ( get, put )
+import           Control.Monad.Reader  (ask)
+import           Control.Monad.State   (get, put)
 import           Control.Monad.Trans
-import           Data.Data            ( Data, Typeable )
-import           Data.Acid            ( AcidState, Query, Update, makeAcidic )
+import           Data.Acid             (AcidState, Query, Update, makeAcidic)
+import           Data.Acid.Advanced    (query', update')
 import           Data.ByteString
+import           Data.Data             (Data, Typeable)
 import           Data.Maybe
-import           Data.Acid.Advanced   ( query', update' )
-import           Data.SafeCopy        ( base, deriveSafeCopy )
+import           Data.SafeCopy         (base, deriveSafeCopy)
 import           Data.Time
 import           Data.Time.Clock.POSIX
-import qualified Network.HTTP.Conduit as C
+import           GoogleHandler
+import           HelperFunctions       (deleteNth)
+import qualified Network.HTTP.Conduit  as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( deleteNth )
-import GoogleHandler
-import YoutubeApiBase
+import           YoutubeApiBase
 
 
 deriving instance Eq AccessToken
@@ -30,13 +36,13 @@ deriving instance Data AccessToken
 $(deriveSafeCopy 0 'base ''AccessToken)
 
 -- | Complete State of the Server aka everything we save
-data ServerState = ServerState { videos :: [Video]
+data ServerState = ServerState { videos        :: [Video]
                                , subscriptions :: [Subscription]
-                               , lastRefreshed :: UTCTime 
-                               , token :: Maybe AccessToken
-                               , rtoken :: Maybe ByteString
+                               , lastRefreshed :: UTCTime
+                               , token         :: Maybe AccessToken
+                               , rtoken        :: Maybe ByteString
                                } deriving (Eq, Ord, Read, Show, Data, Typeable)
-                                         
+
 $(deriveSafeCopy 0 'base ''ServerState)
 
 initialServerState :: ServerState
@@ -70,7 +76,7 @@ writeAccessToken tk = do
   vs@ServerState{..} <- get
   put $ vs { token = Just tk }
   return tk
-  
+
 -- | Acid query of Refresh Token
 getRefreshToken :: Query ServerState (Maybe ByteString)
 getRefreshToken = rtoken <$> ask
@@ -120,7 +126,7 @@ deleteAll = do
 $(makeAcidic ''ServerState ['getAccessToken, 'writeAccessToken, 'getRefreshToken, 'writeRefreshToken, 'updateSubs, 'getSubs, 'getLastRefreshed
                            ,'writeLastRefreshed,'getVids, 'writeVids, 'deleteVid, 'deleteAll])
 
--- | helper functions that asks a new token and saves it 
+-- | helper functions that asks a new token and saves it
 saveNewToken :: C.Manager -> AcidState ServerState -> IO ()
 saveNewToken mgr acid = do
   tk <- getToken mgr

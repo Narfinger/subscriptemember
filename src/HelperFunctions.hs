@@ -15,12 +15,12 @@ module HelperFunctions ( firstLetterDown
                        , formatUTCToLocal
                        ) where
 
-import qualified Data.ByteString.Char8             as BC
-import qualified Data.Char as Char    ( toLower )
-import           Data.List as L
-import           Data.Text as T       ( Text, unpack )
-import qualified Data.Time as TI
-import Text.Printf (printf)
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.Char             as Char (toLower)
+import           Data.List             as L
+import           Data.Text             as T (Text, unpack)
+import qualified Data.Time             as TI
+import           Text.Printf           (printf)
 
 
 -- | takes a string and lowers the first character
@@ -68,14 +68,14 @@ deleteNth i xs =
 
 -- | prints integer to duration
 ourPrettyDurationTime :: Int -> String
-ourPrettyDurationTime secs 
+ourPrettyDurationTime secs
     | h /= 0 = show h ++ ":" ++ printf "%02d" m ++ ":" ++ printf "%02d" s
     | m /= 0 =                  printf "%02d" m ++ ":" ++ printf "%02d" s
     | otherwise =                                 "0:" ++ printf "%02d" s
     where s = secs `mod` 60
           m = (secs `div` 60 ) `mod` 60
           h = ((secs `div` 60 ) `div` 60) `mod` 24
-    
+
 -- | Text To Bytestring
 textToByteString :: T.Text -> BC.ByteString
 textToByteString = BC.pack . T.unpack
@@ -95,5 +95,5 @@ combineWith :: (a -> a -> Ordering) -> (b -> b -> Ordering) -> (a-> b -> c) -> [
 combineWith ord1 ord2 map xr yr = zipWith map (sortBy ord1 xr) (sortBy ord2 yr)
 
 formatUTCToLocal :: TI.UTCTime -> IO String
-formatUTCToLocal t = TI.formatTime TI.defaultTimeLocale "Last Refreshed: %H:%M:%S, %e.%m.%_Y" .(`TI.utcToLocalTime` t) <$> TI.getCurrentTimeZone 
+formatUTCToLocal t = TI.formatTime TI.defaultTimeLocale "Last Refreshed: %H:%M:%S, %e.%m.%_Y" .(`TI.utcToLocalTime` t) <$> TI.getCurrentTimeZone
 

@@ -1,32 +1,28 @@
-{-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
-    TypeFamilies, OverloadedStrings #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeFamilies          #-}
 module YoutubeApiVideos (updateVideos) where
 
-import qualified Data.ByteString.Char8             as BC
-import qualified Data.List as L
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.List             as L
 import           Data.Maybe
-import           Data.Time
 import           Data.Ord
-import qualified Data.Text as T
-import qualified Network.HTTP.Conduit as C
+import qualified Data.Text             as T
+import           Data.Time
+import           HelperFunctions       (combineWith, groupOn, textToByteString)
+import qualified Network.HTTP.Conduit  as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( groupOn, textToByteString, combineWith )
-import           ParserHelpers   ( parseGoogleTime, parseDuration )
-import           YoutubeApiBase  ( constructQuery
-                                 , constructMultipleQuery
-                                 , decode
-                                 , filterAndSortVideos
-                                 , Subscription(..)
-                                 , VURL(..)
-                                 , Video(..)
-                                 , YoutubeContentDetails(..)
-                                 , YoutubeItems(..)
-                                 , YoutubeResponse(..)
-                                 , YoutubeResource(..)
-                                 , YoutubeThumbnails(..)
-                                 , YoutubeURL(..)
-                                 , YoutubeVideo(..)
-                                 )
+import           ParserHelpers         (parseDuration, parseGoogleTime)
+import           YoutubeApiBase        (Subscription (..), VURL (..),
+                                        Video (..), YoutubeContentDetails (..),
+                                        YoutubeItems (..), YoutubeResource (..),
+                                        YoutubeResponse (..),
+                                        YoutubeThumbnails (..), YoutubeURL (..),
+                                        YoutubeVideo (..),
+                                        constructMultipleQuery, constructQuery,
+                                        decode, filterAndSortVideos)
 
 -- | JSON query to get playlist items from a subscriptions (not batched)
 getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Subscription, Maybe (YoutubeResponse YoutubeVideo))
@@ -34,7 +30,7 @@ getPlaylistItemsFromPlaylist mgr token sub =
    let askvalue = textToByteString $ uploadPlaylist sub in
    let purl = constructQuery (BC.append "/playlistItems?part=snippet&playlistId="  askvalue) in
    sequence (sub, fmap decode (authGetJSON mgr token purl :: IO (OAuth2Result (YoutubeResponse YoutubeVideo))))
-    
+
 -- | extract video from response
 extractVideo :: YoutubeItems YoutubeVideo -> Maybe Video
 extractVideo item =
@@ -61,9 +57,9 @@ updateVideos mgr tk time subs =
   let fn =  filterAndSortVideos time . concat
       updtime = updateVideosWithTime mgr tk :: [Video] -> IO [Video] in
     L.sort <$> (updtime =<< fn <$> mapM (fmap responseToVideo . getPlaylistItemsFromPlaylist mgr tk) subs)
-     
 
-      
+
+
 -- | get Video details for all video in list
 getVideoDetails :: C.Manager -> AccessToken -> [Video] -> IO [Maybe (YoutubeResponse YoutubeContentDetails)]
 getVideoDetails mgr token videos =
@@ -76,7 +72,7 @@ getDetailItems :: C.Manager -> AccessToken -> [Video] -> IO [YoutubeItems Youtub
 getDetailItems mgr tk videos = concat <$> map items <$> catMaybes <$> getVideoDetails mgr tk videos
 
 getTime :: YoutubeItems YoutubeContentDetails -> T.Text
-getTime i = fromMaybe "" (durationDetails =<< contentDetails i) 
+getTime i = fromMaybe "" (durationDetails =<< contentDetails i)
 
 updateVideosWithTime :: C.Manager -> AccessToken -> [Video] -> IO [Video]
 updateVideosWithTime mgr tk videos =

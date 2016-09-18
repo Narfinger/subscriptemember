@@ -1,23 +1,26 @@
-{-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
-    TypeFamilies, OverloadedStrings #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module YoutubeApiSubscriptions ( updateSubscriptions
                                ) where
 
+import qualified Data.List            as L
 import           Data.Maybe
-import qualified Data.List                         as L
-import           Data.Text                     (Text)
+import           Data.Text            (Text)
+import           HelperFunctions      (groupOn)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
-import           HelperFunctions ( groupOn )
-import YoutubeApiBase
+import           YoutubeApiBase
 
 -- | returns my subscriptions as a YoutubeResponse YoutubeSubscription
 getSubscriptionsForMe :: C.Manager -> AccessToken -> IO [YoutubeItems YoutubeSubscription]
 getSubscriptionsForMe mgr token =
   let qurl = constructQueryString "/subscriptions?&maxResults=50&part=snippet&mine=True" in
   authGetJSONPages mgr token qurl :: (IO [YoutubeItems YoutubeSubscription])
-  --fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))  
+  --fmap decode (authGetJSON mgr token url :: (IO (OAuth2Result (YoutubeResponse YoutubeSubscription))))
 
 -- | Takes YoutubeItem YoutubeSubscription and parses the data into a Subscription object if it exists
 constructSubscriptionMaybe :: YoutubeItems YoutubeSubscription -> Maybe Subscription
@@ -30,8 +33,8 @@ constructSubscriptionMaybe x =
     let n = url $ def $ thumbnails nx in
     Just Subscription {sid = fromJust r, channelname = t, uploadPlaylist="", thumbnail = n}
 
--- | Parses a list of Maybe Youtuberesponse YoutubeSubscription and returns the data parsed into a Subscription list 
-extractSubscriptions :: [YoutubeItems YoutubeSubscription] -> [Subscription] 
+-- | Parses a list of Maybe Youtuberesponse YoutubeSubscription and returns the data parsed into a Subscription list
+extractSubscriptions :: [YoutubeItems YoutubeSubscription] -> [Subscription]
 extractSubscriptions = mapMaybe constructSubscriptionMaybe
 
 -- | fetch subscriptions and returns them into a list
@@ -42,7 +45,7 @@ updateSubscriptions m tk = do
   let groupedSubs = groupOn 50 subs
   return $ L.concat $ L.zipWith extractPlaylist groupedSubs uploadsStuff
 
--- | Given subscriptions, returns channel info as YoutubeResponse YoutubeContentDetails for all subscriptions in [Subscription] 
+-- | Given subscriptions, returns channel info as YoutubeResponse YoutubeContentDetails for all subscriptions in [Subscription]
 getUploadPlaylistForChannel :: C.Manager -> AccessToken -> [Subscription] -> IO [Maybe (YoutubeResponse YoutubeContentDetails)]
 getUploadPlaylistForChannel mgr token channels =
   let channelids = (map . map) (textToByteString . sid) (groupOn 50 channels) in
@@ -55,17 +58,17 @@ constructPlaylistIds x =
   let c = contentDetails x in
   case c of
   Nothing -> Nothing
-  Just r -> Just (uploads $ fromJust $ relatedPlaylists r) 
+  Just r -> Just (uploads $ fromJust $ relatedPlaylists r)
 
 
 -- | Given a list of subscriptions and a youtube response for this, update the subscription with the uploadPlaylist ids
 extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse YoutubeContentDetails) -> [Subscription]
 extractPlaylist [] _ = []
 extractPlaylist _ Nothing = []
-extractPlaylist (x:xs) (Just cd) = 
+extractPlaylist (x:xs) (Just cd) =
   let velem = L.find (\y -> YoutubeApiBase.iid y == sid x) (items cd) in
   case velem of
   Nothing -> []
-  Just el -> 
+  Just el ->
     let i = constructPlaylistIds el  in
     x{uploadPlaylist = fromJust i} : extractPlaylist xs (Just cd)

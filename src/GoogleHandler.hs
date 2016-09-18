@@ -1,13 +1,16 @@
-{-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
-    TypeFamilies, OverloadedStrings #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module GoogleHandler ( getToken
                      , getNewAccessTokenFromRefreshToken
                      ) where
 
-import qualified Data.ByteString.Char8         as BS
-import qualified Network.HTTP.Conduit as C
-import           Keys                          ( googleKey )
+import qualified Data.ByteString.Char8 as BS
+import           Keys                  (googleKey)
+import qualified Network.HTTP.Conduit  as C
 import           Network.OAuth.OAuth2
 
 
