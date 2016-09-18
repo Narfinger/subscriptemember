@@ -14,7 +14,7 @@ import           Data.Maybe ( fromJust )
 import           Data.Time
 import           Data.Text ( Text(..) )
 import           Text.Blaze ((!))
-import           Text.Blaze.Renderer.Text (renderHtml)
+import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 import Web.Spock
@@ -28,13 +28,16 @@ import           Network.OAuth.OAuth2
 import qualified Network.HTTP.Conduit as C
 
 
-data Sess = EmptySession
-
+--data Sess = EmptySession
+--type SiteAction = SpockM Nothing PCNoDatabase Nothing
+--type SiteAction ctx a = SpockActionCtx ctx () SessionVal () a
+type SiteApp ctx = SpockCtxM ctx () () () ()
+type SiteAction ctx a = SpockActionCtx ctx () () () a
 
 
 blaze :: MonadIO m => H.Html -> ActionCtxT ctx m a
-blaze = renderHtml
--- blaze = lazyBytes . renderHtml
+blaze = lazyBytes . renderHtml
+{-# INLINE blaze #-}
 
 bodyTemplate :: H.Html ->H.Html
 bodyTemplate body =
@@ -147,7 +150,7 @@ subsAndUpdateHandler acid mgr tk = do
   subs <- update' acid (UpdateSubs s)
   redirect ("/subs"::Text)
 
-upvids :: AcidState ServerState -> C.Manager -> AccessToken -> IO ()
+--upvids :: AcidState ServerState -> C.Manager -> AccessToken -> IO ()
 upvids acid mgr tk = do
   subs <- query' acid GetSubs
   date <- query' acid GetLastRefreshed
@@ -160,18 +163,18 @@ upvids acid mgr tk = do
   tmp <- update' acid (WriteLastRefreshed now)
   return ()
   
--- upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
+upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> SiteAction ctx a
 upvidsHandler acid mgr tk = do
   let fn = upvids acid mgr tk
   lift (forkIO fn);
   redirect ("/"::Text)
 
--- deleteHandler :: AcidState ServerState -> Int -> ServerPartT IO Response
+deleteHandler :: AcidState ServerState -> Int -> SiteAction ctx a
 deleteHandler acid i = do
   update' acid (DeleteVid i)
   redirect ("/"::Text)
 
--- tokenRefreshHandler :: AcidState ServerState -> C.Manager -> ServerPartT IO Response
+tokenRefreshHandler :: AcidState ServerState -> C.Manager -> SiteAction ctx a
 tokenRefreshHandler acid mgr = do
   lift (refreshAccessToken mgr acid);
   redirect ("/"::Text)
@@ -184,7 +187,7 @@ cleanAllHandler acid = do
   update' acid DeleteAll
   redirect ("/"::Text)
 
--- indexHandler :: AcidState ServerState  -> ServerPartT IO Response
+indexHandler :: AcidState ServerState  -> SiteAction ctx a
 indexHandler acid = do
   time <- query' acid GetLastRefreshed
   formatedTime <- lift (formatUTCToLocal time)
@@ -192,13 +195,10 @@ indexHandler acid = do
   blaze $ indexPage vs formatedTime
 
 -- handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
-handlers acid mgr = do
+handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SiteApp ctx
+handlers acid mgr jtk jrtk = do
 --  vs <- acidGetVideos acid
-  tk <- acidGetAccessToken acid
-  rtk <- acidGetRefreshToken acid
-  let jtk = fromJust tk
-  let jrtk = fromJust rtk
-  get "subsUp"  $ subsAndUpdateHandler acid mgr jtk
+  get "subsUp"  $ (subsAndUpdateHandler acid mgr jtk)
   get "subs"    $ subsHandler acid
   get "upvids"  $ upvidsHandler acid mgr jtk
   get ("delete" <//> var) $ (\i -> deleteHandler acid i)
@@ -216,6 +216,11 @@ main = do
               newAccessTokenOrRefresh mgr acid;
               print "Token found, doing refresh token";
               refreshAccessToken mgr acid;
-              spockCfg <- defaultSpockCfg EmptySession PCNoDatabase ()
-              runSpock 8000 (spock spockCfg handlers)
+              let spockCfg = defaultSpockCfg Nothing PCNoDatabase Nothing--              let spockCfg = defaultSpockCfg EmptySession PCNoDatabase ()
+              tk <- acidGetAccessToken acid
+              rtk <- acidGetRefreshToken acid
+              let jtk = fromJust tk      -- token
+              let jrtk = fromJust rtk    -- refresh token
+              runSpock 8000 (spock spockCfg (handlers acid mgr jtk jrtk))
+              --runSpock 8000 spockCfg (handlers acid mgr jtk jrtk)
          )
