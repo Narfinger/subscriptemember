@@ -1,39 +1,39 @@
-{-# LANGUAGE CPP, FlexibleContexts, MultiParamTypeClasses,
-    TypeFamilies, OverloadedStrings #-}  
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeFamilies          #-}
 module Main where
 
-import           Control.Concurrent ( forkIO )
-import           Control.Exception ( bracket )
-import           Control.Monad        ( msum )
-import           Control.Monad.Trans
-import           Data.Acid  ( AcidState, openLocalState )
-import           Data.Acid.Advanced   ( query', update' )
-import           Data.Acid.Local      ( createCheckpointAndClose )
-import qualified Data.ByteString as B
-import           Data.Maybe ( fromJust )
-import           Data.Time
-import           Data.Text ( Text(..) )
-import           Text.Blaze ((!))
-import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
-import Web.Spock
 import           AcidHandler
-import           HelperFunctions ( formatUTCToLocal, ourPrettyPrintTime, ourPrettyDurationTime )
+import           Control.Concurrent            (forkIO)
+import           Control.Exception             (bracket)
+import           Control.Monad                 (msum)
+import           Control.Monad.Trans
+import           Data.Acid                     (AcidState, openLocalState)
+import           Data.Acid.Advanced            (query', update')
+import           Data.Acid.Local               (createCheckpointAndClose)
+import qualified Data.ByteString               as B
+import           Data.Maybe                    (fromJust)
+import           Data.Text                     (Text (..))
+import           Data.Time
+import qualified GiantBombVideos               as GBV
+import           HelperFunctions               (formatUTCToLocal,
+                                                ourPrettyDurationTime,
+                                                ourPrettyPrintTime)
+import qualified Network.HTTP.Conduit          as C
+import           Network.OAuth.OAuth2
+import           Text.Blaze                    ((!))
+import           Text.Blaze.Html.Renderer.Utf8 (renderHtml)
+import qualified Text.Blaze.Html5              as H
+import qualified Text.Blaze.Html5.Attributes   as A
+import           Web.Spock
 import           YoutubeApiBase
 import           YoutubeApiSubscriptions
-import qualified YoutubeApiVideos as YTV 
-import qualified GiantBombVideos as GBV
-import           Network.OAuth.OAuth2
-import qualified Network.HTTP.Conduit as C
+import qualified YoutubeApiVideos              as YTV
 
 
---data Sess = EmptySession
---type SiteAction = SpockM Nothing PCNoDatabase Nothing
---type SiteAction ctx a = SpockActionCtx ctx () SessionVal () a
-type SiteApp ctx = SpockCtxM ctx () () () ()
 type SiteAction ctx a = SpockActionCtx ctx () () () a
-
 
 blaze :: MonadIO m => H.Html -> ActionCtxT ctx m a
 blaze = lazyBytes . renderHtml
@@ -115,7 +115,7 @@ indexPage videos time =
                                      H.a ! A.href "/tokenrefresh" $ "Refresh Token"
                                    H.div ! A.class_ "row" $
                                      H.a ! A.href "/cleanall" $ "Delete All Videos"
-                                  
+
 
 subtotr :: Subscription -> H.Html
 subtotr s =  H.tr $ do
@@ -136,21 +136,22 @@ subPage s = bodyTemplate $
                     H.th "Channel Name"
                     H.th "Channel ID"
                     H.th "Upload Playlist ID"
-                  H.tr $ 
+                  H.tr $
                     mapM_ subtotr s
 
---subsHandler :: AcidState ServerState -> ServerPartT IO Response
+subsHandler :: MonadIO m => AcidState ServerState -> ActionCtxT ctx m b
 subsHandler acid  = do
-  subs <- query' acid GetSubs  
+  subs <- query' acid GetSubs
   blaze $ subPage subs
 
--- subsAndUpdateHandler :: AcidState ServerState -> C.Manager -> AccessToken -> ServerPartT IO Response
+
+subsAndUpdateHandler :: MonadIO m => AcidState ServerState -> C.Manager -> AccessToken -> ActionCtxT ctx m b
 subsAndUpdateHandler acid mgr tk = do
   s <- liftIO (updateSubscriptions mgr tk)
   subs <- update' acid (UpdateSubs s)
   redirect ("/subs"::Text)
 
---upvids :: AcidState ServerState -> C.Manager -> AccessToken -> IO ()
+upvids :: AcidState ServerState -> C.Manager -> AccessToken -> IO ()
 upvids acid mgr tk = do
   subs <- query' acid GetSubs
   date <- query' acid GetLastRefreshed
@@ -162,11 +163,11 @@ upvids acid mgr tk = do
   now <- getCurrentTime
   tmp <- update' acid (WriteLastRefreshed now)
   return ()
-  
+
 upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> SiteAction ctx a
 upvidsHandler acid mgr tk = do
   let fn = upvids acid mgr tk
-  lift (forkIO fn);
+  liftIO (forkIO fn);
   redirect ("/"::Text)
 
 deleteHandler :: AcidState ServerState -> Int -> SiteAction ctx a
@@ -176,13 +177,13 @@ deleteHandler acid i = do
 
 tokenRefreshHandler :: AcidState ServerState -> C.Manager -> SiteAction ctx a
 tokenRefreshHandler acid mgr = do
-  lift (refreshAccessToken mgr acid);
+  liftIO (refreshAccessToken mgr acid);
   redirect ("/"::Text)
 
--- tokenHandler :: AccessToken -> B.ByteString -> ServerPartT IO Response
+tokenHandler :: MonadIO m => AccessToken -> B.ByteString -> ActionCtxT ctx m a
 tokenHandler tk rtk = blaze $ tokenPage tk rtk
 
--- cleanAllHandler :: AcidState ServerState -> ServerPartT IO Response
+cleanAllHandler :: MonadIO m => AcidState ServerState -> ActionCtxT ctx m b
 cleanAllHandler acid = do
   update' acid DeleteAll
   redirect ("/"::Text)
@@ -190,14 +191,12 @@ cleanAllHandler acid = do
 indexHandler :: AcidState ServerState  -> SiteAction ctx a
 indexHandler acid = do
   time <- query' acid GetLastRefreshed
-  formatedTime <- lift (formatUTCToLocal time)
+  formatedTime <- liftIO (formatUTCToLocal time)
   vs <- query' acid GetVids
   blaze $ indexPage vs formatedTime
 
--- handlers :: AcidState ServerState -> C.Manager -> ServerPart Response
-handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SiteApp ctx
+handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SpockCtxT ctx (WebStateM () () ()) ()
 handlers acid mgr jtk jrtk = do
---  vs <- acidGetVideos acid
   get "subsUp"  $ (subsAndUpdateHandler acid mgr jtk)
   get "subs"    $ subsHandler acid
   get "upvids"  $ upvidsHandler acid mgr jtk
@@ -206,21 +205,20 @@ handlers acid mgr jtk jrtk = do
   get "tokenrefresh" $ tokenRefreshHandler acid mgr
   get "token" $ tokenHandler jtk jrtk
   get root $ indexHandler acid
-  
+
 main :: IO ()
 main = do
   mgr <- C.newManager C.tlsManagerSettings
   bracket (openLocalState initialServerState)
           createCheckpointAndClose
-         (\acid -> do 
+         (\acid -> do
               newAccessTokenOrRefresh mgr acid;
               print "Token found, doing refresh token";
               refreshAccessToken mgr acid;
-              let spockCfg = defaultSpockCfg Nothing PCNoDatabase Nothing--              let spockCfg = defaultSpockCfg EmptySession PCNoDatabase ()
+              let spockCfg = defaultSpockCfg () PCNoDatabase ()
               tk <- acidGetAccessToken acid
               rtk <- acidGetRefreshToken acid
               let jtk = fromJust tk      -- token
               let jrtk = fromJust rtk    -- refresh token
               runSpock 8000 (spock spockCfg (handlers acid mgr jtk jrtk))
-              --runSpock 8000 spockCfg (handlers acid mgr jtk jrtk)
          )
