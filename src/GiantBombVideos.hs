@@ -67,7 +67,7 @@ fetchJSON req =
 
 -- | giantbomb at the moment returns https in json but does not serve images over https hence we fix this
 fixthumb :: T.Text -> T.Text
-fixthumb t = T.append "http" $ T.drop 5 t
+fixthumb t = t --T.append "http" $ T.drop 5 t
 
 -- | extract video from response
 extractVideo :: GiantBombVideo -> Video
