@@ -4,4 +4,4 @@ packages:
 - '.'
 resolver: lts-6.17
 extra-deps:
-  - timezone-olson-th-0.1.0.1
+  - timezone-olson-th-0.1.0.2

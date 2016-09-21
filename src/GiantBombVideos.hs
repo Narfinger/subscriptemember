@@ -85,7 +85,7 @@ responseToVideo (Just res) = map extractVideo (results res)
 -- | query api to get the last 20 videos
 getGiantBombResponse :: C.Manager -> IO (Maybe (GiantBombResponse GiantBombVideo))
 getGiantBombResponse mgr = do
-  req <- C.parseUrl $ "https://www.giantbomb.com/api/videos/?format=json&limit=" ++ limit ++ "&api_key=" ++ gbKey
+  req <- C.parseUrlThrow $ "https://www.giantbomb.com/api/videos/?format=json&limit=" ++ limit ++ "&api_key=" ++ gbKey
   decode <$> C.responseBody <$> fetchJSON req mgr
     -- debug function
     -- rt <- fetchJSON req mgr
