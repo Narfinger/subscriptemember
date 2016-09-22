@@ -54,21 +54,14 @@ getUploadPlaylistForChannel mgr token channels =
 
 -- | Construct playlistid from response
 constructPlaylistIds :: YoutubeItems YoutubeContentDetails -> Maybe Text
-constructPlaylistIds x =
-  let c = contentDetails x in
-  case c of
-  Nothing -> Nothing
-  Just r -> Just (uploads $ fromJust $ relatedPlaylists r)
-
+constructPlaylistIds x = let fn = \x -> return $ uploads x in
+                           contentDetails x >>= relatedPlaylists >>= fn
 
 -- | Given a list of subscriptions and a youtube response for this, update the subscription with the uploadPlaylist ids
 extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse YoutubeContentDetails) -> [Subscription]
 extractPlaylist [] _ = []
-extractPlaylist _ Nothing = []
-extractPlaylist (x:xs) (Just cd) =
-  let velem = L.find (\y -> YoutubeApiBase.iid y == sid x) (items cd) in
-  case velem of
-  Nothing -> []
-  Just el ->
-    let i = constructPlaylistIds el  in
-    x{uploadPlaylist = fromJust i} : extractPlaylist xs (Just cd)
+extractPlaylist (x:xs) cdm =
+  let eq = (\y -> YoutubeApiBase.iid y == sid x)
+      velem = L.find eq $ concat $ (fmap items) $ cdm in
+    let i = (fmap constructPlaylistIds) velem in
+      x{uploadPlaylist = fromJust $ fromJust $ i} : extractPlaylist xs cdm

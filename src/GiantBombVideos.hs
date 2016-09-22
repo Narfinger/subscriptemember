@@ -79,8 +79,7 @@ extractVideo s =
 
 -- | Transofmrs a single response to a maybe video using extractVideo
 responseToVideo :: Maybe (GiantBombResponse GiantBombVideo) -> [Video]
-responseToVideo Nothing  = []
-responseToVideo (Just res) = map extractVideo (results res)
+responseToVideo res = concat $ fmap (map extractVideo) $ results <$> res
 
 -- | query api to get the last 20 videos
 getGiantBombResponse :: C.Manager -> IO (Maybe (GiantBombResponse GiantBombVideo))
