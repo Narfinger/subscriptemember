@@ -13,7 +13,16 @@ import           Data.Text            (Text)
 import           HelperFunctions      (groupOn)
 import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2
-import           YoutubeApiBase
+import           SubAndVideo          (Subscription (..), VURL (..), Video (..))
+import           YoutubeApiBase       (RelatedPlaylists (..),
+                                       YoutubeContentDetails (..),
+                                       YoutubeItems (..), YoutubeResource (..),
+                                       YoutubeResponse (..),
+                                       YoutubeSubscription (..),
+                                       YoutubeThumbnails (..), YoutubeURL (..),
+                                       authGetJSONPages, constructMultipleQuery,
+                                       constructQueryString, decode,
+                                       textToByteString)
 
 -- | returns my subscriptions as a YoutubeResponse YoutubeSubscription
 getSubscriptionsForMe :: C.Manager -> AccessToken -> IO [YoutubeItems YoutubeSubscription]
@@ -54,14 +63,14 @@ getUploadPlaylistForChannel mgr token channels =
 
 -- | Construct playlistid from response
 constructPlaylistIds :: YoutubeItems YoutubeContentDetails -> Maybe Text
-constructPlaylistIds x = let fn = \x -> return $ uploads x in
+constructPlaylistIds x = let fn = return . uploads in
                            contentDetails x >>= relatedPlaylists >>= fn
 
 -- | Given a list of subscriptions and a youtube response for this, update the subscription with the uploadPlaylist ids
 extractPlaylist :: [Subscription] -> Maybe (YoutubeResponse YoutubeContentDetails) -> [Subscription]
 extractPlaylist [] _ = []
 extractPlaylist (x:xs) cdm =
-  let eq = (\y -> YoutubeApiBase.iid y == sid x)
-      velem = L.find eq $ concat $ (fmap items) $ cdm in
-    let i = (fmap constructPlaylistIds) velem in
-      x{uploadPlaylist = fromJust $ fromJust $ i} : extractPlaylist xs cdm
+  let eq y = YoutubeApiBase.iid y == sid x
+      velem = L.find eq $ concat $ fmap items cdm in
+    let i = fmap constructPlaylistIds velem in
+      x{uploadPlaylist = fromJust $ fromJust i} : extractPlaylist xs cdm

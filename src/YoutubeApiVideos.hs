@@ -15,14 +15,15 @@ import           HelperFunctions       (combineWith, groupOn, textToByteString)
 import qualified Network.HTTP.Conduit  as C
 import           Network.OAuth.OAuth2
 import           ParserHelpers         (parseDuration, parseGoogleTime)
-import           YoutubeApiBase        (Subscription (..), VURL (..),
-                                        Video (..), YoutubeContentDetails (..),
+import           SubAndVideo           (Subscription (..), VURL (..),
+                                        Video (..), filterAndSortVideos)
+import           YoutubeApiBase        (YoutubeContentDetails (..),
                                         YoutubeItems (..), YoutubeResource (..),
                                         YoutubeResponse (..),
                                         YoutubeThumbnails (..), YoutubeURL (..),
                                         YoutubeVideo (..),
                                         constructMultipleQuery, constructQuery,
-                                        decode, filterAndSortVideos)
+                                        decode)
 
 -- | JSON query to get playlist items from a subscriptions (not batched)
 getPlaylistItemsFromPlaylist :: C.Manager -> AccessToken -> Subscription -> IO (Subscription, Maybe (YoutubeResponse YoutubeVideo))

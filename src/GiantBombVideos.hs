@@ -23,7 +23,7 @@ import           Keys                  (gbKey)
 import qualified Network.HTTP.Conduit  as C
 import           Network.OAuth.OAuth2
 import           ParserHelpers         (parseGiantBombTime)
-import           YoutubeApiBase        (Subscription (..), VURL (..),
+import           SubAndVideo           (Subscription (..), VURL (..),
                                         Video (..), filterAndSortVideos)
 
 limit :: String

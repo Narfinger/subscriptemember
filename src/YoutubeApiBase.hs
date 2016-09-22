@@ -13,18 +13,13 @@ module YoutubeApiBase (PageInfo(..)
                       , RelatedPlaylists(..)
                       , YoutubeVideo(..)
                       , constructQueryString
-                      , Subscription(..)
-                      , Video(..)
-                      , VURL(..)
                       , authGetJSONPages
                       , getJSON
                       , textToByteString
                       , constructQuery
                       , constructMultipleQuery
                       , decode
-                      , makeURLFromVideo
-                      , channelUrl
-                      , filterAndSortVideos)  where
+                      , channelUrl)  where
 
 import           Data.Aeson                    (FromJSON)
 import           Data.Aeson.TH                 (defaultOptions, deriveJSON, fieldLabelModifier, constructorTagModifier )
@@ -41,6 +36,7 @@ import qualified Network.HTTP.Conduit as C
 import           Network.OAuth.OAuth2 ( authGetJSON, AccessToken, OAuth2Result )
 import           HelperFunctions ( firstLetterDown, contentDetailChange, itemLabelChange, thumbnailsLabelChange, subscriptionLabelChange
                                  , videoLabelChange, textToByteString)
+import SubAndVideo (Video (..), Subscription (..))
 
 
 -- | Base url for asking Youtube questions to google api
@@ -146,48 +142,9 @@ authGetJSONPages mgr token url = do
   resp <- getJSON mgr token url
   pagesAppend resp <$> getJSONWithPages mgr token url (nextPageToken resp)
 
--- | Main Datastructure for storing subscriptions
-data Subscription = Subscription { sid :: Text
-                                 , channelname :: Text
-                                 , uploadPlaylist :: Text
-                                 , thumbnail :: Text
-                                 } deriving (Eq, Ord, Read, Show, Data, Typeable)
+
 
 channelUrl :: Subscription -> Text
 channelUrl s = append ("https://www.youtube.com/channel/" ::Text)  (sid s) 
 
-data VURL = YTURL Text
-          | GBURL Text
-          deriving (Eq, Read, Show, Data, Typeable, Ord)
-
--- | Converts VURL to appropiate url
-makeURLFromVURL :: VURL -> Text
-makeURLFromVURL (YTURL a) = append "https://www.youtube.com/watch?v=" a
-makeURLFromVURL (GBURL a) = a
-
-
--- | Main Datastructure for storing Youtube Videos
-data Video = Video { vidId :: Text
-                   , videotitle :: Text
-                   , vidThumbnail :: Text
-                   , publishedAt :: UTCTime
-                   , duration :: Int
-                   , subscription :: Maybe Subscription
-                   , videoURL :: VURL
-                   } deriving (Eq, Read, Show, Data, Typeable)
-
-instance Ord Video where
-  x<= y = publishedAt x >= publishedAt y
-
--- | Filter Videos according to time
-filterAndSortVideos :: UTCTime -> [Video] -> [Video]
-filterAndSortVideos t xs = L.sort $ filter (\v -> publishedAt v > t) xs
-
--- | Video to url of the video
-makeURLFromVideo :: Video -> Text
-makeURLFromVideo v = makeURLFromVURL $ videoURL v
-
-$(deriveSafeCopy 0 'base ''VURL)
-$(deriveSafeCopy 0 'base ''Subscription)
-$(deriveSafeCopy 0 'base ''Video)
 

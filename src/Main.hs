@@ -23,12 +23,14 @@ import           HelperFunctions               (formatUTCToLocal,
                                                 ourPrettyPrintTime)
 import qualified Network.HTTP.Conduit          as C
 import           Network.OAuth.OAuth2
+import           SubAndVideo                   (Subscription (..), Video (..),
+                                                makeURLFromVideo)
 import           Text.Blaze                    ((!))
 import           Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import qualified Text.Blaze.Html5              as H
 import qualified Text.Blaze.Html5.Attributes   as A
 import           Web.Spock
-import           YoutubeApiBase
+import           YoutubeApiBase                (channelUrl)
 import           YoutubeApiSubscriptions
 import qualified YoutubeApiVideos              as YTV
 
@@ -197,10 +199,10 @@ indexHandler acid = do
 
 handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SpockCtxT ctx (WebStateM () () ()) ()
 handlers acid mgr jtk jrtk = do
-  get "subsUp"  $ (subsAndUpdateHandler acid mgr jtk)
+  get "subsUp"  $ subsAndUpdateHandler acid mgr jtk
   get "subs"    $ subsHandler acid
   get "upvids"  $ upvidsHandler acid mgr jtk
-  get ("delete" <//> var) $ (\i -> deleteHandler acid i)
+  get ("delete" <//> var) $ deleteHandler acid
   get "cleanall"  $ cleanAllHandler acid
   get "tokenrefresh" $ tokenRefreshHandler acid mgr
   get "token" $ tokenHandler jtk jrtk
