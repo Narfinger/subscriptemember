@@ -24,6 +24,7 @@ import           HelperFunctions               (formatUTCToLocal,
                                                 ourPrettyPrintTime)
 import qualified Network.HTTP.Conduit          as C
 import           Network.OAuth.OAuth2
+import qualified Network.WebSockets            as WS
 import           SubAndVideo                   (Subscription (..), Video (..),
                                                 makeURLFromVideo)
 import           Text.Blaze                    ((!))
@@ -60,6 +61,7 @@ bodyTemplate body =
           H.h1 $
             H.a ! A.href "/" $ "Youtube Subscriptemember"
           body
+          H.script ! A.src "/js/subscriptemember.js" $ ""
 
 tokenPage :: AccessToken -> B.ByteString -> H.Html
 tokenPage tk rtk =
@@ -209,6 +211,15 @@ handlers acid mgr jtk jrtk = do
   get "tokenrefresh" $ tokenRefreshHandler acid mgr
   get "token" $ tokenHandler jtk jrtk
   get root $ indexHandler acid
+
+
+wsapplication :: AcidState ServerState  -> WS.ServerApp
+wsapplication acid pending = do
+  conn <- WS.acceptRequest pending
+  WS.forkPingThread conn 30
+  --msg <- WS.receiveData conn
+  WS.sendTextData conn ("THIS IS A TEST" :: Text)
+
 
 main :: IO ()
 main = do
