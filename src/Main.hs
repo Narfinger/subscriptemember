@@ -10,14 +10,13 @@ import           Control.Concurrent                   (forkIO)
 import           Control.Exception                    (bracket)
 import           Control.Monad                        (msum)
 import           Control.Monad.Trans
-<<<<<<< HEAD
-import           Data.Acid                     (AcidState, createArchive,
-                                                openLocalState)
-import           Data.Acid.Advanced            (query', update')
-import           Data.Acid.Local               (createCheckpointAndClose)
-import qualified Data.ByteString               as B
-import           Data.Maybe                    (fromJust)
-import           Data.Text                     (Text (..))
+import           Data.Acid                            (AcidState, createArchive,
+                                                       openLocalState)
+import           Data.Acid.Advanced                   (query', update')
+import           Data.Acid.Local                      (createCheckpointAndClose)
+import qualified Data.ByteString                      as B
+import           Data.Maybe                           (fromJust)
+import           Data.Text                            (Text (..))
 import           Data.Time
 import qualified GiantBombVideos                      as GBV
 import           HelperFunctions                      (formatUTCToLocal,
@@ -35,13 +34,8 @@ import           Text.Blaze                           ((!))
 import           Text.Blaze.Html.Renderer.Utf8        (renderHtml)
 import qualified Text.Blaze.Html5                     as H
 import qualified Text.Blaze.Html5.Attributes          as A
-import           Web.Spock
-<<<<<<< HEAD
 import           Web.Spock.Config
-import           YoutubeApiBase                (channelUrl)
-=======
 import           YoutubeApiBase                       (channelUrl)
->>>>>>> at least logging works
 import           YoutubeApiSubscriptions
 import qualified YoutubeApiVideos                     as YTV
 
@@ -212,7 +206,6 @@ indexHandler acid = do
 --handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SpockM ctx (WebStateM () () ()) ()
 handlers acid mgr jtk jrtk = do
   middleware logStdoutDev
-  middleware $ staticPolicy (noDots >-> addBase "static")
   get "subsUp"  $ subsAndUpdateHandler acid mgr jtk
   get "subs"    $ subsHandler acid
   get "upvids"  $ upvidsHandler acid mgr jtk
@@ -220,6 +213,7 @@ handlers acid mgr jtk jrtk = do
   get "cleanall"  $ cleanAllHandler acid
   get "tokenrefresh" $ tokenRefreshHandler acid mgr
   get "token" $ tokenHandler jtk jrtk
+  get "subs.js" $ file "static/subs.js"
   get root $ indexHandler acid
 
 
