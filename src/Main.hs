@@ -30,6 +30,7 @@ import           Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import qualified Text.Blaze.Html5              as H
 import qualified Text.Blaze.Html5.Attributes   as A
 import           Web.Spock
+import           Web.Spock.Config
 import           YoutubeApiBase                (channelUrl)
 import           YoutubeApiSubscriptions
 import qualified YoutubeApiVideos              as YTV
@@ -197,7 +198,7 @@ indexHandler acid = do
   vs <- query' acid GetVids
   blaze $ indexPage vs formatedTime
 
-handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SpockCtxT ctx (WebStateM () () ()) ()
+--handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SpockM ctx (WebStateM () () ()) ()
 handlers acid mgr jtk jrtk = do
   get "subsUp"  $ subsAndUpdateHandler acid mgr jtk
   get "subs"    $ subsHandler acid
@@ -214,13 +215,14 @@ main = do
   bracket (openLocalState initialServerState)
           createCheckpointAndClose
          (\acid -> do
-              newAccessTokenOrRefresh mgr acid;
-              print "Token found, doing refresh token";
-              refreshAccessToken mgr acid;
-              let spockCfg = defaultSpockCfg () PCNoDatabase ()
-              tk <- acidGetAccessToken acid
-              rtk <- acidGetRefreshToken acid
-              let jtk = fromJust tk      -- token
-              let jrtk = fromJust rtk    -- refresh token
-              runSpock 8000 (spock spockCfg (handlers acid mgr jtk jrtk))
+             createArchive st
+             newAccessTokenOrRefresh mgr acid;
+             print "Token found, doing refresh token";
+             refreshAccessToken mgr acid;
+             spockCfg <- defaultSpockCfg () PCNoDatabase ()
+             tk <- acidGetAccessToken acid
+             rtk <- acidGetRefreshToken acid
+             let jtk = fromJust tk      -- token
+             let jrtk = fromJust rtk    -- refresh token
+             runSpock 8000 (spock spockCfg (handlers acid mgr jtk jrtk))
          )
