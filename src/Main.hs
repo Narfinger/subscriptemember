@@ -10,7 +10,8 @@ import           Control.Concurrent            (forkIO)
 import           Control.Exception             (bracket)
 import           Control.Monad                 (msum)
 import           Control.Monad.Trans
-import           Data.Acid                     (AcidState, openLocalState)
+import           Data.Acid                     (AcidState, createArchive,
+                                                openLocalState)
 import           Data.Acid.Advanced            (query', update')
 import           Data.Acid.Local               (createCheckpointAndClose)
 import qualified Data.ByteString               as B
@@ -215,7 +216,7 @@ main = do
   bracket (openLocalState initialServerState)
           createCheckpointAndClose
          (\acid -> do
-             createArchive st
+             createArchive acid
              newAccessTokenOrRefresh mgr acid;
              print "Token found, doing refresh token";
              refreshAccessToken mgr acid;
