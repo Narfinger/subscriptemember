@@ -24,6 +24,8 @@ import           HelperFunctions                      (formatUTCToLocal,
                                                        ourPrettyPrintTime)
 import qualified Network.HTTP.Conduit                 as C
 import           Network.OAuth.OAuth2
+import           Network.Wai.Handler.Warp             (run)
+import           Network.Wai.Handler.WebSockets       (websocketsOr)
 import           Network.Wai.Middleware.RequestLogger
 import           Network.Wai.Middleware.Static
 import qualified Network.WebSockets                   as WS
@@ -65,7 +67,7 @@ bodyTemplate body =
           H.h1 $
             H.a ! A.href "/" $ "Youtube Subscriptemember"
           body
-          H.script ! A.src "/js/subscriptemember.js" $ ""
+          H.script ! A.src "/subscriptemember.js" $ ""
 
 tokenPage :: AccessToken -> B.ByteString -> H.Html
 tokenPage tk rtk =
@@ -207,7 +209,6 @@ indexHandler acid = do
 
 handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SpockM () () () ()
 handlers acid mgr jtk jrtk = do
-  middleware logStdoutDev
   get "subsUp"  $ subsAndUpdateHandler acid mgr jtk
   get "subs"    $ subsHandler acid
   get "upvids"  $ upvidsHandler acid mgr jtk
@@ -246,5 +247,6 @@ main = do
              rtk <- acidGetRefreshToken acid
              let jtk = fromJust tk      -- token
              let jrtk = fromJust rtk    -- refresh token
-             runSpock 8000 (spock spockCfg (middlewares >> (handlers acid mgr jtk jrtk)))
+             spockApp <- spockAsApp $ (spock spockCfg (middlewares >> (handlers acid mgr jtk jrtk)))
+             run 8000 $ websocketsOr WS.defaultConnectionOptions (wsapplication acid) spockApp
          )
