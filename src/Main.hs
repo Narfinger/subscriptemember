@@ -224,11 +224,10 @@ middlewares = do
   middleware $ unsafeStaticPolicy (addBase "./static/")
 
 wsapplication :: AcidState ServerState  -> WS.ServerApp
-wsapplication acid pending = do
-  conn <- WS.acceptRequest pending
-  WS.forkPingThread conn 30
-  --msg <- WS.receiveData conn
-  WS.sendTextData conn ("THIS IS A TEST" :: Text)
+wsapplication acid pending_conn = do
+  conn <- WS.acceptRequest pending_conn
+  WS.forkPingThread conn 1
+  WS.sendTextData conn ("Hello, client!" :: Text)
 
 
 main :: IO ()
