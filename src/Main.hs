@@ -30,6 +30,7 @@ import qualified Network.WebSockets                   as WS
 import           SubAndVideo                          (Subscription (..),
                                                        Video (..),
                                                        makeURLFromVideo)
+import           System.Directory                     (getCurrentDirectory)
 import           Text.Blaze                           ((!))
 import           Text.Blaze.Html.Renderer.Utf8        (renderHtml)
 import qualified Text.Blaze.Html5                     as H
@@ -214,13 +215,12 @@ handlers acid mgr jtk jrtk = do
   get "cleanall"  $ cleanAllHandler acid
   get "tokenrefresh" $ tokenRefreshHandler acid mgr
   get "token" $ tokenHandler jtk jrtk
---  get "subs.js" $ file "static/subs.js"
   get root $ indexHandler acid
 
 middlewares :: SpockM () () () ()
 middlewares = do
   middleware logStdoutDev
-  middleware $ staticPolicy (noDots >-> addBase "static")
+  middleware $ unsafeStaticPolicy (addBase "./static/")
 
 wsapplication :: AcidState ServerState  -> WS.ServerApp
 wsapplication acid pending = do
@@ -232,6 +232,7 @@ wsapplication acid pending = do
 
 main :: IO ()
 main = do
+  --getCurrentDirectory >>= print
   mgr <- C.newManager C.tlsManagerSettings
   bracket (openLocalState initialServerState)
           createCheckpointAndClose
