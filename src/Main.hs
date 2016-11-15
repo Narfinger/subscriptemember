@@ -34,6 +34,7 @@ import           Text.Blaze                           ((!))
 import           Text.Blaze.Html.Renderer.Utf8        (renderHtml)
 import qualified Text.Blaze.Html5                     as H
 import qualified Text.Blaze.Html5.Attributes          as A
+import           Web.Spock
 import           Web.Spock.Config
 import           YoutubeApiBase                       (channelUrl)
 import           YoutubeApiSubscriptions
@@ -203,7 +204,7 @@ indexHandler acid = do
   vs <- query' acid GetVids
   blaze $ indexPage vs formatedTime
 
---handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SpockM ctx (WebStateM () () ()) ()
+handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SpockM () () () ()
 handlers acid mgr jtk jrtk = do
   middleware logStdoutDev
   get "subsUp"  $ subsAndUpdateHandler acid mgr jtk
@@ -213,9 +214,13 @@ handlers acid mgr jtk jrtk = do
   get "cleanall"  $ cleanAllHandler acid
   get "tokenrefresh" $ tokenRefreshHandler acid mgr
   get "token" $ tokenHandler jtk jrtk
-  get "subs.js" $ file "static/subs.js"
+--  get "subs.js" $ file "static/subs.js"
   get root $ indexHandler acid
 
+middlewares :: SpockM () () () ()
+middlewares = do
+  middleware logStdoutDev
+  middleware $ staticPolicy (noDots >-> addBase "static")
 
 wsapplication :: AcidState ServerState  -> WS.ServerApp
 wsapplication acid pending = do
@@ -240,5 +245,5 @@ main = do
              rtk <- acidGetRefreshToken acid
              let jtk = fromJust tk      -- token
              let jrtk = fromJust rtk    -- refresh token
-             runSpock 8000 (spock spockCfg (handlers acid mgr jtk jrtk))
+             runSpock 8000 (spock spockCfg (middlewares >> (handlers acid mgr jtk jrtk)))
          )
