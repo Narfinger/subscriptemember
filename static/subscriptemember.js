@@ -1,8 +1,8 @@
 var socket = new WebSocket("ws://localhost:8000/");
 
-socket.onOpen = function(event) {
+socket.onopen = function(event) {
     console.log("Open done");
-    socket.onMessage = function(event) {
+    socket.onmessage = function(event) {
 	console.log(event);
     };
     socket.send("Here's some text that the server is urgently awaiting!");

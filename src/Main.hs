@@ -226,9 +226,9 @@ middlewares = do
 wsapplication :: AcidState ServerState  -> WS.ServerApp
 wsapplication acid pending_conn = do
   conn <- WS.acceptRequest pending_conn
---  WS.forkPingThread conn 1
-  WS.sendClose conn ("blubber" :: Text)
-  --WS.sendTextData conn ("Hello, client!" :: Text)
+  WS.forkPingThread conn 10
+--  WS.sendClose conn ("blubber" :: Text)
+--  WS.sendTextData conn ("Hello, client!" :: Text)
 
 
 main :: IO ()
