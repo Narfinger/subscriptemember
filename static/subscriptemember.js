@@ -1,4 +1,4 @@
-var socket = new WebSocket("ws://localhost:8000/socketserver");
+var socket = new WebSocket("ws://localhost:8000/");
 
 socket.onOpen = function(event) {
     console.log("Open done");
@@ -7,6 +7,5 @@ socket.onOpen = function(event) {
     };
     socket.send("Here's some text that the server is urgently awaiting!");
 };
-socket.onError = function(event) {
-	console.log(event);
-};
+socket.onclose = function(event) { console.log(event.code); console.log(event); };
+socket.onerror = function(event) { console.log(event); };
