@@ -10,3 +10,9 @@ socket.onopen = function(event) {
     };
 };
 
+updateVids = function() {
+    console.log("update running");
+    var http = new XMLHttpRequest();
+    http.open("GET","/upvids", true);
+    http.send();
+};

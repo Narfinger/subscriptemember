@@ -121,7 +121,7 @@ indexPage videos time =
                                    H.div ! A.class_ "row" $
                                      H.a ! A.href  "/subsUp" $ "Update and see Subscriptions"
                                    H.div ! A.class_ "row" $
-                                     H.a ! A.href  "/upvids" $ "Update Videos"
+                                     H.button !  A.onclick "updateVids()" $ "Update Vids"
                                    H.div ! A.class_ "row" $
                                      H.a ! A.href "/token" $ "See Token"
                                    H.div ! A.class_ "row" $
