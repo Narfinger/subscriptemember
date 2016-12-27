@@ -7,8 +7,9 @@ extern crate hyper;
 extern crate yup_oauth2 as oauth2;
 extern crate serde;
 extern crate serde_json;
+extern crate rusqlite;
 
-use oauth2::{Authenticator, DefaultAuthenticatorDelegate, PollInformation, ConsoleApplicationSecret, MemoryStorage, GetToken};
+use oauth2::{Authenticator, DefaultAuthenticatorDelegate, PollInformation, ConsoleApplicationSecret, DiskTokenStorage, GetToken,};
 use serde_json as json;
 use std::default::Default;
 use std::io::prelude::*;
@@ -21,13 +22,18 @@ fn main() {
     f.read_to_string(&mut s).unwrap();
     
     let secret = json::from_str::<ConsoleApplicationSecret>(&s).unwrap().installed.unwrap();
+    let mut tk = DiskTokenStorage::new("tk");
     let res = Authenticator::new(&secret, DefaultAuthenticatorDelegate,
                                  hyper::Client::new(),
-                                 <MemoryStorage as Default>::default(), None)
-        .token(&["https://www.googleapis.com/auth/youtube.upload"]);
+                                 tk, None).token(&["https://www.googleapis.com/auth/youtube"]);
+    
+    // println!("storing token to disk");
+    // let mut st = DiskTokenStorage("tk");
+    // st.set(1,["https://www.googleapis.com/auth/youtube"],t);
     match res {
         Ok(t) => {
-            println!("DONE!!!")
+            println!("DONE!!!");
+                
 
             // now you can use t.access_token to authenticate API calls within your
             // given scopes. It will not be valid forever, but Authenticator will automatically
