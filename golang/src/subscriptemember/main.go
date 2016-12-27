@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 
-	"lib"
+	"keys"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	youtube "google.golang.org/api/youtube/v3"
