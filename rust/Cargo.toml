@@ -1,0 +1,7 @@
+[package]
+name = "subscriptemember"
+version = "0.1.0"
+authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
+
+[dependencies]
+yup-oauth2 = "1.0.1"
