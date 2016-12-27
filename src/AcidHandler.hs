@@ -26,8 +26,8 @@ import           GoogleHandler
 import           HelperFunctions       (deleteNth)
 import qualified Network.HTTP.Conduit  as C
 import           Network.OAuth.OAuth2
+import qualified Network.WebSockets    as WS
 import           SubAndVideo           (Subscription (..), Video (..))
-
 
 deriving instance Eq AccessToken
 deriving instance Ord AccessToken

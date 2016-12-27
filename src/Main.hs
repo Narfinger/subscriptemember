@@ -39,10 +39,13 @@ import qualified Text.Blaze.Html5                     as H
 import qualified Text.Blaze.Html5.Attributes          as A
 import           Web.Spock
 import           Web.Spock.Config
+import           WebsocketsHandler                    as WSH (WSState (..),
+                                                              newWSState,
+                                                              updateWSClients,
+                                                              writeConnection)
 import           YoutubeApiBase                       (channelUrl)
 import           YoutubeApiSubscriptions
 import qualified YoutubeApiVideos                     as YTV
-
 
 type SiteAction ctx a = SpockActionCtx ctx () () () a
 
@@ -58,8 +61,6 @@ bodyTemplate body =
       H.link ! A.rel "stylesheet" ! A.href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"
       H.script ! A.src "https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js" $ ""
       H.script ! A.src "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" $ ""
-      H.meta ! A.httpEquiv "refresh"
-        ! A.content "120"
       H.link ! A.rel "stylesheet" ! A.type_ "text/css" ! A.href "style.css"
     H.body $
       H.div ! A.class_ "container" $
@@ -163,22 +164,22 @@ subsAndUpdateHandler acid mgr tk = do
   subs <- update' acid (UpdateSubs s)
   redirect ("/subs"::Text)
 
-upvids :: AcidState ServerState -> C.Manager -> AccessToken -> IO ()
-upvids acid mgr tk = do
+upvids :: AcidState ServerState -> WSH.WSState -> C.Manager -> AccessToken -> IO ()
+upvids acid wsstate mgr tk = do
   subs <- query' acid GetSubs
   date <- query' acid GetLastRefreshed
-  s <- liftIO (YTV.updateVideos mgr tk date subs)
-  s' <- liftIO (GBV.updateVideos mgr date)
+  -- s <- liftIO (YTV.updateVideos mgr tk date subs)
+  -- s' <- liftIO (GBV.updateVideos mgr date)
   oldvids <- query' acid GetVids
-  let nvids = s' ++ s ++ oldvids
+  let nvids = [] -- s' ++ s ++ oldvids
   nvids <- update' acid (WriteVids nvids)
   now <- getCurrentTime
   tmp <- update' acid (WriteLastRefreshed now)
-  return ()
+  updateWSClients wsstate
 
-upvidsHandler :: AcidState ServerState -> C.Manager -> AccessToken -> SiteAction ctx a
-upvidsHandler acid mgr tk = do
-  let fn = upvids acid mgr tk
+upvidsHandler :: AcidState ServerState -> WSH.WSState -> C.Manager -> AccessToken -> SiteAction ctx a
+upvidsHandler acid wsstate mgr tk = do
+  let fn = upvids acid  wsstate mgr tk
   liftIO (forkIO fn);
   redirect ("/"::Text)
 
@@ -207,11 +208,11 @@ indexHandler acid = do
   vs <- query' acid GetVids
   blaze $ indexPage vs formatedTime
 
-handlers :: AcidState ServerState -> C.Manager -> AccessToken -> B.ByteString -> SpockM () () () ()
-handlers acid mgr jtk jrtk = do
+handlers :: AcidState ServerState -> WSH.WSState -> C.Manager -> AccessToken -> B.ByteString -> SpockM () () () ()
+handlers acid wsstate mgr jtk jrtk = do
   get "subsUp"  $ subsAndUpdateHandler acid mgr jtk
   get "subs"    $ subsHandler acid
-  get "upvids"  $ upvidsHandler acid mgr jtk
+  get "upvids"  $ upvidsHandler acid wsstate mgr jtk
   get ("delete" <//> var) $ deleteHandler acid
   get "cleanall"  $ cleanAllHandler acid
   get "tokenrefresh" $ tokenRefreshHandler acid mgr
@@ -223,12 +224,19 @@ middlewares = do
   middleware logStdoutDev
   middleware $ unsafeStaticPolicy (addBase "./static/")
 
-wsapplication :: AcidState ServerState  -> WS.ServerApp
-wsapplication acid pending_conn = do
+wsapplication :: WSH.WSState  -> WS.ServerApp
+wsapplication state pending_conn = do
   conn <- WS.acceptRequest pending_conn
   WS.forkPingThread conn 10
+  WS.sendPing conn ("blubb" :: Text)
+  -- WS.forkPingThread conn 10
 --  WS.sendClose conn ("blubber" :: Text)
---  WS.sendTextData conn ("Hello, client!" :: Text)
+  WS.sendTextData conn ("Hello, client!" :: Text)
+  WS.sendPing conn ("bl2ubb" :: Text)
+  WS.sendTextData conn ("Hello, again!" :: Text)
+  WSH.writeConnection state conn
+
+  --WS.sendClose conn ("close this now" :: Text)
 
 
 main :: IO ()
@@ -247,6 +255,7 @@ main = do
              rtk <- acidGetRefreshToken acid
              let jtk = fromJust tk      -- token
              let jrtk = fromJust rtk    -- refresh token
-             spockApp <- spockAsApp $ (spock spockCfg (middlewares >> (handlers acid mgr jtk jrtk)))
-             run 8000 $ websocketsOr WS.defaultConnectionOptions (wsapplication acid) spockApp
+             wsstate <- WSH.newWSState
+             spockApp <- spockAsApp $ (spock spockCfg (middlewares >> (handlers acid wsstate mgr jtk jrtk)))
+             run 8000 $ websocketsOr WS.defaultConnectionOptions (wsapplication wsstate) spockApp
          )
