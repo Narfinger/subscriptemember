@@ -14,15 +14,21 @@ use serde_json as json;
 use std::default::Default;
 use std::io::prelude::*;
 use std::fs::File;
+use std::string;
 
 
 fn main() {
-    let mut f = File::open("client_secret.json").unwrap();
+    let mut f = File::open("client_secret.json").expect("Did not find client_secret.json");
     let mut s = String::new();
     f.read_to_string(&mut s).unwrap();
     
     let secret = json::from_str::<ConsoleApplicationSecret>(&s).unwrap().installed.unwrap();
-    let mut tk = DiskTokenStorage::new("tk");
+    let mut cwd = std::env::current_dir().unwrap();
+    cwd.push("tk");
+    let cwd : String = String::from(cwd.to_str().expect("string conversion error"));
+    println!("{}", cwd);
+    let tk = DiskTokenStorage::new(&cwd).expect("disk storage token is broken");
+    
     let res = Authenticator::new(&secret, DefaultAuthenticatorDelegate,
                                  hyper::Client::new(),
                                  tk, None).token(&["https://www.googleapis.com/auth/youtube"]);
