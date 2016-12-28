@@ -20,6 +20,8 @@ use std::fs::File;
 use std::string;
 use liquid::{Renderable, Context, Value};
 
+mod youtubehandler;
+
 fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> { 
     let mut f = File::open("client_secret.json").expect("Did not find client_secret.json");
     let mut s = String::new();
@@ -40,7 +42,15 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 
 #[get("/")]
 fn hello() -> String {
-    let template = liquid::parse("Liquid! {{num | minus: 2}}", Default::default()).unwrap();
+
+    let yssub = get_subscriptions_for_me(t);
+    let sub = construct_subscriptions(yssub);
+
+    let mut f = try!(File::open("template/index.html"));
+    let mut s = String::new();
+    try!(f.read_to_string(&mut s));
+    
+    let template = liquid::parse(s, Default::default()).unwrap();
     let mut context = Context::new();
     context.set_val("num", Value::Num(4f32));
     
