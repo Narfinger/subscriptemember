@@ -3,7 +3,6 @@
 #![plugin(rocket_codegen)]
 #[cfg(feature = "nightly")]
 #[macro_use]
-
 extern crate rocket;
 extern crate hyper;
 extern crate yup_oauth2 as oauth2;
@@ -11,8 +10,9 @@ extern crate serde;
 extern crate serde_json;
 extern crate liquid;
 extern crate rocket;
+#[macro_use] extern crate lazy_static;
 
-mod youtube_handler;
+pub mod youtube_handler;
 
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, PollInformation, ConsoleApplicationSecret, DiskTokenStorage, GetToken,};
 use serde_json as json;
@@ -23,8 +23,9 @@ use std::string;
 use liquid::{Renderable, Context, Value};
 
 
-//static mut t : Option<static &oauth2::Token> = None;
-
+lazy_static! {
+    static ref t : oauth2::Token = setup_oauth().unwrap();
+}
 
 fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> { 
     let mut f = File::open("client_secret.json").expect("Did not find client_secret.json");
@@ -45,11 +46,8 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 }
 
 #[get("/")]
-fn hello(t : &oauth2::Token) -> &'static str {
-
-    let ut = t;//.unwrap();
-    let yssub = youtube_handler::get_subscriptions_for_me(ut);
-    let sub = youtube_handler::construct_subscription(yssub);
+fn hello() -> &'static str {
+    let sub = youtube_handler::get_subs(t);
 
     let mut f = try!(File::open("template/index.html"));
     let mut s = String::new();
