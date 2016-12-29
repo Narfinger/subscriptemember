@@ -12,6 +12,8 @@ extern crate serde_json;
 extern crate liquid;
 extern crate rocket;
 
+mod youtube_handler;
+
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, PollInformation, ConsoleApplicationSecret, DiskTokenStorage, GetToken,};
 use serde_json as json;
 use std::default::Default;
@@ -20,7 +22,9 @@ use std::fs::File;
 use std::string;
 use liquid::{Renderable, Context, Value};
 
-mod youtubehandler;
+
+//static mut t : Option<static &oauth2::Token> = None;
+
 
 fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> { 
     let mut f = File::open("client_secret.json").expect("Did not find client_secret.json");
@@ -41,10 +45,11 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 }
 
 #[get("/")]
-fn hello() -> String {
+fn hello(t : &oauth2::Token) -> &'static str {
 
-    let yssub = get_subscriptions_for_me(t);
-    let sub = construct_subscriptions(yssub);
+    let ut = t;//.unwrap();
+    let yssub = youtube_handler::get_subscriptions_for_me(ut);
+    let sub = youtube_handler::construct_subscription(yssub);
 
     let mut f = try!(File::open("template/index.html"));
     let mut s = String::new();
@@ -65,9 +70,10 @@ fn main() {
     // st.set(1,["https://www.googleapis.com/auth/youtube"],t);
     let tk = setup_oauth();
     match tk {
-        Ok(t) => {
+        Ok(nt) => {
+            //t = Some(nt);
             println!("DONE!!!");
-            println!("Starting server");
+            println!("Starting server"); 
             rocket::ignite().mount("/", routes![hello]).launch()
                 
 
