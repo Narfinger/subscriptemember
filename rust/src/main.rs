@@ -20,6 +20,7 @@ use std::default::Default;
 use std::io::prelude::*;
 use std::fs::File;
 use std::string;
+use std::error::Error;
 use liquid::{Renderable, Context, Value};
 
 
@@ -49,18 +50,36 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 fn hello() -> String {
     let sub = youtube_handler::get_subs(&t);
 
-    let mut f = try!(File::open("template/index.html"));
+    let mut f = match File::open("templates/index.html") {
+        Ok(ff) => {ff}
+        Err(_) => panic!("template not found")
+    };
+    
     let mut s = String::new();
-    try!(f.read_to_string(&mut s));
+    let bytesread = match f.read_to_string(&mut s) {
+        Ok(br) => {br}
+        Err(_) => panic!("could not read template to string")
+    };
     
-    let template = liquid::parse(&s, Default::default()).unwrap();
+    let template = match liquid::parse(&s, Default::default()) {
+        Ok(te) => {te}
+        Err(_) => panic!("something wrong with template parsing")
+    };
     let mut context = Context::new();
-    context.set_val("num", Value::Num(4f32));
+    context.set_val("subs", Value::Array<Value::Object>(sub);
     
-    let string:Result<Option<String>, liquid::Error> = template.render(&mut context);
-    let first:Option<String> = string.unwrap();
-    let stri:String = first.unwrap();
-    return stri;
+    let string = match template.render(&mut context) /*:Result<Option<String>, liquid::Error>*/ {
+        Ok(tr) => {tr}
+        Err(e) => { let mut err = "template render error ".to_owned();
+                    err.push_str(e.description());
+                    panic!(err)
+        }
+    };
+    let first = match string/*:Option<String>*/ {
+        Some(tr2) => {tr2}
+        None => panic!("template render error 2")
+    };
+    return first
 }
 
 

@@ -24,10 +24,10 @@ pub struct Subscription {
 }
 
 
-fn get_subscriptions_for_me(t : &oauth2::Token) -> &Vec<YoutubeItems<YoutubeSubscription>> {
+fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItems<YoutubeSubscription>> {
     let ys = YoutubeSubscription { subscriptiontitle : String::from("title test"), description : String::from("desc test")};
     let yi = YoutubeItems { iid : String::from("test iid"), snippet : None, contentDetails : Some(ys), };
-    return &vec![yi];
+    return vec![yi];
 }
 
 fn construct_subscription(s : &YoutubeItems<YoutubeSubscription>) -> Subscription {
