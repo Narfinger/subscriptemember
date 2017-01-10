@@ -30,14 +30,14 @@ fn get_subscriptions_for_me(t : &oauth2::Token) -> &Vec<YoutubeItems<YoutubeSubs
     return &vec![yi];
 }
 
-fn construct_subscription(s : YoutubeItems<YoutubeSubscription>) -> Subscription {
+fn construct_subscription(s : &YoutubeItems<YoutubeSubscription>) -> Subscription {
     return Subscription { sid : String::from("test sid"), channelname : String::from("testchannelname"), uploadPlaylist : String::from("uploadplaylist test"), thumbnail : String::from("testthumbnail")};
 }
 
 pub fn get_subs(t : &oauth2::Token) -> Vec<Subscription> {
     let ytsubs = get_subscriptions_for_me(t);
     let mut it = ytsubs.iter();
-    return it.map(construct_subscription).collect::<Vec<_>>();
+    return it.map(construct_subscription).collect::<Vec<Subscription>>();
 }
 
 

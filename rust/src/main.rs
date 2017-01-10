@@ -47,18 +47,20 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 
 #[get("/")]
 fn hello() -> &'static str {
-    let sub = youtube_handler::get_subs(t);
+    let sub = youtube_handler::get_subs(&t);
 
     let mut f = try!(File::open("template/index.html"));
     let mut s = String::new();
     try!(f.read_to_string(&mut s));
     
-    let template = liquid::parse(s, Default::default()).unwrap();
+    let template = liquid::parse(&s, Default::default()).unwrap();
     let mut context = Context::new();
     context.set_val("num", Value::Num(4f32));
     
-    let output = template.render(&mut context).unwrap();
-    return output.unwrap();
+    let string:Result<Option<String>, liquid::Error> = template.render(&mut context);
+    let first:Option<String> = string.unwrap();
+    let stri:String = first.unwrap();
+    return &stri;
 }
 
 
