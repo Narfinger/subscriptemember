@@ -46,7 +46,7 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 }
 
 #[get("/")]
-fn hello() -> &'static str {
+fn hello() -> String {
     let sub = youtube_handler::get_subs(&t);
 
     let mut f = try!(File::open("template/index.html"));
@@ -60,7 +60,7 @@ fn hello() -> &'static str {
     let string:Result<Option<String>, liquid::Error> = template.render(&mut context);
     let first:Option<String> = string.unwrap();
     let stri:String = first.unwrap();
-    return &stri;
+    return stri;
 }
 
 
