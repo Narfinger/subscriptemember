@@ -23,6 +23,8 @@ use std::string;
 use std::error::Error;
 use liquid::{Renderable, Context, Value};
 
+use youtube_handler::HashMapable;
+
 
 lazy_static! {
     static ref t : oauth2::Token = setup_oauth().unwrap();
@@ -66,7 +68,13 @@ fn hello() -> String {
         Err(_) => panic!("something wrong with template parsing")
     };
     let mut context = Context::new();
-    context.set_val("subs", Value::Array<Value::Object>(sub);
+
+    //let values = sub.into_iter().map(Value::Object).collect();
+    let test1 = Value::Object(sub[0].toHMap());
+    let test2 = vec!(test1);
+    let test3 = Value::Array(test2);
+    
+    context.set_val("subs", test3);
     
     let string = match template.render(&mut context) /*:Result<Option<String>, liquid::Error>*/ {
         Ok(tr) => {tr}
