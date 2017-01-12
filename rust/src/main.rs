@@ -23,7 +23,6 @@ use std::string;
 use std::error::Error;
 use liquid::{Renderable, Context, Value};
 
-use youtube_handler::HashMapable;
 
 
 lazy_static! {
@@ -69,12 +68,18 @@ fn hello() -> String {
     };
     let mut context = Context::new();
 
-    //let values = sub.into_iter().map(Value::Object).collect();
-    let test1 = Value::Object(sub[0].toHMap());
-    let test2 = vec!(test1);
-    let test3 = Value::Array(test2);
+    let rendsub = match sub[0].render(&mut context) {
+        Ok(s) => {s}
+        Err(_) => panic!("someting wrong with rendering this garbage")
+    };
+    let rendsubreal = match rendsub {
+        Some(r) => {r}
+        None => panic!("something wrong with rendering this garbage 2")
+    };
     
-    context.set_val("subs", test3);
+    
+    
+    context.set_val("subs", Value::Str(rendsubreal));
     
     let string = match template.render(&mut context) /*:Result<Option<String>, liquid::Error>*/ {
         Ok(tr) => {tr}

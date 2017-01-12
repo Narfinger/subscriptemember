@@ -1,13 +1,6 @@
 <html>
     <h1>Test Subscriptemember</h1>
     <table border="1">
-	{% for sub in subs %}
-	<tr>
-	    <td>{{ subs.sid }}</td>
-	    <td>{{ subs.channelname}}</td>
-	    <td>{{ subs.uploadPlaylist }}</td>
-	    <td>{{ subs.thumbnail }}</td>
-	</tr>
-	{% endfor %}
+	{{subs}}
     </table>
 </html>
