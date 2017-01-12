@@ -8,7 +8,6 @@ extern crate hyper;
 extern crate yup_oauth2 as oauth2;
 extern crate serde;
 extern crate serde_json;
-extern crate liquid;
 extern crate rocket;
 #[macro_use] extern crate lazy_static;
 
@@ -21,8 +20,6 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::string;
 use std::error::Error;
-use liquid::{Renderable, Context, Value};
-
 
 
 lazy_static! {
@@ -62,37 +59,7 @@ fn hello() -> String {
         Err(_) => panic!("could not read template to string")
     };
     
-    let template = match liquid::parse(&s, Default::default()) {
-        Ok(te) => {te}
-        Err(_) => panic!("something wrong with template parsing")
-    };
-    let mut context = Context::new();
-
-    let rendsub = match sub[0].render(&mut context) {
-        Ok(s) => {s}
-        Err(_) => panic!("someting wrong with rendering this garbage")
-    };
-    let rendsubreal = match rendsub {
-        Some(r) => {r}
-        None => panic!("something wrong with rendering this garbage 2")
-    };
-    
-    
-    
-    context.set_val("subs", Value::Str(rendsubreal));
-    
-    let string = match template.render(&mut context) /*:Result<Option<String>, liquid::Error>*/ {
-        Ok(tr) => {tr}
-        Err(e) => { let mut err = "template render error ".to_owned();
-                    err.push_str(e.description());
-                    panic!(err)
-        }
-    };
-    let first = match string/*:Option<String>*/ {
-        Some(tr2) => {tr2}
-        None => panic!("template render error 2")
-    };
-    return first
+    return s
 }
 
 
