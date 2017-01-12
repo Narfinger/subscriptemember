@@ -1,4 +1,7 @@
+extern crate serde_derive;
+
 extern crate yup_oauth2 as oauth2;
+extern crate serde_json;
 use self::oauth2::Token;
 use std::fmt;
 use std::io::Read;
@@ -19,7 +22,7 @@ struct YoutubeSubscription {
 
 }
 
-#[derive(Eq,PartialEq,PartialOrd,Ord,Debug,Hash)]
+#[derive(Eq,PartialEq,PartialOrd,Ord,Debug,Hash,Serialize, Deserialize)]
 pub struct Subscription {
     pub sid : String,
     pub channelname : String,
@@ -34,6 +37,7 @@ impl fmt::Display for Subscription {
 }
 
 type Subscriptions = Vec<Subscription>;
+
 
 fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItems<YoutubeSubscription>> {
     let ys = YoutubeSubscription { subscriptiontitle : String::from("title test"), description : String::from("desc test")};

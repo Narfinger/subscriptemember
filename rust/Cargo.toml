@@ -6,8 +6,9 @@ authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
 [dependencies]
 yup-oauth2 = "1.0.1"
 hyper = "0.9.14"
-serde = "0.8.21"
+serde = "0.8.22"
 serde_json = "0.8.4"
+serde_derive = "0.8.22"
 rocket = "0.1.2"
 rocket_codegen = "0.1.2"
 handlebars = "0.24.1"

@@ -1,12 +1,12 @@
 #![cfg_attr(feature = "nightly", feature(proc_macro))]
-#![feature(plugin)]
+#![feature(plugin,proc_macro)]
 #![plugin(rocket_codegen)]
 #[cfg(feature = "nightly")]
-#[macro_use]
-extern crate rocket;
+#[macro_use] extern crate rocket;
 extern crate hyper;
 extern crate yup_oauth2 as oauth2;
 extern crate serde;
+#[macro_use] extern crate serde_derive;
 extern crate serde_json;
 extern crate rocket;
 #[macro_use] extern crate lazy_static;
