@@ -1,7 +1,4 @@
-extern crate serde_derive;
-
 extern crate yup_oauth2 as oauth2;
-extern crate serde_json;
 use self::oauth2::Token;
 use std::fmt;
 use std::io::Read;
