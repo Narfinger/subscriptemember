@@ -11,5 +11,5 @@ serde_json = "0.8.4"
 serde_derive = "0.8.22"
 rocket = "0.1.2"
 rocket_codegen = "0.1.2"
-handlebars = "0.24.1"
+handlebars = {version = "0.24.1", features = ["serde_type"]}
 lazy_static = "0.2.2"

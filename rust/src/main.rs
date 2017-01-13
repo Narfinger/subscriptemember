@@ -51,8 +51,10 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 #[get("/")]
 fn hello() -> String {
     let sub = youtube_handler::get_subs(&tk);
+    let ref s = sub[0];
+    return hb.lock().unwrap().render("index", &sub).unwrap();
     
-    return String::from("No template you idiot");
+    //return String::from("No template you idiot");
 }
 
 fn templateFilenameToString(s : &str) -> Result<String,String> {
@@ -78,10 +80,10 @@ fn main() {
 
     println!("DONE!!!");
     println!("Registering templates");
-
-    let its = templateFilenameToString("templates/index.html").unwrap();
-    assert!(hb.lock().unwrap().register_template_string("index",its ).is_ok());
-
+    {
+        let its = templateFilenameToString("templates/index.html").unwrap();
+        assert!(hb.lock().unwrap().register_template_string("index",its ).is_ok());
+    }
     
     println!("Starting server"); 
     rocket::ignite().mount("/", routes![hello]).launch();

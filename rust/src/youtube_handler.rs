@@ -19,7 +19,7 @@ struct YoutubeSubscription {
 
 }
 
-#[derive(Eq,PartialEq,PartialOrd,Ord,Debug,Hash,Serialize, Deserialize)]
+#[derive(Eq,PartialEq,PartialOrd,Ord,Debug,Hash,Serialize,Deserialize)]
 pub struct Subscription {
     pub sid : String,
     pub channelname : String,

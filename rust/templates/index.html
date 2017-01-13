@@ -1,6 +1,15 @@
 <html>
     <h1>Test Subscriptemember</h1>
+    {{subscription}}<br>
+    {{sid}}
+    {{sub}}
+    {{Sub}}
     <table border="1">
-	{{subs}}
+	{{#each Subscription}}
+	<tr>
+	    <td>{{sid}}</td>
+	    <td>TEST</td>
+	</tr>
+	{{/each}}
     </table>
 </html>
