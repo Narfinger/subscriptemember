@@ -22,6 +22,8 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::string;
 use std::error::Error;
+use serde_json::value::ToJson;
+use std::collections::BTreeMap;
 use handlebars::{Handlebars, HelperDef, RenderError, RenderContext, Helper, Context, JsonRender};
 
 lazy_static! {
@@ -51,8 +53,9 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 #[get("/")]
 fn hello() -> String {
     let sub = youtube_handler::get_subs(&tk);
-    let ref s = sub[0];
-    return hb.lock().unwrap().render("index", &sub).unwrap();
+    let mut data = BTreeMap::new();
+    data.insert("subs".to_string(), sub.to_json());
+    return hb.lock().unwrap().render("index", &data).unwrap();
     
     //return String::from("No template you idiot");
 }
