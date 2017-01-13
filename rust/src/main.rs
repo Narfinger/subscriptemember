@@ -1,5 +1,5 @@
 #![cfg_attr(feature = "nightly", feature(proc_macro))]
-#![feature(plugin,proc_macro)]
+#![feature(plugin)]
 #![plugin(rocket_codegen)]
 #[cfg(feature = "nightly")]
 #[macro_use] extern crate rocket;
@@ -15,20 +15,17 @@ extern crate handlebars;
 pub mod youtube_handler;
 
 use std::sync::Mutex;
-use oauth2::{Authenticator, DefaultAuthenticatorDelegate, PollInformation, ConsoleApplicationSecret, DiskTokenStorage, GetToken,};
+use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret, DiskTokenStorage, GetToken,};
 use serde_json as json;
-use std::default::Default;
 use std::io::prelude::*;
 use std::fs::File;
-use std::string;
-use std::error::Error;
 use serde_json::value::ToJson;
 use std::collections::BTreeMap;
-use handlebars::{Handlebars, HelperDef, RenderError, RenderContext, Helper, Context, JsonRender};
+use handlebars::Handlebars;
 
 lazy_static! {
-    static ref tk : oauth2::Token = setup_oauth().unwrap();
-    static ref hb : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
+    static ref TK : oauth2::Token = setup_oauth().unwrap();
+    static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
     //static ref handlebars : Handlebars::Registry = Handlebars::new();
 }
 
@@ -44,34 +41,31 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
     println!("{}", cwd);
     let ntk = DiskTokenStorage::new(&cwd).expect("disk storage token is broken");
     
-    let res = Authenticator::new(&secret, DefaultAuthenticatorDelegate,
-                                 hyper::Client::new(),
-                                 ntk, None).token(&["https://www.googleapis.com/auth/youtube"]);
-    return res;
+    Authenticator::new(&secret, DefaultAuthenticatorDelegate,
+                       hyper::Client::new(),
+                       ntk, None).token(&["https://www.googleapis.com/auth/youtube"])
 }
 
 #[get("/")]
 fn hello() -> String {
-    let sub = youtube_handler::get_subs(&tk);
+    let sub = youtube_handler::get_subs(&TK);
     let mut data = BTreeMap::new();
     data.insert("subs".to_string(), sub.to_json());
-    return hb.lock().unwrap().render("index", &data).unwrap();
-    
-    //return String::from("No template you idiot");
+    HB.lock().unwrap().render("index", &data).unwrap()
 }
 
-fn templateFilenameToString(s : &str) -> Result<String,String> {
+fn template_filename_to_string(s : &str) -> Result<String,String> {
     let mut f = match File::open(s) {
         Ok(ff) => ff,
         Err(e) => return Err(e.to_string())
     };
     
     let mut s = String::new();
-    let bytesread = match f.read_to_string(&mut s) {
+    match f.read_to_string(&mut s) {
         Ok(br) => br,
         Err(e) => return Err(e.to_string())
     };
-    return Ok(s);
+    Ok(s)
 }
 
 
@@ -84,8 +78,8 @@ fn main() {
     println!("DONE!!!");
     println!("Registering templates");
     {
-        let its = templateFilenameToString("templates/index.html").unwrap();
-        assert!(hb.lock().unwrap().register_template_string("index",its ).is_ok());
+        let its = template_filename_to_string("templates/index.html").unwrap();
+        assert!(HB.lock().unwrap().register_template_string("index",its ).is_ok());
     }
     
     println!("Starting server"); 
