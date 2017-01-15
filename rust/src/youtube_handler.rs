@@ -1,12 +1,26 @@
 extern crate yup_oauth2 as oauth2;
+extern crate hyper;
 use std::fmt;
+use std::io::Read;
+use hyper::Client;
+use serde;
+use serde_json;
 
+const SUB_URL:&'static str = "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&?access_token=";
+
+#[derive(Serialize, Deserialize)]
+struct YoutubeResult<T> {
+    items : Vec<YoutubeItems<T>>
+}
+
+#[derive(Serialize, Deserialize)]
 struct YoutubeItems<T> {
     iid : String,
     snippet : Option<T>,
     content_details : Option<T>
 }
 
+#[derive(Serialize, Deserialize)]
 struct YoutubeSubscription {
     subscription_title : String,
     description : String,
@@ -29,7 +43,26 @@ impl fmt::Display for Subscription {
     }
 }
 
+fn query<T>(t : &oauth2::Token, url : &'static str) -> YoutubeResult<T> where T: serde::Deserialize {
+    let client = Client::new();
+    let mut q  = String::from(url);
+    q.push_str(t.access_token.as_str());
+    let mut res = client.get(q.as_str()).send().unwrap();
+
+    let mut s = String::new();
+    res.read_to_string(&mut s);
+    println!("{}", s);
+
+    serde_json::from_reader(res).unwrap()
+
+    // let mut s = String::new();
+    // res.read_to_string(&mut s);
+    // s
+}
+
 fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItems<YoutubeSubscription>> {
+    let res : YoutubeResult<YoutubeSubscription> = query(t, SUB_URL);
+    
     let ys = YoutubeSubscription { subscription_title : String::from("title test"), description : String::from("desc test")};
     let yi = YoutubeItems { iid : String::from("test iid"), snippet : None, content_details : Some(ys), };
     return vec![yi];
