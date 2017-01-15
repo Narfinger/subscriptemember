@@ -6,7 +6,7 @@ use hyper::Client;
 use serde;
 use serde_json;
 
-const SUB_URL:&'static str = "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&?access_token=";
+const SUB_URL:&'static str = "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&access_token=";
 
 #[derive(Serialize, Deserialize)]
 struct YoutubeResult<T> {
@@ -15,6 +15,7 @@ struct YoutubeResult<T> {
 
 #[derive(Serialize, Deserialize)]
 struct YoutubeItems<T> {
+    #[serde(rename="id")]
     iid : String,
     snippet : Option<T>,
     content_details : Option<T>
@@ -22,6 +23,7 @@ struct YoutubeItems<T> {
 
 #[derive(Serialize, Deserialize)]
 struct YoutubeSubscription {
+    #[serde(rename="title")]
     subscription_title : String,
     description : String,
     // resourceId : YoutubeResource,
@@ -50,8 +52,8 @@ fn query<T>(t : &oauth2::Token, url : &'static str) -> YoutubeResult<T> where T:
     let mut res = client.get(q.as_str()).send().unwrap();
 
     let mut s = String::new();
-    res.read_to_string(&mut s);
-    println!("{}", s);
+//    res.read_to_string(&mut s);
+    println!("query: {}, result: {}", q, s);
 
     serde_json::from_reader(res).unwrap()
 
@@ -62,10 +64,11 @@ fn query<T>(t : &oauth2::Token, url : &'static str) -> YoutubeResult<T> where T:
 
 fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItems<YoutubeSubscription>> {
     let res : YoutubeResult<YoutubeSubscription> = query(t, SUB_URL);
+    return res.items
     
-    let ys = YoutubeSubscription { subscription_title : String::from("title test"), description : String::from("desc test")};
-    let yi = YoutubeItems { iid : String::from("test iid"), snippet : None, content_details : Some(ys), };
-    return vec![yi];
+    // let ys = YoutubeSubscription { subscription_title : String::from("title test"), description : String::from("desc test")};
+    // let yi = YoutubeItems { iid : String::from("test iid"), snippet : None, content_details : Some(ys), };
+    // return vec![yi];
 }
 
 fn construct_subscription(s : &YoutubeItems<YoutubeSubscription>) -> Subscription {
