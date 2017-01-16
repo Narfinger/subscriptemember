@@ -6,11 +6,19 @@ use hyper::{Client, Url};
 use serde;
 use serde_json;
 
-const SUB_URL:&'static str = "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&access_token=";
+const SUB_URL:&'static str = "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50&access_token=";
+
+#[derive(Serialize, Deserialize)]
+struct YoutubePageInfo {
+    totalResults : i32,
+    resultsPerPage: i32,
+}
 
 #[derive(Serialize, Deserialize)]
 struct YoutubeResult<T> {
-    items : Vec<YoutubeItem<T>>
+    items : Vec<YoutubeItem<T>>,
+    pageInfo : YoutubePageInfo,
+    nextPageToken : Option<String>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -63,10 +71,15 @@ impl fmt::Display for Subscription {
     }
 }
 
-fn query<T>(t : &oauth2::Token, url : &'static str) -> YoutubeResult<T> where T: serde::Deserialize {
+fn querySimplePage<T>(t : &oauth2::Token, url : &'static str, nextpage : Option<String>) -> YoutubeResult<T> where T: serde::Deserialize {
     let client = Client::new();
     let mut q  = String::from(url);
     q.push_str(t.access_token.as_str());
+    if let Some(nextpagetk) = nextpage {
+        q.push_str("&pageToken=");
+        q.push_str(nextpagetk.as_str());
+    }
+
     let mut res = client.get(q.as_str()).send().unwrap();
 
     let mut s = String::new();
@@ -80,13 +93,21 @@ fn query<T>(t : &oauth2::Token, url : &'static str) -> YoutubeResult<T> where T:
     // s
 }
 
+fn query<T>(t : &oauth2::Token, url : &'static str) -> Vec<YoutubeItem<T>> where T : serde::Deserialize {
+    let mut result : Vec<YoutubeItem<T>> = Vec::new();
+    let mut nextPage = None;
+    loop {
+        let res = querySimplePage(t,url,nextPage);
+        result.extend(res.items);
+        nextPage = res.nextPageToken;
+        println!("query again with tk:");
+        if nextPage.is_none() { break;}
+    }
+    result
+}
+
 fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItem<YoutubeSubscription>> {
-    let res : YoutubeResult<YoutubeSubscription> = query(t, SUB_URL);
-    return res.items
-    
-    // let ys = YoutubeSubscription { subscription_title : String::from("title test"), description : String::from("desc test")};
-    // let yi = YoutubeItems { iid : String::from("test iid"), snippet : None, content_details : Some(ys), };
-    // return vec![yi];
+    query(t, SUB_URL)
 }
 
 fn construct_subscription(s : YoutubeItem<YoutubeSubscription>) -> Subscription {
