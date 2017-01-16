@@ -3,9 +3,15 @@ extern crate hyper;
 
 use std::fmt;
 use std::io::Read;
+use std::sync::Mutex;
+use std::ops::Deref;
 use hyper::{Client, Url};
 use serde;
 use serde_json;
+use diesel::sqlite::SqliteConnection;
+use diesel::prelude::*;
+use diesel::insert;
+use schema::subscriptions;
 
 const SUB_URL:&'static str = "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50&access_token=";
 
@@ -59,11 +65,20 @@ struct YoutubeSubscription {
 
 #[derive(Eq,PartialEq,PartialOrd,Ord,Debug,Hash,Serialize,Deserialize,Queryable)]
 pub struct Subscription {
-    pub sid : String,
+    pub sid : i32,
     pub channelname : String,
     pub upload_playlist : String,
     pub thumbnail : String,
     pub description : String,
+}
+
+#[derive(Insertable)]
+#[table_name="subscriptions"]
+struct NewSubscription<'a> {
+    channelname: &'a str,
+    uploadplaylist: &'a str,
+    thumbnail: &'a str,
+    description: &'a str,
 }
 
 impl fmt::Display for Subscription {
@@ -111,20 +126,24 @@ fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItem<YoutubeSubscr
     query(t, SUB_URL)
 }
 
-fn construct_subscription(s : YoutubeItem<YoutubeSubscription>) -> Subscription {
+fn construct_subscription(s : YoutubeItem<YoutubeSubscription>) -> NewSubscription {
     let item = s.snippet.unwrap();
-    Subscription { sid : String::from("stitch responses together"), channelname : item.subscription_title, upload_playlist : String::from("test playlist"), thumbnail : item.thumbnails.default.thmburl, description : item.sdescription}
+    NewSubscription { channelname : item.subscription_title, upload_playlist : String::from("test playlist"), thumbnail : item.thumbnails.default.thmburl, description : item.sdescription}
 }
 
-pub fn get_subs(t : &oauth2::Token) -> Vec<Subscription> {
+pub fn get_subs(t : &oauth2::Token, db : &Mutex<SqliteConnection>) -> Vec<Subscription> {
+    use schema::subscriptions::dsl::*;
+    use schema::subscriptions;
+
     let ytsubs = get_subscriptions_for_me(t);
     let it = ytsubs.into_iter();
-    it.map(construct_subscription).collect::<Vec<Subscription>>()
+    let subs = it.map(construct_subscription).collect::<Vec<Subscription>>();
+
+    let dbconn : &SqliteConnection = &db.lock().unwrap();
+    
+
+    insert(&subs[0]).into(subscriptions::table)
+        .execute(dbconn);
+    //return the db connection
+    subscriptions.load::<Subscription>(dbconn).unwrap()
 }
-
-
-//     getSubscriptionsForMe :: C.Manager -> AccessToken -> IO [YoutubeItems YoutubeSubscription]
-// getSubscriptionsForMe mgr token =
-//   let qurl = constructQueryString "/subscriptions?&maxResults=50&part=snippet&mine=True" in
-//   authGetJSONPages mgr token qurl :: (IO [YoutubeItems YoutubeSubscription])
-

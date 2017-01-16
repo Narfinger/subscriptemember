@@ -16,6 +16,7 @@ extern crate handlebars;
 extern crate dotenv;
 
 pub mod youtube_handler;
+pub mod schema;
 
 use std::sync::Mutex;
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret, DiskTokenStorage, GetToken,};
@@ -25,11 +26,25 @@ use std::fs::File;
 use serde_json::value::ToJson;
 use std::collections::BTreeMap;
 use handlebars::Handlebars;
+use diesel::Connection;
+use diesel::sqlite::SqliteConnection;
+use dotenv::dotenv;
+use std::env;
 
 lazy_static! {
     static ref TK : oauth2::Token = setup_oauth().unwrap();
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
     //static ref handlebars : Handlebars::Registry = Handlebars::new();
+    static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
+}
+
+pub fn establish_connection() -> SqliteConnection {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set");
+    SqliteConnection::establish(&database_url)
+        .expect(&format!("Error connecting to {}", database_url))
 }
 
 fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> { 
@@ -51,7 +66,7 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 
 #[get("/")]
 fn hello() -> String {
-    let sub = youtube_handler::get_subs(&TK);
+    let sub = youtube_handler::get_subs(&TK, &DB);
     let mut data = BTreeMap::new();
     data.insert("subs".to_string(), sub.to_json());
     HB.lock().unwrap().render("index", &data).unwrap()
@@ -84,6 +99,7 @@ fn main() {
         let its = template_filename_to_string("templates/index.html").unwrap();
         assert!(HB.lock().unwrap().register_template_string("index",its ).is_ok());
     }
+       
     
     println!("Starting server"); 
     rocket::ignite().mount("/", routes![hello]).launch();
