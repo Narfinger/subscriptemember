@@ -1,5 +1,6 @@
 extern crate yup_oauth2 as oauth2;
 extern crate hyper;
+
 use std::fmt;
 use std::io::Read;
 use hyper::{Client, Url};
@@ -56,7 +57,7 @@ struct YoutubeSubscription {
 
 }
 
-#[derive(Eq,PartialEq,PartialOrd,Ord,Debug,Hash,Serialize,Deserialize)]
+#[derive(Eq,PartialEq,PartialOrd,Ord,Debug,Hash,Serialize,Deserialize,Queryable)]
 pub struct Subscription {
     pub sid : String,
     pub channelname : String,

@@ -11,6 +11,9 @@ extern crate serde_json;
 extern crate rocket;
 extern crate handlebars;
 #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate diesel;
+#[macro_use] extern crate diesel_codegen;
+extern crate dotenv;
 
 pub mod youtube_handler;
 
