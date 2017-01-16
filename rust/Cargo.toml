@@ -9,6 +9,7 @@ hyper = "0.9.14"
 serde = "0.8.22"
 serde_json = "0.8.4"
 serde_derive = "0.8.22"
+hyper_serde = "0.2.0"
 rocket = "0.1.2"
 rocket_codegen = "0.1.2"
 handlebars = {version = "0.24.1", features = ["serde_type"]}

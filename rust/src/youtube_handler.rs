@@ -2,7 +2,7 @@ extern crate yup_oauth2 as oauth2;
 extern crate hyper;
 use std::fmt;
 use std::io::Read;
-use hyper::Client;
+use hyper::{Client, Url};
 use serde;
 use serde_json;
 
@@ -10,11 +10,11 @@ const SUB_URL:&'static str = "https://www.googleapis.com/youtube/v3/subscription
 
 #[derive(Serialize, Deserialize)]
 struct YoutubeResult<T> {
-    items : Vec<YoutubeItems<T>>
+    items : Vec<YoutubeItem<T>>
 }
 
 #[derive(Serialize, Deserialize)]
-struct YoutubeItems<T> {
+struct YoutubeItem<T> {
     #[serde(rename="id")]
     iid : String,
     snippet : Option<T>,
@@ -22,10 +22,27 @@ struct YoutubeItems<T> {
 }
 
 #[derive(Serialize, Deserialize)]
+struct YoutubeThumbnailDetail {
+    #[serde(rename="url")]
+    thmburl : String
+}
+
+#[derive(Serialize, Deserialize)]
+struct YoutubeThumbnails {
+    default : YoutubeThumbnailDetail,
+    medium : YoutubeThumbnailDetail,
+    high : YoutubeThumbnailDetail
+}
+
+#[derive(Serialize, Deserialize)]
 struct YoutubeSubscription {
     #[serde(rename="title")]
     subscription_title : String,
-    description : String,
+    #[serde(rename="description")]
+    sdescription : String,
+    channelId : String,
+    thumbnails : YoutubeThumbnails
+    
     // resourceId : YoutubeResource,
     // thumbnails : YoutubeThumbnails,
 
@@ -37,6 +54,7 @@ pub struct Subscription {
     pub channelname : String,
     pub upload_playlist : String,
     pub thumbnail : String,
+    pub description : String,
 }
 
 impl fmt::Display for Subscription {
@@ -62,7 +80,7 @@ fn query<T>(t : &oauth2::Token, url : &'static str) -> YoutubeResult<T> where T:
     // s
 }
 
-fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItems<YoutubeSubscription>> {
+fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItem<YoutubeSubscription>> {
     let res : YoutubeResult<YoutubeSubscription> = query(t, SUB_URL);
     return res.items
     
@@ -71,13 +89,14 @@ fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItems<YoutubeSubsc
     // return vec![yi];
 }
 
-fn construct_subscription(s : &YoutubeItems<YoutubeSubscription>) -> Subscription {
-    Subscription { sid : String::from("test sid"), channelname : String::from("testchannelname"), upload_playlist : String::from("uploadplaylist test"), thumbnail : String::from("testthumbnail")}
+fn construct_subscription(s : YoutubeItem<YoutubeSubscription>) -> Subscription {
+    let item = s.snippet.unwrap();
+    Subscription { sid : String::from("stitch responses together"), channelname : item.subscription_title, upload_playlist : String::from("test playlist"), thumbnail : item.thumbnails.default.thmburl, description : item.sdescription}
 }
 
 pub fn get_subs(t : &oauth2::Token) -> Vec<Subscription> {
     let ytsubs = get_subscriptions_for_me(t);
-    let it = ytsubs.iter();
+    let it = ytsubs.into_iter();
     it.map(construct_subscription).collect::<Vec<Subscription>>()
 }
 
