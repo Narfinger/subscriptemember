@@ -10,7 +10,7 @@ use serde;
 use serde_json;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
-use diesel::insert;
+use diesel::{insert,delete};
 use schema::subscriptions;
 
 const SUB_URL:&'static str = "https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50&access_token=";
@@ -137,10 +137,12 @@ pub fn get_subs(t : &oauth2::Token, db : &Mutex<SqliteConnection>, updateSubs : 
 
     let dbconn : &SqliteConnection = &db.lock().unwrap();
     if updateSubs {
+        delete(subscriptions::table).execute(dbconn);
+        
         let ytsubs = get_subscriptions_for_me(t);
         let it = ytsubs.into_iter();
         let subs = it.map(construct_subscription).collect::<Vec<NewSubscription>>();
-        insert(&subs[0]).into(subscriptions::table)
+        insert(&subs).into(subscriptions::table)
             .execute(dbconn);
     }
     subscriptions.load::<Subscription>(dbconn).unwrap()

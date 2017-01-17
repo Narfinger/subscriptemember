@@ -77,6 +77,7 @@ fn subs() -> String {
     let sub = youtube_handler::get_subs(&TK, &DB, false);
     let mut data = BTreeMap::new();
     data.insert("subs".to_string(), sub.to_json());
+    data.insert("numberofsubs".to_string(),sub.len().to_json());
     HB.lock().unwrap().render("subs", &data).unwrap()
 }
 
