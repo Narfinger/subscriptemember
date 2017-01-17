@@ -74,11 +74,11 @@ pub struct Subscription {
 
 #[derive(Insertable)]
 #[table_name="subscriptions"]
-struct NewSubscription<'a> {
-    channelname: &'a str,
-    uploadplaylist: &'a str,
-    thumbnail: &'a str,
-    description: &'a str,
+struct NewSubscription {
+    channelname: String,
+    uploadplaylist: String,
+    thumbnail: String,
+    description: String,
 }
 
 impl fmt::Display for Subscription {
@@ -128,7 +128,7 @@ fn get_subscriptions_for_me(t : &oauth2::Token) -> Vec<YoutubeItem<YoutubeSubscr
 
 fn construct_subscription(s : YoutubeItem<YoutubeSubscription>) -> NewSubscription {
     let item = s.snippet.unwrap();
-    NewSubscription { channelname : item.subscription_title, upload_playlist : String::from("test playlist"), thumbnail : item.thumbnails.default.thmburl, description : item.sdescription}
+    NewSubscription { channelname : item.subscription_title, uploadplaylist : String::from("test playlist"), thumbnail : item.thumbnails.default.thmburl, description : item.sdescription}
 }
 
 pub fn get_subs(t : &oauth2::Token, db : &Mutex<SqliteConnection>) -> Vec<Subscription> {
@@ -137,7 +137,7 @@ pub fn get_subs(t : &oauth2::Token, db : &Mutex<SqliteConnection>) -> Vec<Subscr
 
     let ytsubs = get_subscriptions_for_me(t);
     let it = ytsubs.into_iter();
-    let subs = it.map(construct_subscription).collect::<Vec<Subscription>>();
+    let subs = it.map(construct_subscription).collect::<Vec<NewSubscription>>();
 
     let dbconn : &SqliteConnection = &db.lock().unwrap();
     
