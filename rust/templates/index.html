@@ -1,14 +1,38 @@
+<!DOCTYPE html>
 <html>
-    <h1>Test Subscriptemember</h1>
-    <table border="1">
-	{{#each subs}}
-	<tr>
-	    <td>{{sid}}</td>
-	    <td>{{channelname}}</td>
-	    <td>{{upload_playlist}}</td>
-	    <td><img src="{{thumbnail}}"></td>
-	    <td>{{description}}</td>
-	</tr>
-	{{/each}}
-    </table>
+    <head>
+	<title>Subscriptemember</title>
+	<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    </head>
+    <div class="container">
+	<div class="row">
+	    <h1>Test Subscriptemember</h1>
+	</div>
+    </div>
+    <div class="col-md-8">
+	<div class="row">
+	    <div class="col-md-4">Last Refresh: {{lastrefreshed}}</div>
+	    <div class="col-md-4">Number of Videos: {{numberofvideos}}</div>
+	    <div class="col-md-4">Totaltime: {{totaltime}}</div>
+	</div>
+	<div class="row">
+	    <table class="table table-striped">
+		<tr>
+		    <th>Thumbnail</th>
+		    <th>Channel</th>
+		    <th>Title</th>
+		    <th>Published</th>
+		    <th>Duration</th>
+		    <th>Play</th>
+		    <th>Delete</th>
+		</tr>
+	    </table>
+	</div>
+    </div>
+    <div class="col-md-2">
+	<div class="row"><a href="/subs">See Subscriptions</a></div>
+	<div class="row"><a href="/updateSubs">Update and see Subscriptions</a></div>
+	<div class="row"><a href="/upvids">Update Videos</a></div>
+    </div>
 </html>

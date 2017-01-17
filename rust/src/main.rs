@@ -64,11 +64,28 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
                        ntk, None).token(&["https://www.googleapis.com/auth/youtube"])
 }
 
-#[get("/")]
-fn hello() -> String {
-    let sub = youtube_handler::get_subs(&TK, &DB);
+#[get("/updateSubs")]
+fn updateSubs() -> String {
+    let sub = youtube_handler::get_subs(&TK, &DB, true);
     let mut data = BTreeMap::new();
     data.insert("subs".to_string(), sub.to_json());
+    HB.lock().unwrap().render("subs", &data).unwrap()
+}
+
+#[get("/subs")]
+fn subs() -> String {
+    let sub = youtube_handler::get_subs(&TK, &DB, false);
+    let mut data = BTreeMap::new();
+    data.insert("subs".to_string(), sub.to_json());
+    HB.lock().unwrap().render("subs", &data).unwrap()
+}
+
+#[get("/")]
+fn index() -> String {
+    let mut data = BTreeMap::new();
+    data.insert("lastrefreshed".to_string(), "NA");
+    data.insert("numberofvideos".to_string(), "NA");
+    data.insert("totaltime".to_string(), "NA");
     HB.lock().unwrap().render("index", &data).unwrap()
 }
 
@@ -98,11 +115,14 @@ fn main() {
     {
         let its = template_filename_to_string("templates/index.html").unwrap();
         assert!(HB.lock().unwrap().register_template_string("index",its ).is_ok());
+        
+        let its = template_filename_to_string("templates/subs.html").unwrap();
+        assert!(HB.lock().unwrap().register_template_string("subs",its ).is_ok());
     }
        
     
     println!("Starting server"); 
-    rocket::ignite().mount("/", routes![hello]).launch();
+    rocket::ignite().mount("/", routes![updateSubs,subs,index]).launch();
         
 
     // now you can use t.access_token to authenticate API calls within your

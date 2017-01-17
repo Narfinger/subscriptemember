@@ -131,19 +131,17 @@ fn construct_subscription(s : YoutubeItem<YoutubeSubscription>) -> NewSubscripti
     NewSubscription { channelname : item.subscription_title, uploadplaylist : String::from("test playlist"), thumbnail : item.thumbnails.default.thmburl, description : item.sdescription}
 }
 
-pub fn get_subs(t : &oauth2::Token, db : &Mutex<SqliteConnection>) -> Vec<Subscription> {
+pub fn get_subs(t : &oauth2::Token, db : &Mutex<SqliteConnection>, updateSubs : bool) -> Vec<Subscription> {
     use schema::subscriptions::dsl::*;
     use schema::subscriptions;
 
-    let ytsubs = get_subscriptions_for_me(t);
-    let it = ytsubs.into_iter();
-    let subs = it.map(construct_subscription).collect::<Vec<NewSubscription>>();
-
     let dbconn : &SqliteConnection = &db.lock().unwrap();
-    
-
-    insert(&subs[0]).into(subscriptions::table)
-        .execute(dbconn);
-    //return the db connection
+    if updateSubs {
+        let ytsubs = get_subscriptions_for_me(t);
+        let it = ytsubs.into_iter();
+        let subs = it.map(construct_subscription).collect::<Vec<NewSubscription>>();
+        insert(&subs[0]).into(subscriptions::table)
+            .execute(dbconn);
+    }
     subscriptions.load::<Subscription>(dbconn).unwrap()
 }

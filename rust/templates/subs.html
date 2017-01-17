@@ -1,6 +1,14 @@
-<tr>
-    <td>{{ sid }}</td>
-    <td>{{ channelname}}</td>
-    <td>{{ uploadPlaylist }}</td>
-    <td>{{ 3thumbnail }}</td>
-</tr>
+<html><head><title>Subscriptemember</title></head>
+    <h1><a href="/">Subscriptemember Subs</a></h1>
+    <table border="1">
+	{{#each subs}}
+	<tr>
+	    <td>{{sid}}</td>
+	    <td>{{channelname}}</td>
+	    <td>{{upload_playlist}}</td>
+	    <td><img src="{{thumbnail}}"></td>
+	    <td>{{description}}</td>
+	</tr>
+	{{/each}}
+    </table>
+</html>
