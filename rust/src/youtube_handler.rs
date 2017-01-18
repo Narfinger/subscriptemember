@@ -2,10 +2,8 @@ extern crate yup_oauth2 as oauth2;
 extern crate hyper;
 
 use std::fmt;
-use std::io::Read;
 use std::sync::Mutex;
-use std::ops::Deref;
-use hyper::{Client, Url};
+use hyper::Client;
 use serde;
 use serde_json;
 use diesel::sqlite::SqliteConnection;
@@ -17,15 +15,20 @@ const SUB_URL:&'static str = "https://www.googleapis.com/youtube/v3/subscription
 
 #[derive(Serialize, Deserialize)]
 struct YoutubePageInfo {
-    totalResults : i32,
-    resultsPerPage: i32,
+    #[serde(rename="totalResults")]
+    total_results : i32,
+
+    #[serde(rename="resultsPerPage")]
+    results_per_page: i32,
 }
 
 #[derive(Serialize, Deserialize)]
 struct YoutubeResult<T> {
     items : Vec<YoutubeItem<T>>,
-    pageInfo : YoutubePageInfo,
-    nextPageToken : Option<String>
+    #[serde(rename="pageInfo")]
+    page_info : YoutubePageInfo,
+    #[serde(rename="nextPageToken")]
+    next_page_token : Option<String>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -55,7 +58,8 @@ struct YoutubeSubscription {
     subscription_title : String,
     #[serde(rename="description")]
     sdescription : String,
-    channelId : String,
+    #[serde(rename="channelId")]
+    channel_id : String,
     thumbnails : YoutubeThumbnails
     
     // resourceId : YoutubeResource,
@@ -87,7 +91,7 @@ impl fmt::Display for Subscription {
     }
 }
 
-fn querySimplePage<T>(t : &oauth2::Token, url : &'static str, nextpage : Option<String>) -> YoutubeResult<T> where T: serde::Deserialize {
+fn query_simple_page<T>(t : &oauth2::Token, url : &'static str, nextpage : Option<String>) -> YoutubeResult<T> where T: serde::Deserialize {
     let client = Client::new();
     let mut q  = String::from(url);
     q.push_str(t.access_token.as_str());
@@ -96,11 +100,9 @@ fn querySimplePage<T>(t : &oauth2::Token, url : &'static str, nextpage : Option<
         q.push_str(nextpagetk.as_str());
     }
 
-    let mut res = client.get(q.as_str()).send().unwrap();
-
-    let mut s = String::new();
+    let res = client.get(q.as_str()).send().unwrap();
 //    res.read_to_string(&mut s);
-    println!("query: {}, result: {}", q, s);
+    println!("query: {}", q);
 
     serde_json::from_reader(res).unwrap()
 
@@ -111,13 +113,13 @@ fn querySimplePage<T>(t : &oauth2::Token, url : &'static str, nextpage : Option<
 
 fn query<T>(t : &oauth2::Token, url : &'static str) -> Vec<YoutubeItem<T>> where T : serde::Deserialize {
     let mut result : Vec<YoutubeItem<T>> = Vec::new();
-    let mut nextPage = None;
+    let mut next_page = None;
     loop {
-        let res = querySimplePage(t,url,nextPage);
+        let res = query_simple_page(t,url,next_page);
         result.extend(res.items);
-        nextPage = res.nextPageToken;
+        next_page = res.next_page_token;
         println!("query again with tk:");
-        if nextPage.is_none() { break;}
+        if next_page.is_none() { break;}
     }
     result
 }
@@ -131,12 +133,12 @@ fn construct_subscription(s : YoutubeItem<YoutubeSubscription>) -> NewSubscripti
     NewSubscription { channelname : item.subscription_title, uploadplaylist : String::from("test playlist"), thumbnail : item.thumbnails.default.thmburl, description : item.sdescription}
 }
 
-pub fn get_subs(t : &oauth2::Token, db : &Mutex<SqliteConnection>, updateSubs : bool) -> Vec<Subscription> {
+pub fn get_subs(t : &oauth2::Token, db : &Mutex<SqliteConnection>, update_subs : bool) -> Vec<Subscription> {
     use schema::subscriptions::dsl::*;
     use schema::subscriptions;
 
     let dbconn : &SqliteConnection = &db.lock().unwrap();
-    if updateSubs {
+    if update_subs {
         delete(subscriptions::table).execute(dbconn);
         
         let ytsubs = get_subscriptions_for_me(t);

@@ -65,7 +65,7 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 }
 
 #[get("/updateSubs")]
-fn updateSubs() -> String {
+fn update_subs() -> String {
     let sub = youtube_handler::get_subs(&TK, &DB, true);
     let mut data = BTreeMap::new();
     data.insert("subs".to_string(), sub.to_json());
@@ -123,7 +123,7 @@ fn main() {
        
     
     println!("Starting server"); 
-    rocket::ignite().mount("/", routes![updateSubs,subs,index]).launch();
+    rocket::ignite().mount("/", routes![update_subs,subs,index]).launch();
         
 
     // now you can use t.access_token to authenticate API calls within your
