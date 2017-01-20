@@ -3,6 +3,7 @@ extern crate hyper;
 
 use std::fmt;
 use std::sync::Mutex;
+use std::iter::Iterator;
 use hyper::Client;
 use serde;
 use serde_json;
@@ -15,7 +16,7 @@ const SUB_URL: &'static str = "https://www.googleapis.\
                                com/youtube/v3/subscriptions\
                                ?part=snippet&mine=true&maxResults=50&access_token=";
 
-const UPLOAD_PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/channels?part=contentDetails&access_token=";
+const UPLOAD_PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/channels?part=contentDetails&";
 
 #[derive(Serialize, Deserialize)]
 struct YoutubePageInfo {
@@ -127,14 +128,9 @@ fn query_simple_page<T>(t: &oauth2::Token,
     }
 
     let res = client.get(q.as_str()).send().unwrap();
-    //    res.read_to_string(&mut s);
     println!("query: {}", q);
 
     serde_json::from_reader(res).unwrap()
-
-    // let mut s = String::new();
-    // res.read_to_string(&mut s);
-    // s
 }
 
 fn query<T>(t: &oauth2::Token, url: &'static str) -> Vec<YoutubeItem<T>>
@@ -158,11 +154,18 @@ fn get_subscriptions_for_me(t: &oauth2::Token) -> Vec<YoutubeItem<YoutubeSubscri
     query(t, SUB_URL)
 }
 
-fn get_upload_playlists(t: &oauth2::Token, subs: &Subscription) -> Vec<YoutubeItem<YoutubeRelatedPlaylists>> {
-    let mut vec: Vec<String> = Vec::new();
-    for chunk in subs.chunk(50) {
-        let ids: String = chunk.into_iter().map(| s: Subscription| s.channelid).fold("", |comb, s| comb.push_str(s)).collect();
+fn get_upload_playlists(t: &oauth2::Token, subs: &Vec<Subscription>) -> Vec<Subscription> {
+    let mut upload_playlists: Vec<YoutubeItem<YoutubeRelatedPlaylists>> = Vec::new();
+    for chunk in subs.chunks(50) {
+        let onlyids = chunk.iter().map(| s: &Subscription| s.channelid.clone());
+        let singlestringids: String = onlyids.fold("".to_string(), |comb:String, s| comb + "," + &s);
+        let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + "&access_token=";
+        let mut res : Vec<YoutubeItem<YoutubeRelatedPlaylists>> = query(t, &queryurl);
+        upload_playlists.append(&mut res);
     }
+
+    //match them
+    match_subs_to_res(&mut subs, &upload_playlists)
 }
 
 fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscription {
@@ -174,6 +177,10 @@ fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscriptio
         thumbnail: item.thumbnails.default.thmburl,
         description: item.sdescription,
     }
+}
+
+fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &Vec<YoutubeItem<YoutubeRelatedPlaylists>>) {
+    return subs;
 }
 
 pub fn get_subs(t: &oauth2::Token,
