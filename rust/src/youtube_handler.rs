@@ -15,6 +15,8 @@ const SUB_URL: &'static str = "https://www.googleapis.\
                                com/youtube/v3/subscriptions\
                                ?part=snippet&mine=true&maxResults=50&access_token=";
 
+const UPLOAD_PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/channels?part=contentDetails&access_token=";
+
 #[derive(Serialize, Deserialize)]
 struct YoutubePageInfo {
     #[serde(rename="totalResults")]
@@ -42,6 +44,11 @@ struct YoutubeItem<T> {
 }
 
 #[derive(Serialize, Deserialize)]
+struct YoutubeRelatedPlaylists {
+    uploads: String,
+}
+
+#[derive(Serialize, Deserialize)]
 struct YoutubeThumbnailDetail {
     #[serde(rename="url")]
     thmburl: String,
@@ -55,6 +62,13 @@ struct YoutubeThumbnails {
 }
 
 #[derive(Serialize, Deserialize)]
+struct YoutubeResource {
+    kind: String,
+    #[serde(rename="channelId")]
+    channel_id: String,
+}
+
+#[derive(Serialize, Deserialize)]
 struct YoutubeSubscription {
     #[serde(rename="title")]
     subscription_title: String,
@@ -62,13 +76,15 @@ struct YoutubeSubscription {
     sdescription: String,
     #[serde(rename="channelId")]
     channel_id: String,
-    thumbnails: YoutubeThumbnails, /* resourceId : YoutubeResource,
-                                    * thumbnails : YoutubeThumbnails */
+    thumbnails: YoutubeThumbnails,
+    #[serde(rename="resourceId")]
+    resource_id: YoutubeResource,
 }
 
 #[derive(Eq,PartialEq,PartialOrd,Ord,Debug,Hash,Serialize,Deserialize,Queryable)]
 pub struct Subscription {
     pub sid: i32,
+    pub channelid: String,
     pub channelname: String,
     pub upload_playlist: String,
     pub thumbnail: String,
@@ -78,6 +94,7 @@ pub struct Subscription {
 #[derive(Insertable)]
 #[table_name="subscriptions"]
 struct NewSubscription {
+    channelid: String,
     channelname: String,
     uploadplaylist: String,
     thumbnail: String,
@@ -141,10 +158,18 @@ fn get_subscriptions_for_me(t: &oauth2::Token) -> Vec<YoutubeItem<YoutubeSubscri
     query(t, SUB_URL)
 }
 
+fn get_upload_playlists(t: &oauth2::Token, subs: &Subscription) -> Vec<YoutubeItem<YoutubeRelatedPlaylists>> {
+    let mut vec: Vec<String> = Vec::new();
+    for chunk in subs.chunk(50) {
+        let ids: String = chunk.into_iter().map(| s: Subscription| s.channelid).fold("", |comb, s| comb.push_str(s)).collect();
+    }
+}
+
 fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscription {
     let item = s.snippet.unwrap();
     NewSubscription {
         channelname: item.subscription_title,
+        channelid: item.resource_id.channel_id,
         uploadplaylist: String::from("test playlist"),
         thumbnail: item.thumbnails.default.thmburl,
         description: item.sdescription,
