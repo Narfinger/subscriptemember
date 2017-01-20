@@ -114,7 +114,7 @@ impl fmt::Display for Subscription {
 }
 
 fn query_simple_page<T>(t: &oauth2::Token,
-                        url: &'static str,
+                        url: &str,
                         nextpage: Option<String>)
                         -> YoutubeResult<T>
     where T: serde::Deserialize
@@ -133,7 +133,7 @@ fn query_simple_page<T>(t: &oauth2::Token,
     serde_json::from_reader(res).unwrap()
 }
 
-fn query<T>(t: &oauth2::Token, url: &'static str) -> Vec<YoutubeItem<T>>
+fn query<T>(t: &oauth2::Token, url: &str) -> Vec<YoutubeItem<T>>
     where T: serde::Deserialize
 {
     let mut result: Vec<YoutubeItem<T>> = Vec::new();
@@ -154,7 +154,7 @@ fn get_subscriptions_for_me(t: &oauth2::Token) -> Vec<YoutubeItem<YoutubeSubscri
     query(t, SUB_URL)
 }
 
-fn get_upload_playlists(t: &oauth2::Token, subs: &Vec<Subscription>) -> Vec<Subscription> {
+fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
     let mut upload_playlists: Vec<YoutubeItem<YoutubeRelatedPlaylists>> = Vec::new();
     for chunk in subs.chunks(50) {
         let onlyids = chunk.iter().map(| s: &Subscription| s.channelid.clone());
@@ -165,7 +165,7 @@ fn get_upload_playlists(t: &oauth2::Token, subs: &Vec<Subscription>) -> Vec<Subs
     }
 
     //match them
-    match_subs_to_res(&mut subs, &upload_playlists)
+    match_subs_to_res(subs, &upload_playlists);
 }
 
 fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscription {
@@ -180,7 +180,13 @@ fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscriptio
 }
 
 fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &Vec<YoutubeItem<YoutubeRelatedPlaylists>>) {
-    return subs;
+    fn find_and_replace(s: &mut Subscription) {
+        let val = ups.iter().filter(|ups| ups.iid == s.channelid)[0];
+        s{upload_playlist : ups.content_details.unwrap().channel_id};
+    }
+    let mut it = subs.iter().map(find_and_replace);
+    
+    return;
 }
 
 pub fn get_subs(t: &oauth2::Token,
