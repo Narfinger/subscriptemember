@@ -16,9 +16,9 @@ const SUB_URL: &'static str = "https://www.googleapis.\
                                com/youtube/v3/subscriptions\
                                ?part=snippet&mine=true&maxResults=50&access_token=";
 
-const UPLOAD_PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/channels?part=contentDetails&";
+const UPLOAD_PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/channels?part=contentDetails&maxResults=50&";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize)]
 struct YoutubePageInfo {
     #[serde(rename="totalResults")]
     total_results: i32,
@@ -27,7 +27,7 @@ struct YoutubePageInfo {
     results_per_page: i32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize)]
 struct YoutubeResult<T> {
     items: Vec<YoutubeItem<T>>,
     #[serde(rename="pageInfo")]
@@ -36,7 +36,7 @@ struct YoutubeResult<T> {
     next_page_token: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize)]
 struct YoutubeItem<T> {
     #[serde(rename="id")]
     iid: String,
@@ -44,32 +44,32 @@ struct YoutubeItem<T> {
     content_details: Option<T>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize)]
 struct YoutubeRelatedPlaylists {
     uploads: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize)]
 struct YoutubeThumbnailDetail {
     #[serde(rename="url")]
     thmburl: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize)]
 struct YoutubeThumbnails {
     default: YoutubeThumbnailDetail,
     medium: YoutubeThumbnailDetail,
     high: YoutubeThumbnailDetail,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize)]
 struct YoutubeResource {
     kind: String,
     #[serde(rename="channelId")]
     channel_id: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug,Serialize, Deserialize)]
 struct YoutubeSubscription {
     #[serde(rename="title")]
     subscription_title: String,
@@ -158,7 +158,8 @@ fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
     let mut upload_playlists: Vec<YoutubeItem<YoutubeRelatedPlaylists>> = Vec::new();
     for chunk in subs.chunks(50) {
         let onlyids = chunk.iter().map(| s: &Subscription| s.channelid.clone());
-        let singlestringids: String = onlyids.fold("".to_string(), |comb:String, s| comb + "," + &s);
+        let mut singlestringids: String = onlyids.fold("".to_string(), |comb:String, s| comb + &s + ",");
+        singlestringids.pop();
         let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + "&access_token=";
         let mut res : Vec<YoutubeItem<YoutubeRelatedPlaylists>> = query(t, &queryurl);
         upload_playlists.append(&mut res);
@@ -180,13 +181,19 @@ fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscriptio
 }
 
 fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &Vec<YoutubeItem<YoutubeRelatedPlaylists>>) {
-    fn find_and_replace(s: &mut Subscription) {
-        let val = ups.iter().filter(|ups| ups.iid == s.channelid)[0];
-        s{upload_playlist : ups.content_details.unwrap().channel_id};
+    fn find_and_replace(s: &mut Subscription, ups: &Vec<YoutubeItem<YoutubeRelatedPlaylists>>) {
+        let val: &YoutubeItem<YoutubeRelatedPlaylists> = ups.iter().filter(|ups| ups.iid == s.channelid).next().unwrap();
+        s.upload_playlist = match val.content_details {
+            Some(ref cd) => cd.uploads.clone(),
+            None => "".to_string()
+        };
+        print!("THIS IS A TEST");
+        print!("{}", s.upload_playlist);
     }
-    let mut it = subs.iter().map(find_and_replace);
-    
-    return;
+
+    for s in subs {
+        find_and_replace(s,ups);
+    }
 }
 
 pub fn get_subs(t: &oauth2::Token,
@@ -207,5 +214,7 @@ pub fn get_subs(t: &oauth2::Token,
             .into(subscriptions::table)
             .execute(dbconn);
     }
-    subscriptions.load::<Subscription>(dbconn).unwrap()
+    let mut nsubs = subscriptions.load::<Subscription>(dbconn).unwrap();
+    get_upload_playlists(t, &mut nsubs);
+    nsubs
 }
