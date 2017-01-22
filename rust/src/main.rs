@@ -42,6 +42,7 @@ use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
 use std::env;
+use rocket::response::{Redirect,Responder};
 
 lazy_static! {
     static ref TK : oauth2::Token = setup_oauth().unwrap();
@@ -79,11 +80,9 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 }
 
 #[get("/updateSubs")]
-fn update_subs() -> String {
+fn update_subs() -> Redirect {
     let sub = youtube_handler::get_subs(&TK, &DB, true);
-    let mut data = BTreeMap::new();
-    data.insert("subs".to_string(), sub.to_json());
-    HB.lock().unwrap().render("subs", &data).unwrap()
+    Redirect::to("/subs")
 }
 
 #[get("/subs")]
