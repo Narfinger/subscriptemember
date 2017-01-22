@@ -27,7 +27,14 @@ pub struct YoutubeItem<T> {
     #[serde(rename="id")]
     pub iid: String,
     pub snippet: Option<T>,
+    #[serde(rename="contentDetails")]
     pub content_details: Option<T>,
+}
+
+#[derive(Debug,Serialize,Deserialize)]
+pub struct YoutubeContentDetails {
+    #[serde(rename="relatedPlaylists")]
+    pub related_playlists: Option<YoutubeRelatedPlaylists>,
 }
 
 #[derive(Debug,Serialize, Deserialize)]

@@ -5,9 +5,9 @@ use std::sync::Mutex;
 use std::iter::Iterator;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
-use diesel::{insert, delete};
+use diesel::{insert,delete,update};
 
-use youtube_base::{YoutubeItem,YoutubeSubscription,YoutubeRelatedPlaylists,query};
+use youtube_base::{YoutubeItem,YoutubeSubscription,YoutubeRelatedPlaylists,YoutubeContentDetails,query};
 use subs_and_video::{Subscription,NewSubscription};
 
 const SUB_URL: &'static str = "https://www.googleapis.\
@@ -21,18 +21,33 @@ fn get_subscriptions_for_me(t: &oauth2::Token) -> Vec<YoutubeItem<YoutubeSubscri
 }
 
 fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
-    let mut upload_playlists: Vec<YoutubeItem<YoutubeRelatedPlaylists>> = Vec::new();
+    print!("starting\n");
+    let mut upload_playlists: Vec<YoutubeItem<YoutubeContentDetails>> = Vec::new();
     for chunk in subs.chunks(50) {
         let onlyids = chunk.iter().map(| s: &Subscription| s.channelid.clone());
         let mut singlestringids: String = onlyids.fold("".to_string(), |comb:String, s| comb + &s + ",");
         singlestringids.pop();
         let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + "&access_token=";
-        let mut res : Vec<YoutubeItem<YoutubeRelatedPlaylists>> = query(t, &queryurl);
+        let mut res : Vec<YoutubeItem<YoutubeContentDetails>> = query(t, &queryurl);
         upload_playlists.append(&mut res);
     }
 
+    
     //match them
     match_subs_to_res(subs, &upload_playlists);
+    print!("first: {}", subs[0].uploadplaylist);
+}
+
+fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &[YoutubeItem<YoutubeContentDetails>]) {
+    fn find_and_replace(s: &mut Subscription, ups: &[YoutubeItem<YoutubeContentDetails>]) {
+        let val: &YoutubeItem<YoutubeContentDetails> = ups.iter().find(|ups_elem| ups_elem.iid == s.channelid).unwrap();
+        let v = val.content_details.as_ref().and_then(|ref cd| cd.related_playlists.as_ref()).map(|ref rlp| rlp.uploads.clone()).unwrap_or("No Playlist Found".to_string());
+        s.uploadplaylist = v;
+    }
+
+    for s in subs {
+        find_and_replace(s,ups);
+    }
 }
 
 fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscription {
@@ -40,25 +55,9 @@ fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscriptio
     NewSubscription {
         channelname: item.subscription_title,
         channelid: item.resource_id.channel_id,
-        uploadplaylist: String::from("test playlist"),
+        uploadplaylist: String::from("default value"),
         thumbnail: item.thumbnails.default.thmburl,
         description: item.sdescription,
-    }
-}
-
-fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &[YoutubeItem<YoutubeRelatedPlaylists>]) {
-    fn find_and_replace(s: &mut Subscription, ups: &[YoutubeItem<YoutubeRelatedPlaylists>]) {
-        let val: &YoutubeItem<YoutubeRelatedPlaylists> = ups.iter().find(|ups| ups.iid == s.channelid).unwrap();
-        s.upload_playlist = match val.content_details {
-            Some(ref cd) => cd.uploads.clone(),
-            None => "".to_string()
-        };
-        print!("THIS IS A TEST");
-        print!("{}", s.upload_playlist);
-    }
-
-    for s in subs {
-        find_and_replace(s,ups);
     }
 }
 
@@ -81,6 +80,12 @@ pub fn get_subs(t: &oauth2::Token,
             .execute(dbconn);
     }
     let mut nsubs = subscriptions.load::<Subscription>(dbconn).unwrap();
-    get_upload_playlists(t, &mut nsubs);
+    if update_subs {
+        get_upload_playlists(t, &mut nsubs);
+        //update values
+        for s in &nsubs {
+            update(subscriptions.find(s.sid)).set(uploadplaylist.eq(s.uploadplaylist.clone())).execute(dbconn);
+        }
+    }
     nsubs
 }
