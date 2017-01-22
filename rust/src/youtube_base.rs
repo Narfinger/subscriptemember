@@ -4,7 +4,7 @@ use hyper::Client;
 use serde;
 use serde_json;
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct YoutubePageInfo {
     #[serde(rename="totalResults")]
     pub total_results: i32,
@@ -13,7 +13,7 @@ pub struct YoutubePageInfo {
     pub results_per_page: i32,
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct YoutubeResult<T> {
     pub items: Vec<YoutubeItem<T>>,
     #[serde(rename="pageInfo")]
@@ -22,7 +22,7 @@ pub struct YoutubeResult<T> {
     pub next_page_token: Option<String>,
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct YoutubeItem<T> {
     #[serde(rename="id")]
     pub iid: String,
@@ -31,38 +31,38 @@ pub struct YoutubeItem<T> {
     pub content_details: Option<T>,
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct YoutubeContentDetails {
     #[serde(rename="relatedPlaylists")]
     pub related_playlists: Option<YoutubeRelatedPlaylists>,
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct YoutubeRelatedPlaylists {
     pub uploads: String,
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct YoutubeThumbnailDetail {
     #[serde(rename="url")]
     pub thmburl: String,
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct YoutubeThumbnails {
     pub default: YoutubeThumbnailDetail,
     pub medium: YoutubeThumbnailDetail,
     pub high: YoutubeThumbnailDetail,
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct YoutubeResource {
     pub kind: String,
     #[serde(rename="channelId")]
     pub channel_id: String,
 }
 
-#[derive(Debug,Serialize, Deserialize)]
+#[derive(Debug,Deserialize)]
 pub struct YoutubeSubscription {
     #[serde(rename="title")]
     pub subscription_title: String,

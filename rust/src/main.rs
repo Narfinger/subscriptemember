@@ -42,7 +42,7 @@ use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
 use std::env;
-use rocket::response::{Redirect,Responder};
+use rocket::response::Redirect;
 
 lazy_static! {
     static ref TK : oauth2::Token = setup_oauth().unwrap();
@@ -81,7 +81,7 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 
 #[get("/updateSubs")]
 fn update_subs() -> Redirect {
-    let sub = youtube_handler::get_subs(&TK, &DB, true);
+    youtube_handler::get_subs(&TK, &DB, true);
     Redirect::to("/subs")
 }
 

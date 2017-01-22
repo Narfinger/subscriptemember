@@ -7,7 +7,7 @@ use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert,delete,update};
 
-use youtube_base::{YoutubeItem,YoutubeSubscription,YoutubeRelatedPlaylists,YoutubeContentDetails,query};
+use youtube_base::{YoutubeItem,YoutubeSubscription,YoutubeContentDetails,query};
 use subs_and_video::{Subscription,NewSubscription};
 
 const SUB_URL: &'static str = "https://www.googleapis.\
@@ -21,7 +21,6 @@ fn get_subscriptions_for_me(t: &oauth2::Token) -> Vec<YoutubeItem<YoutubeSubscri
 }
 
 fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
-    print!("starting\n");
     let mut upload_playlists: Vec<YoutubeItem<YoutubeContentDetails>> = Vec::new();
     for chunk in subs.chunks(50) {
         let onlyids = chunk.iter().map(| s: &Subscription| s.channelid.clone());
@@ -32,16 +31,14 @@ fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
         upload_playlists.append(&mut res);
     }
 
-    
     //match them
     match_subs_to_res(subs, &upload_playlists);
-    print!("first: {}", subs[0].uploadplaylist);
 }
 
 fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &[YoutubeItem<YoutubeContentDetails>]) {
     fn find_and_replace(s: &mut Subscription, ups: &[YoutubeItem<YoutubeContentDetails>]) {
         let val: &YoutubeItem<YoutubeContentDetails> = ups.iter().find(|ups_elem| ups_elem.iid == s.channelid).unwrap();
-        let v = val.content_details.as_ref().and_then(|ref cd| cd.related_playlists.as_ref()).map(|ref rlp| rlp.uploads.clone()).unwrap_or("No Playlist Found".to_string());
+        let v = val.content_details.as_ref().and_then(|cd| cd.related_playlists.as_ref()).map(|rlp| rlp.uploads.clone()).unwrap_or_else(||"No Playlist Found".to_string());
         s.uploadplaylist = v;
     }
 
@@ -82,7 +79,7 @@ pub fn get_subs(t: &oauth2::Token,
     let mut nsubs = subscriptions.load::<Subscription>(dbconn).unwrap();
     if update_subs {
         get_upload_playlists(t, &mut nsubs);
-        //update values
+        //update values        
         for s in &nsubs {
             update(subscriptions.find(s.sid)).set(uploadplaylist.eq(s.uploadplaylist.clone())).execute(dbconn);
         }
