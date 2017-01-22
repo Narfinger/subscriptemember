@@ -3,7 +3,11 @@ name = "subscriptemember"
 version = "0.1.0"
 authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
 
+[features]
+default = []
+
 [dependencies]
+clippy = {version = "0.0.110", optional = true}
 yup-oauth2 = "1.0.1"
 hyper = "0.9.14"
 serde = "0.8.22"

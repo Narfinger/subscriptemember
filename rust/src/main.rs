@@ -1,7 +1,11 @@
+#![cfg_attr(feature="clippy", feature(plugin))]
+#![cfg_attr(feature="clippy", plugin(clippy))]
+
 #![cfg_attr(feature = "nightly", feature(proc_macro))]
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
 #[cfg(feature = "nightly")]
+
 #[macro_use]
 extern crate rocket;
 extern crate hyper;
@@ -20,8 +24,10 @@ extern crate diesel;
 extern crate diesel_codegen;
 extern crate dotenv;
 
-pub mod youtube_handler;
 pub mod schema;
+pub mod youtube_base;
+pub mod youtube_handler;
+pub mod subs_and_video;
 
 use std::sync::Mutex;
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
