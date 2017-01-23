@@ -26,7 +26,7 @@ extern crate dotenv;
 
 pub mod schema;
 pub mod youtube_base;
-pub mod youtube_handler;
+pub mod youtube_subscriptions;
 pub mod subs_and_video;
 
 use std::sync::Mutex;
@@ -81,13 +81,13 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
 
 #[get("/updateSubs")]
 fn update_subs() -> Redirect {
-    youtube_handler::get_subs(&TK, &DB, true);
+    youtube_subscriptions::get_subs(&TK, &DB, true);
     Redirect::to("/subs")
 }
 
 #[get("/subs")]
 fn subs() -> String {
-    let sub = youtube_handler::get_subs(&TK, &DB, false);
+    let sub = youtube_subscriptions::get_subs(&TK, &DB, false);
     let mut data = BTreeMap::new();
     data.insert("subs".to_string(), sub.to_json());
     data.insert("numberofsubs".to_string(), sub.len().to_json());

@@ -79,7 +79,7 @@ pub fn get_subs(t: &oauth2::Token,
     let mut nsubs = subscriptions.load::<Subscription>(dbconn).unwrap();
     if update_subs {
         get_upload_playlists(t, &mut nsubs);
-        //update values        
+        //update values
         for s in &nsubs {
             update(subscriptions.find(s.sid)).set(uploadplaylist.eq(s.uploadplaylist.clone())).execute(dbconn);
         }
