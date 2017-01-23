@@ -1,6 +1,6 @@
 use std::fmt;
 use std::time::Duration;
-use schema::subscriptions;
+use schema::{subscriptions,videos};
 use chrono::{DateTime,UTC};
 
 #[derive(Debug,Serialize,Deserialize,Queryable)]
@@ -52,7 +52,8 @@ pub struct NewVideo {
     pub vid: String,
     pub title: String,
     pub thumbnail: String,
-    pub published_at: DateTime<UTC>,
-    pub duration: Duration,
-    pub url: String,
+    pub published_at: String,
+    pub duration: String,
+    //pub subscription: Option<Subscription>
+    pub url: String
 }
