@@ -3,7 +3,6 @@ CREATE TABLE videos (
   vid VARCHAR NOT NULL,
   title VARCHAR NOT NULL,
   thumbnail VARCHAR NOT NULL,
-  published_at VARCHAR NOT NULL,
-  duration VARCHAR NOT NULL,
+  published_at Integer NOT NULL,
   url VARCHAR NOT NULL
 )

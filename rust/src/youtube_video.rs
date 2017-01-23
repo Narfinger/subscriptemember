@@ -29,7 +29,7 @@ fn construct_new_video(s: YoutubeItem<YoutubeSnippet>) -> NewVideo {
              title: snippet.title,
              thumbnail: snippet.thumbnails.default.thmburl,
              published_at: "".to_string(),
-             duration: "".to_string(),
+             //duration: "".to_string(),
              url: "".to_string()}
 }
 
