@@ -1,5 +1,4 @@
-extern crate yup_oauth2 as oauth2;
-
+use oauth2;
 use hyper::Client;
 use serde;
 use serde_json;
@@ -36,6 +35,18 @@ pub struct YoutubeContentDetails {
     #[serde(rename="relatedPlaylists")]
     pub related_playlists: Option<YoutubeRelatedPlaylists>,
 }
+
+
+#[derive(Debug,Deserialize)]
+pub struct YoutubeSnippet {
+    #[serde(rename="publishedAt")]
+    pub published_at: String,
+    //pub channel_id: String,
+    pub title: String,
+    pub description: String,
+    pub thumbnails: YoutubeThumbnails,
+}
+
 
 #[derive(Debug,Deserialize)]
 pub struct YoutubeRelatedPlaylists {

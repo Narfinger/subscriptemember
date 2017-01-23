@@ -1,6 +1,4 @@
-extern crate yup_oauth2 as oauth2;
-extern crate hyper;
-
+use oauth2;
 use std::sync::Mutex;
 use std::iter::Iterator;
 use diesel::sqlite::SqliteConnection;

@@ -1,7 +1,9 @@
 use std::fmt;
+use std::time::Duration;
 use schema::subscriptions;
+use chrono::{DateTime,UTC};
 
-#[derive(Eq,PartialEq,PartialOrd,Ord,Debug,Hash,Serialize,Deserialize,Queryable)]
+#[derive(Debug,Serialize,Deserialize,Queryable)]
 pub struct Subscription {
     pub sid: i32,
     pub channelid: String,
@@ -30,4 +32,27 @@ pub struct NewSubscription {
     pub uploadplaylist: String,
     pub thumbnail: String,
     pub description: String,
+}
+
+#[derive(Debug,Deserialize,Queryable)]
+pub struct Video {
+    pub id: i32,
+    pub vid: String,
+    pub title: String,
+    pub thumbnail: String,
+    pub published_at: DateTime<UTC>,
+    pub duration: Duration,
+    //pub subscription: Option<Subscription>
+    pub url: String
+}
+
+#[derive(Insertable)]
+#[table_name="videos"]
+pub struct NewVideo {
+    pub vid: String,
+    pub title: String,
+    pub thumbnail: String,
+    pub published_at: DateTime<UTC>,
+    pub duration: Duration,
+    pub url: String,
 }
