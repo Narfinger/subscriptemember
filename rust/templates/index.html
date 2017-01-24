@@ -26,13 +26,28 @@
 		    <th>Duration</th>
 		    <th>Play</th>
 		    <th>Delete</th>
+		    <th>Vid ID</th>
+		    <th>URL</th>
 		</tr>
+		{{#each vids}}
+		<tr>
+		    <td>NA</td>
+		    <td>NA</td>
+		    <td>{{title}}</td>
+		    <td>{{published_at}}</td>
+		    <td>NA</td>
+		    <td>NA</td>
+		    <td>NA</td>
+		    <td>{{vid}}</td>
+		    <td>{{url}}</td>
+		    </tr>
+		{{/each}}
 	    </table>
 	</div>
     </div>
     <div class="col-md-2">
 	<div class="row"><a href="/subs">See Subscriptions</a></div>
 	<div class="row"><a href="/updateSubs">Update and see Subscriptions</a></div>
-	<div class="row"><a href="/upvids">Update Videos</a></div>
+	<div class="row"><a href="/updateVideos">Update Videos</a></div>
     </div>
 </html>

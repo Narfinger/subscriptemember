@@ -5,7 +5,6 @@ use schema::{subscriptions,videos};
 use diesel::sqlite::Sqlite;
 use diesel::types::{FromSql,VarChar,Text};
 use chrono::{DateTime,NaiveDateTime,UTC,FixedOffset};
-use diesel::sqlite::connection::sqlite_value::SqliteValue;
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct MyDateTime(DateTime<UTC>);
@@ -47,7 +46,7 @@ pub struct Video {
     pub vid: String,
     pub title: String,
     pub thumbnail: String,
-    pub published_at: MyDateTime,
+    pub published_at: String,
     //pub duration: Duration,
     //pub subscription: Option<Subscription>
     pub url: String
@@ -65,16 +64,16 @@ pub struct NewVideo {
     pub url: String
 }
 
-impl FromSql<Text, Sqlite> for MyDateTime {
-    fn from_sql(bytes: Option<&SqliteValue>) -> Result<Self, Box<Error>> {
-        let text = String::from_utf8(bytes).ok().and_then(|s| DateTime::parse_from_rfc3339(s.as_str()).ok());
+// impl FromSql<Text, Sqlite> for MyDateTime {
+//     fn from_sql(bytes: Option<&SqliteValue>) -> Result<Self, Box<Error>> {
+//         let text = String::from_utf8(bytes).ok().and_then(|s| DateTime::parse_from_rfc3339(s.as_str()).ok());
         
-        match text {
-            Some(s) => {
-                let ns = s.with_timezone(&UTC);
-                Ok(MyDateTime(ns))
-            },
-            None => Err("something wrong".into())
-        }
-    }
-}
+//         match text {
+//             Some(s) => {
+//                 let ns = s.with_timezone(&UTC);
+//                 Ok(MyDateTime(ns))
+//             },
+//             None => Err("something wrong".into())
+//         }
+//     }
+// }

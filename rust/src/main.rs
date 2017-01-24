@@ -96,12 +96,27 @@ fn subs() -> String {
     HB.lock().unwrap().render("subs", &data).unwrap()
 }
 
+#[get("/updateVideos")]
+fn update_videos() -> Redirect {
+    let subs = youtube_subscriptions::get_subs(&TK, &DB, false);
+    youtube_video::update_videos(&TK, &DB, &subs);
+    Redirect::to("/")
+
+}
+
 #[get("/")]
 fn index() -> String {
     let mut data = BTreeMap::new();
-    data.insert("lastrefreshed".to_string(), "NA");
-    data.insert("numberofvideos".to_string(), "NA");
-    data.insert("totaltime".to_string(), "NA");
+    let vids = youtube_video::get_videos(&DB);
+
+    let lastrefreshed = "NA".to_json();
+    let numberofvideos = "NA".to_json();
+    let totaltime = "NA".to_json();
+    
+    data.insert("vids".to_string(), vids.to_json());
+    data.insert("lastrefreshed".to_string(), lastrefreshed);
+    data.insert("numberofvideos".to_string(), numberofvideos);
+    data.insert("totaltime".to_string(), totaltime);
     HB.lock().unwrap().render("index", &data).unwrap()
 }
 
@@ -138,7 +153,7 @@ fn main() {
 
 
     println!("Starting server");
-    rocket::ignite().mount("/", routes![update_subs, subs, index]).launch();
+    rocket::ignite().mount("/", routes![update_subs, subs, update_videos, index]).launch();
 
 
     // now you can use t.access_token to authenticate API calls within your

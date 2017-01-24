@@ -33,16 +33,24 @@ fn construct_new_video(s: YoutubeItem<YoutubeSnippet>) -> NewVideo {
              url: "".to_string()}
 }
 
-pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec<Subscription>) -> Vec<Video> {
+pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec<Subscription>) {
     use schema::videos::dsl::*;
     use schema::videos;
 
     let dbconn: &SqliteConnection = &db.lock().unwrap();
-    let vids = query_videos(t,subs).into_iter().map(construct_new_video);
+    panic!("Something is wrong with the update, it queries the same thing forever");
+    let vids:Vec<NewVideo> = query_videos(t,subs).into_iter().map(construct_new_video).collect();
     insert(&vids)
         .into(videos::table)
         .execute(dbconn);
+    
+}
 
-    let nvids = videos.load::<Video>(dbconn).unwrap();
-    nvids
+
+pub fn get_videos(db: &Mutex<SqliteConnection>) -> Vec<Video> {
+    use schema::videos::dsl::*;
+    use schema::videos;
+    
+    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    videos.load::<Video>(dbconn).unwrap()
 }
