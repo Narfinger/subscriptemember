@@ -9,7 +9,7 @@ use diesel::{insert,delete,update};
 use youtube_base::{YoutubeItem,YoutubeSnippet,query};
 use subs_and_video::{Subscription,Video,NewVideo};
 
-const PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=5&playlistId=";
+const PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
 
 
 
@@ -18,6 +18,7 @@ fn query_videos(t: &oauth2::Token, subs: &Vec<Subscription>) -> Vec<YoutubeItem<
     for s in subs {
         let qstring = PL_URL.to_string() + &s.uploadplaylist +   "&access_token=";
         let mut r = query(t, &qstring);
+        println!("next stuff");
         res.append(&mut r);
     }
     return res;

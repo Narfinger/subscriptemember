@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use oauth2;
 use hyper::Client;
 use serde;
@@ -14,7 +15,7 @@ pub struct YoutubePageInfo {
 
 #[derive(Debug,Deserialize)]
 pub struct YoutubeResult<T> {
-    pub items: Vec<YoutubeItem<T>>,
+    pub items: VecDeque<YoutubeItem<T>>,
     #[serde(rename="pageInfo")]
     pub page_info: YoutubePageInfo,
     #[serde(rename="nextPageToken")]
@@ -106,19 +107,54 @@ fn query_simple_page<T>(t: &oauth2::Token,
     serde_json::from_reader(res).unwrap()
 }
 
-pub fn query<T>(t: &oauth2::Token, url: &str) -> Vec<YoutubeItem<T>>
+pub struct Query<T> {
+    initialised: bool,
+    storage: VecDeque<YoutubeItem<T>>,
+    url: String,
+    t: oauth2::Token,
+    next_page: Option<String>,
+}
+
+impl<'a,T> Iterator for Query<T> where T: serde::Deserialize {
+    type Item = YoutubeItem<T>;
+    fn next(&mut self) -> Option<YoutubeItem<T>> {
+        if self.initialised == false {
+            self.initialised = true;
+            let res = query_simple_page(&self.t, &self.url, None);
+            self.storage = res.items;
+            self.next_page = res.next_page_token;
+        }
+
+        if self.storage.is_empty() {
+            if self.next_page.is_some() {
+                let res = query_simple_page(&self.t, &self.url,self.next_page.clone());
+                self.storage = res.items;
+                self.next_page = res.next_page_token;
+            } else {
+                return None
+            }
+        }
+
+        self.storage.pop_front()
+    }
+}
+
+
+pub fn query<T>(t: &oauth2::Token, url: &str) -> Query<T> 
     where T: serde::Deserialize
 {
-    let mut result: Vec<YoutubeItem<T>> = Vec::new();
-    let mut next_page = None;
-    loop {
-        let res = query_simple_page(t, url, next_page);
-        result.extend(res.items);
-        next_page = res.next_page_token;
-        println!("query again with tk:");
-        if next_page.is_none() {
-            break;
-        }
-    }
-    result
+    Query<T> { initialised: false, storage::VecDeque::with_capacity(50), url = url.clone(), t = t.clone(), next_page = None}
+    // let mut result: Vec<YoutubeItem<T>> = Vec::new();
+    // let mut next_page = None;
+    // loop {
+    //     let res = query_simple_page(t, url, next_page);
+    //     result.extend(res.items);
+    //     next_page = res.next_page_token;
+    //     panic!("implement with iterator");
+    //     println!("{}", next_page.is_none());
+    //     if next_page.is_none() {
+    //         break;
+    //     }
+    // }
+    // result
 }
