@@ -2,7 +2,8 @@ use std::fmt;
 use std::error::Error;
 use std::time::Duration;
 use schema::{subscriptions,videos};
-use diesel::types::FromSql;
+use diesel::sqlite::Sqlite;
+use diesel::types::{FromSql,VarChar};
 use chrono::{DateTime,NaiveDateTime,UTC};
 
 #[derive(Debug,Serialize,Deserialize,Queryable)]
@@ -36,7 +37,7 @@ pub struct NewSubscription {
     pub description: String,
 }
 
-#[derive(Debug,Deserialize,Queryable)]
+#[derive(Debug,Serialize,Deserialize,Queryable)]
 pub struct Video {
     pub id: i32,
     pub vid: String,
@@ -48,7 +49,7 @@ pub struct Video {
     pub url: String
 }
 
-#[derive(Insertable)]
+#[derive(Insertable,Serialize,Deserialize)]
 #[table_name="videos"]
 pub struct NewVideo {
     pub vid: String,
@@ -60,26 +61,37 @@ pub struct NewVideo {
     pub url: String
 }
 
-impl FromSql<DateTime<UTC>, T> for NewVideo {
+impl FromSql<VarChar, Sqlite> for DateTime<UTC> {
     fn from_sql(bytes: Option<&[u8]>) -> Result<Self, Box<Error>> {
-        if bytes.is_some() {
-            let s = THIS DOES NOT YET WORK
-        }
-
-        match bytes {
-            Some(s) => Ok(NaiveDateTime::from_timestamp(s).with_timezone(UTC)), 
-            None => Err("Invalid??".into())
+        let v = bytes.and_then(|s| String::from_utf8(s.to_vec()).ok()).and_then(|st| DateTime::parse_from_rfc3339(st.as_str()).ok());
+        match v {
+            Some(s) => Ok(s.with_timezone(&UTC)),
+            None => Err("something wrong with coding".into())
         }
     }
 }
 
-impl ToSql<DateTime<UTC>, T> for NewVideo {
-        fn to_sql<W: Write>(&self, out: &mut W) -> Result<IsNull, Box<Error>> {
-            let bytes: &'static [u8] = *self.published_at.naive_utc
 
-                THIS DOES NOT YET WORK
-            out.write_all(bytes)
-                .map(|_| IsNull::No)
-                .map_err(|e| e.into())
-        }
-    }
+// impl FromSql<DateTime<UTC>, T> for NewVideo {
+//     fn from_sql(bytes: Option<&[u8]>) -> Result<Self, Box<Error>> {
+//         if bytes.is_some() {
+//             let s = THIS DOES NOT YET WORK
+//         }
+
+//         match bytes {
+//             Some(s) => Ok(NaiveDateTime::from_timestamp(s).with_timezone(UTC)), 
+//             None => Err("Invalid??".into())
+//         }
+//     }
+// }
+
+// impl ToSql<DateTime<UTC>, T> for NewVideo {
+//         fn to_sql<W: Write>(&self, out: &mut W) -> Result<IsNull, Box<Error>> {
+//             let bytes: &'static [u8] = *self.published_at.naive_utc
+
+//                 THIS DOES NOT YET WORK
+//             out.write_all(bytes)
+//                 .map(|_| IsNull::No)
+//                 .map_err(|e| e.into())
+//         }
+//     }
