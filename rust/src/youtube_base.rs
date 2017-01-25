@@ -143,7 +143,11 @@ impl<'a,T> Iterator for Query<T> where T: serde::Deserialize {
 pub fn query<T>(t: &oauth2::Token, url: &str) -> Query<T> 
     where T: serde::Deserialize
 {
-    Query<T> { initialised: false, storage::VecDeque::with_capacity(50), url = url.clone(), t = t.clone(), next_page = None}
+    Query::<T>{initialised: false,
+               storage: VecDeque::with_capacity(50),
+               url: url.to_string(),
+               t: t.clone(),
+               next_page: None}
     // let mut result: Vec<YoutubeItem<T>> = Vec::new();
     // let mut next_page = None;
     // loop {
