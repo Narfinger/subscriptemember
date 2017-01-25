@@ -19,24 +19,29 @@ fn get_subscriptions_for_me(t: &oauth2::Token) -> Query<YoutubeSubscription> {
 }
 
 fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
-    let mut upload_playlists  = empty::<YoutubeItem<YoutubeContentDetails>>();
-    for chunk in subs.chunks(50) {
-        let onlyids = chunk.iter().map(| s: &Subscription| s.channelid.clone());
-        let mut singlestringids: String = onlyids.fold("".to_string(), |comb:String, s| comb + &s + ",");
-        singlestringids.pop();
-        let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + "&access_token=";
-        let mut res : Query<YoutubeContentDetails> = query(t, &queryurl);
+    let singlestringids = subs.iter().map(|s: &Subscription| s.channelid.clone())
+                              .fold("".to_string(), |comb: String, s| comb + &s + ",");
+    singlestringids.pop();
+    let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + &"access_token=";
+    let mut res = query(t, &queryurl).collect::<Vec<YoutubeItem<YoutubeContentDetails>>>();
+    
+    // for chunk in subs.chunks(50) {
+    //     let onlyids = chunk.iter().map(| s: &Subscription| s.channelid.clone());
+    //     let mut singlestringids: String = onlyids.fold("".to_string(), |comb:String, s| comb + &s + ",");
+    //     singlestringids.pop();
+    //     let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + "&access_token=";
+    //     let mut res : Query<YoutubeContentDetails> = query(t, &queryurl);
 
-        upload_playlists = upload_playlists.chain(res);
-    }
+    //     upload_playlists = upload_playlists.chain(res);
+    // }
 
     //match them
-    match_subs_to_res(subs, &upload_playlists);
+    match_subs_to_res(subs, &res);
 }
 
-fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &Query<YoutubeContentDetails>) {
-    fn find_and_replace(s: &mut Subscription, ups: &Query<YoutubeContentDetails>) {
-        let val: YoutubeItem<YoutubeContentDetails> = ups.find(|ups_elem| ups_elem.iid == s.channelid).unwrap();
+fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &Vec<YoutubeItem<YoutubeContentDetails>>) {
+    fn find_and_replace(s: &mut Subscription, ups: &Vec<YoutubeItem<YoutubeContentDetails>>) {
+        let val: &YoutubeItem<YoutubeContentDetails> = ups.iter().find(|ups_elem| ups_elem.iid == s.channelid).unwrap();
         let v = val.content_details.as_ref().and_then(|cd| cd.related_playlists.as_ref()).map(|rlp| rlp.uploads.clone()).unwrap_or_else(||"No Playlist Found".to_string());
         s.uploadplaylist = v;
     }
