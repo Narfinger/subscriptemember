@@ -46,6 +46,8 @@ pub struct YoutubeSnippet {
     pub title: String,
     pub description: String,
     pub thumbnails: YoutubeThumbnails,
+    #[serde(rename="resourceId")]
+    pub resource: YoutubeResource,
 }
 
 
@@ -71,7 +73,9 @@ pub struct YoutubeThumbnails {
 pub struct YoutubeResource {
     pub kind: String,
     #[serde(rename="channelId")]
-    pub channel_id: String,
+    pub channel_id: Option<String>,
+    #[serde(rename="videoId")]
+    pub video_id: Option<String>,
 }
 
 #[derive(Debug,Deserialize)]

@@ -55,7 +55,7 @@ fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscriptio
     let item = s.snippet.unwrap();
     NewSubscription {
         channelname: item.subscription_title,
-        channelid: item.resource_id.channel_id,
+        channelid: item.resource_id.channel_id.unwrap(),
         uploadplaylist: String::from("default value"),
         thumbnail: item.thumbnails.default.thmburl,
         description: item.sdescription,

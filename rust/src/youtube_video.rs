@@ -13,21 +13,20 @@ use subs_and_video::{Subscription,Video,NewVideo};
 const PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
 
 
-fn query_videos<'f>(t: &'f oauth2::Token, subs: &'f Vec<Subscription>) {
+fn query_videos<'f>(t: &'f oauth2::Token, subs: &'f Vec<Subscription>) -> Vec<NewVideo> {
     fn build_string(s: &Subscription) -> String {
-        PL_URL.to_string() + &s.uploadplaylist + "&access_token"
+        PL_URL.to_string() + &s.uploadplaylist + "&access_token="
     }
-
+    
     subs.iter()
-        .map(move |s| query::<YoutubeItem<YoutubeSnippet>>(t, &build_string(s))).collect::<YoutubeItem<YoutubeSnippet>>()
-        //.take(10)butinside
-        //.flat_map(construct_new_video)
-        //.collect::<Vec<Video>>()
+        .flat_map(move |s| query::<YoutubeSnippet>(t, &build_string(s)).take(10))
+        .map(construct_new_video)
+        .collect::<Vec<NewVideo>>()
 }
 
 fn construct_new_video(s: YoutubeItem<YoutubeSnippet>) -> NewVideo {
     let snippet = s.snippet.unwrap();
-    NewVideo{vid: s.iid,
+    NewVideo{vid: snippet.resource.video_id.unwrap(),
              title: snippet.title,
              thumbnail: snippet.thumbnails.default.thmburl,
              published_at: "".to_string(),
@@ -40,7 +39,7 @@ pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec
     use schema::videos;
 
     let dbconn: &SqliteConnection = &db.lock().unwrap();
-    panic!("Something is wrong with the update, it queries the same thing forever");
+    //panic!("Something is wrong with the update, it queries the same thing forever");
     let vids:Vec<NewVideo> = query_videos(t,subs);
     insert(&vids)
         .into(videos::table)
