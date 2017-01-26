@@ -19,13 +19,15 @@ fn query_videos<'f>(t: &'f oauth2::Token, subs: &'f Vec<Subscription>) -> Vec<Ne
     }
     
     subs.iter()
-        .flat_map(move |s| query::<YoutubeSnippet>(t, &build_string(s)).take(10))
-        .map(construct_new_video)
+        .map(|s| (s,query::<YoutubeSnippet>(t, &build_string(s))))
+        .map(|(s,q)| (s,q.take(10)))
+        .flat_map(|(s,q)|
+                  q.map(move |sn| construct_new_video(s,sn)))
         .collect::<Vec<NewVideo>>()
 }
 
-fn construct_new_video(s: YoutubeItem<YoutubeSnippet>) -> NewVideo {
-    let snippet = s.snippet.unwrap();
+fn construct_new_video(s :&Subscription, i: YoutubeItem<YoutubeSnippet>) -> NewVideo {
+    let snippet = i.snippet.unwrap();
     NewVideo{vid: snippet.resource.video_id.unwrap(),
              title: snippet.title,
              thumbnail: snippet.thumbnails.default.thmburl,
