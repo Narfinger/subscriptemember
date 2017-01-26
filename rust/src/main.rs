@@ -1,6 +1,5 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
-
 #![cfg_attr(feature = "nightly", feature(proc_macro))]
 #![feature(plugin)]
 #![plugin(rocket_codegen)]

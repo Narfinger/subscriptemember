@@ -1,27 +1,28 @@
 use oauth2;
 use std::sync::Mutex;
-use std::iter::Iterator;
+use std::slice::Iter;
+use std::iter::{Iterator,FlatMap};
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert,delete,update};
 
 
-use youtube_base::{YoutubeItem,YoutubeSnippet,query};
+use youtube_base::{YoutubeItem,YoutubeSnippet,Query,query};
 use subs_and_video::{Subscription,Video,NewVideo};
 
 const PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
 
 
-
-fn query_videos(t: &oauth2::Token, subs: &Vec<Subscription>) -> Vec<YoutubeItem<YoutubeSnippet>> {
-    let mut res = Vec::new();
-    for s in subs {
-        let qstring = PL_URL.to_string() + &s.uploadplaylist +   "&access_token=";
-        let mut r = query(t, &qstring);
-        println!("next stuff");
-        res.append(&mut r);
+fn query_videos<'f>(t: &'f oauth2::Token, subs: &'f Vec<Subscription>) {
+    fn build_string(s: &Subscription) -> String {
+        PL_URL.to_string() + &s.uploadplaylist + "&access_token"
     }
-    return res;
+
+    subs.iter()
+        .map(move |s| query::<YoutubeItem<YoutubeSnippet>>(t, &build_string(s))).collect::<YoutubeItem<YoutubeSnippet>>()
+        //.take(10)butinside
+        //.flat_map(construct_new_video)
+        //.collect::<Vec<Video>>()
 }
 
 fn construct_new_video(s: YoutubeItem<YoutubeSnippet>) -> NewVideo {
@@ -40,7 +41,7 @@ pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec
 
     let dbconn: &SqliteConnection = &db.lock().unwrap();
     panic!("Something is wrong with the update, it queries the same thing forever");
-    let vids:Vec<NewVideo> = query_videos(t,subs).into_iter().map(construct_new_video).collect();
+    let vids:Vec<NewVideo> = query_videos(t,subs);
     insert(&vids)
         .into(videos::table)
         .execute(dbconn);

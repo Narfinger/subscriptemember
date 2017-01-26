@@ -19,11 +19,11 @@ fn get_subscriptions_for_me(t: &oauth2::Token) -> Query<YoutubeSubscription> {
 }
 
 fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
-    let singlestringids = subs.iter().map(|s: &Subscription| s.channelid.clone())
+    let mut singlestringids = subs.iter().map(|s: &Subscription| s.channelid.clone())
                               .fold("".to_string(), |comb: String, s| comb + &s + ",");
     singlestringids.pop();
     let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + &"access_token=";
-    let mut res = query(t, &queryurl).collect::<Vec<YoutubeItem<YoutubeContentDetails>>>();
+    let res = query(t, &queryurl).collect::<Vec<YoutubeItem<YoutubeContentDetails>>>();
     
     // for chunk in subs.chunks(50) {
     //     let onlyids = chunk.iter().map(| s: &Subscription| s.channelid.clone());
