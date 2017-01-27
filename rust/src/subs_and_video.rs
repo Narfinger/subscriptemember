@@ -47,6 +47,7 @@ pub struct Video {
     pub title: String,
     pub thumbnail: String,
     pub published_at: String,
+    pub channelname: String,
     //pub duration: Duration,
     //pub subscription: Option<Subscription>
     pub url: String
@@ -60,20 +61,14 @@ pub struct NewVideo {
     pub thumbnail: String,
     pub published_at: String,
     //pub duration: String,
-    //pub subscription: Option<Subscription>
+    pub channelname: String,
     pub url: String
 }
 
-// impl FromSql<Text, Sqlite> for MyDateTime {
-//     fn from_sql(bytes: Option<&SqliteValue>) -> Result<Self, Box<Error>> {
-//         let text = String::from_utf8(bytes).ok().and_then(|s| DateTime::parse_from_rfc3339(s.as_str()).ok());
-        
-//         match text {
-//             Some(s) => {
-//                 let ns = s.with_timezone(&UTC);
-//                 Ok(MyDateTime(ns))
-//             },
-//             None => Err("something wrong".into())
-//         }
-//     }
-// }
+pub fn from_youtube_datetime_to_string(s: &String) -> String {
+    "OT YET IMPLEMENTED".to_string()
+}
+
+pub fn from_struct_datetime_to_datetime(s: &String) -> DateTime<UTC> {
+    UTC::now()
+}

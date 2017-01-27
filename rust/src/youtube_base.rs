@@ -108,7 +108,8 @@ fn query_simple_page<T>(t: &oauth2::Token,
     let res = client.get(q.as_str()).send().unwrap();
     println!("query: {}", q);
 
-    serde_json::from_reader(res).unwrap()
+    serde_json::from_reader(res).unwrap_or_else(|e:serde_json::error::Error|
+                                                panic!("error in json parsing: {}", e))
 }
 
 pub struct Query<T> {

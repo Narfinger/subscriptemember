@@ -22,7 +22,9 @@ fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
     let mut singlestringids = subs.iter().map(|s: &Subscription| s.channelid.clone())
                               .fold("".to_string(), |comb: String, s| comb + &s + ",");
     singlestringids.pop();
-    let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + &"access_token=";
+    let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + "&access_token=";
+    panic!("youtube actually only allows 50 so this is kind of dumb");
+
     let res = query(t, &queryurl).collect::<Vec<YoutubeItem<YoutubeContentDetails>>>();
     
     // for chunk in subs.chunks(50) {
