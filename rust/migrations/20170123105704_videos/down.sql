@@ -1,1 +1,2 @@
-DROP TABLE videos
+DROP TABLE videos;
+DROP TABLE subscriptions;
