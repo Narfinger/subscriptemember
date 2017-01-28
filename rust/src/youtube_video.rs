@@ -1,7 +1,7 @@
 use oauth2;
 use std::sync::Mutex;
 use std::iter::Iterator;
-use chrono::{DateTime,UTC,FixedOffset};
+use chrono::{DateTime,UTC};
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert,delete};
@@ -46,7 +46,7 @@ fn get_lastupdate_in_unixtime(db: &Mutex<SqliteConnection>) -> i64 {
     if val.is_empty() {
         0
     } else {
-        DateTime::parse_from_rfc3339(&val[0].lastupdate).map(|s| s.timestamp()).unwrap_or(0);
+        DateTime::parse_from_rfc3339(&val[0].lastupdate).map(|s| s.timestamp()).unwrap_or(0)
     }
 }
 

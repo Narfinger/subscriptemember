@@ -123,7 +123,7 @@ pub struct Query<T> {
 impl<'a,T> Iterator for Query<T> where T: serde::Deserialize {
     type Item = YoutubeItem<T>;
     fn next(&mut self) -> Option<YoutubeItem<T>> {
-        if self.initialised == false {
+        if !self.initialised {
             self.initialised = true;
             let res = query_simple_page(&self.t, &self.url, None);
             self.storage = res.items;
