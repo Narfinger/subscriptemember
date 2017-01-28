@@ -5,6 +5,7 @@ use std::iter::{Iterator,FlatMap};
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert,delete,update};
+use subs_and_video;
 
 
 use youtube_base::{YoutubeItem,YoutubeSnippet,Query,query};
@@ -31,7 +32,7 @@ fn construct_new_video(s :&Subscription, i: YoutubeItem<YoutubeSnippet>) -> NewV
     NewVideo{vid: snippet.resource.video_id.unwrap(),
              title: snippet.title,
              thumbnail: snippet.thumbnails.default.thmburl,
-             published_at: "".to_string(),
+             published_at: subs_and_video::from_youtube_datetime_to_string(&snippet.published_at),
              channelname: s.channelname.clone(),
              //duration: "".to_string(),
              url: "".to_string()}
@@ -40,10 +41,15 @@ fn construct_new_video(s :&Subscription, i: YoutubeItem<YoutubeSnippet>) -> NewV
 pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec<Subscription>) {
     use schema::videos::dsl::*;
     use schema::videos;
+    use schema::lastdate::dsl::*;
+    use schema::lastdate;
 
+    
     let dbconn: &SqliteConnection = &db.lock().unwrap();
     //panic!("Something is wrong with the update, it queries the same thing forever");
     let vids:Vec<NewVideo> = query_videos(t,subs);
+    let lastupdate = DateTime::from_rfc3899(lastupdate.load::<String>(dbconn).unwrap());
+    
     insert(&vids)
         .into(videos::table)
         .execute(dbconn);

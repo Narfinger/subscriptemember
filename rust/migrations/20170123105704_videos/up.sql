@@ -16,3 +16,8 @@ CREATE TABLE videos (
   channelname VARCHAR NOT NULL,
   url VARCHAR NOT NULL
 );
+
+CREATE TABLE config (
+  id Integer PRIMARY KEY NOT NULL,
+  lastupdate VARCHAR,
+)
