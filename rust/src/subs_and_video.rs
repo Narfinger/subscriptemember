@@ -1,14 +1,8 @@
 use std::fmt;
-use std::error::Error;
 use std::time::Duration;
 use std::cmp::Ordering;
-use schema::{subscriptions,videos};
-use diesel::sqlite::Sqlite;
-use diesel::types::{FromSql,VarChar,Text};
-use chrono::{DateTime,UTC,FixedOffset};
-
-#[derive(Debug,Serialize,Deserialize)]
-pub struct MyDateTime(DateTime<UTC>);
+use schema::{subscriptions,videos,config};
+use chrono::DateTime;
 
 #[derive(Debug,Serialize,Deserialize,Queryable)]
 pub struct Subscription {
@@ -63,6 +57,16 @@ impl Ord for Video {
     }
 }
 
+pub trait ToUnixTime {
+    fn to_unix(&self) -> i64;
+}
+
+impl ToUnixTime for NewVideo {
+    fn to_unix(&self) -> i64 {
+        DateTime::parse_from_rfc3339(&self.published_at).map(|s| s.timestamp()).unwrap_or(0)
+    }
+}
+
 #[derive(Insertable)]
 #[table_name="videos"]
 pub struct NewVideo {
@@ -78,4 +82,16 @@ pub struct NewVideo {
 pub fn from_youtube_datetime_to_string(s: &str) -> String {
     let dt = DateTime::parse_from_rfc3339(s).unwrap();
     dt.to_rfc3339()
+}
+
+#[derive(Debug,Queryable)]
+pub struct Config {
+    pub id: i32,
+    pub lastupdate: String,
+}
+
+#[derive(Insertable)]
+#[table_name="config"]
+pub struct NewConfig {
+    pub lastupdate: String,
 }

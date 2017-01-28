@@ -19,5 +19,5 @@ CREATE TABLE videos (
 
 CREATE TABLE config (
   id Integer PRIMARY KEY NOT NULL,
-  lastupdate VARCHAR,
-)
+  lastupdate VARCHAR NOT NULL
+);

@@ -1,6 +1,6 @@
 use oauth2;
 use std::sync::Mutex;
-use std::iter::{Iterator,empty,Chain};
+use std::iter::{Iterator};
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert,delete,update};
@@ -33,7 +33,7 @@ fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
         let mut singlestringids: String = onlyids.fold("".to_string(), |comb:String, s| comb + &s + ",");
         singlestringids.pop();
         let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + "&access_token=";
-        let mut res : Query<YoutubeContentDetails> = query(t, &queryurl);
+        let res : Query<YoutubeContentDetails> = query(t, &queryurl);
 
         println!("this is super inefficient");
         let mut realres = res.collect::<Vec<YoutubeItem<YoutubeContentDetails>>>();
