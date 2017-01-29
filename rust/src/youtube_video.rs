@@ -7,7 +7,7 @@ use diesel::prelude::*;
 use diesel::{insert,delete};
 use youtube_base::{YoutubeItem,YoutubeSnippet,query};
 use subs_and_video;
-use subs_and_video::{Subscription,Video,NewVideo,ToUnixTime,Config,NewConfig};
+use subs_and_video::{Subscription,Video,NewVideo,Config,NewConfig};
 
 const PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
 
@@ -22,7 +22,7 @@ fn query_videos<'f>(t: &'f oauth2::Token, subs: &'f Vec<Subscription>, unix_stam
         .map(|(s,q)| (s,q.take(10)))
         .flat_map(|(s,q)|
                   q.map(move |sn| construct_new_video(s,sn)))
-        .filter(|s| s.to_unix() > unix_stamp)
+        .filter(|s| s.published_at > unix_stamp)
         .collect::<Vec<NewVideo>>()
 }
 
@@ -31,7 +31,7 @@ fn construct_new_video(s :&Subscription, i: YoutubeItem<YoutubeSnippet>) -> NewV
     NewVideo{vid: snippet.resource.video_id.unwrap(),
              title: snippet.title,
              thumbnail: snippet.thumbnails.default.thmburl,
-             published_at: subs_and_video::from_youtube_datetime_to_string(&snippet.published_at),
+             published_at: subs_and_video::from_youtube_datetime_to_timestamp(&snippet.published_at),
              channelname: s.channelname.clone(),
              //duration: "".to_string(),
              url: "".to_string()}
@@ -76,7 +76,11 @@ pub fn get_videos(db: &Mutex<SqliteConnection>) -> Vec<Video> {
     use schema::videos::dsl::*;
     
     let dbconn: &SqliteConnection = &db.lock().unwrap();
-    videos.load::<Video>(dbconn).unwrap()
+
+    videos.order(published_at.desc())
+        .load(dbconn)
+        .unwrap()
+        //    .order(sql::<BigInt>("published_at").desc())
 }
 
 pub fn delete_video(db: &Mutex<SqliteConnection>, videoid: &str) {

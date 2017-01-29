@@ -33,17 +33,19 @@ pub mod subs_and_video;
 use std::sync::Mutex;
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
              DiskTokenStorage, GetToken};
-use serde_json as json;
+
 use std::io::prelude::*;
 use std::fs::File;
-use serde_json::value::ToJson;
+use std::thread;
 use std::collections::BTreeMap;
+use std::env;
+use serde_json as json;
+use serde_json::value::ToJson;
 use handlebars::{Handlebars,Helper,RenderContext,RenderError};
-use chrono::{DateTime,Local};
+use chrono::{NaiveDateTime};
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
-use std::env;
 use rocket::response::Redirect;
 
 lazy_static! {
@@ -142,11 +144,11 @@ fn template_filename_to_string(s: &str) -> Result<String, String> {
 
 
 fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
-    let param = h.param(0).unwrap().value().to_string().replace("\"","");
-    let dt = DateTime::parse_from_rfc3339(&param)
-        .map(|d| d.with_timezone(&Local))
-        .map(|t| t.format("%H:%M - %d.%m").to_string())
-        .expect("Something went wrong with parsing a date");
+    let param = h.param(0).unwrap().value().to_string().replace("\"","").parse::<i64>().unwrap();
+    let d = NaiveDateTime::from_timestamp(param,0);
+    let dt = d.format("%H:%M - %d.%m").to_string();
+    println!("this needs to be timezone aware");
+    //let dt: DateTime<Local> = DateTime::from_utc(d, &Local).format("%H:%M - %d.%m").to_string();
 
     try!(rc.writer.write(dt.into_bytes().as_ref()));
     Ok(())

@@ -12,7 +12,7 @@ CREATE TABLE videos (
   vid VARCHAR NOT NULL,
   title VARCHAR NOT NULL,
   thumbnail VARCHAR NOT NULL,
-  published_at VARCHAR NOT NULL,
+  published_at BigInt NOT NULL,
   channelname VARCHAR NOT NULL,
   url VARCHAR NOT NULL
 );
