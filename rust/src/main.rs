@@ -38,7 +38,8 @@ use std::io::prelude::*;
 use std::fs::File;
 use serde_json::value::ToJson;
 use std::collections::BTreeMap;
-use handlebars::Handlebars;
+use handlebars::{Handlebars,Helper,RenderContext,RenderError};
+use chrono::{DateTime,Local,ParseResult,ParseError};
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
@@ -109,14 +110,14 @@ fn index() -> String {
     let vids = youtube_video::get_videos(&DB);
 
     let lastrefreshed = "NA".to_json();
-    let numberofvideos = "NA".to_json();
+    let numberofvideos = vids.len().to_json();
     let totaltime = "NA".to_json();
     
     data.insert("vids".to_string(), vids.to_json());
     data.insert("lastrefreshed".to_string(), lastrefreshed);
     data.insert("numberofvideos".to_string(), numberofvideos);
     data.insert("totaltime".to_string(), totaltime);
-    HB.lock().unwrap().render("index", &data).unwrap()
+    HB.lock().unwrap().render("index", &data).map_err(|err| err.to_string()).unwrap()
 }
 
 fn template_filename_to_string(s: &str) -> Result<String, String> {
@@ -134,6 +135,32 @@ fn template_filename_to_string(s: &str) -> Result<String, String> {
 }
 
 
+fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+    let param = h.param(0).unwrap().value().to_string();
+    println!("P: {}", param);
+    let dt = DateTime::parse_from_rfc3339(&param).map(|d| d);//d.with_timezone(&Local));
+
+    match dt {
+        Ok(s) => (),
+        Err(s) => panic!("{}", s)
+
+    }
+    // if dt.is_err() {
+    //     println!("{}", dt.err().description());
+
+    //     panic!("Wrong");}
+
+
+    try!(rc.writer.write("blubber".to_string().into_bytes().as_ref()));
+        //.map(|dt| dt.with_timezone(&Local)).map(|s| s.format("%H:%M - %d.%m").to_string());
+    // if !dt.is_err() {
+    //     try!(rc.writer.write(dt.unwrap().into_bytes().as_ref()));
+    // } else {
+    //     panic!("Something is wrong");
+    // }
+    Ok(())
+}
+
 fn main() {
     // println!("storing token to disk");
     // let mut st = DiskTokenStorage("tk");
@@ -148,6 +175,8 @@ fn main() {
 
         let its = template_filename_to_string("templates/subs.html").unwrap();
         assert!(HB.lock().unwrap().register_template_string("subs", its).is_ok());
+
+        HB.lock().unwrap().register_helper("video_time",Box::new(video_time));
     }
 
 

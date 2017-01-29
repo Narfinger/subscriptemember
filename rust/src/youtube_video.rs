@@ -61,7 +61,7 @@ pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec
     let vids:Vec<NewVideo> = query_videos(t,subs, us);
 
     
-    
+    println!("New Videos length: {}", vids.len());
     insert(&vids)
         .into(videos::table)
         .execute(dbconn);
