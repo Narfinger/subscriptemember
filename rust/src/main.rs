@@ -39,7 +39,7 @@ use std::fs::File;
 use serde_json::value::ToJson;
 use std::collections::BTreeMap;
 use handlebars::{Handlebars,Helper,RenderContext,RenderError};
-use chrono::{DateTime,Local,ParseResult,ParseError};
+use chrono::{DateTime,Local};
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
@@ -136,22 +136,17 @@ fn template_filename_to_string(s: &str) -> Result<String, String> {
 
 
 fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
-    let param = h.param(0).unwrap().value().to_string();
-    println!("P: {}", param);
-    let dt = DateTime::parse_from_rfc3339(&param).map(|d| d);//d.with_timezone(&Local));
+    let param = h.param(0).unwrap().value().to_string().replace("\"","");
+    println!("P: \"{}\"", param);
+    let dt = DateTime::parse_from_rfc3339(&param).map(|d| d.with_timezone(&Local)).map(|t| t.format("%H:%M - %d.%m").to_string());
 
-    match dt {
-        Ok(s) => (),
-        Err(s) => panic!("{}", s)
-
+    
+    if dt.is_err() {
+        println!("Something wrong with parsing dates");
     }
-    // if dt.is_err() {
-    //     println!("{}", dt.err().description());
-
-    //     panic!("Wrong");}
 
 
-    try!(rc.writer.write("blubber".to_string().into_bytes().as_ref()));
+    try!(rc.writer.write(dt.unwrap().into_bytes().as_ref()));
         //.map(|dt| dt.with_timezone(&Local)).map(|s| s.format("%H:%M - %d.%m").to_string());
     // if !dt.is_err() {
     //     try!(rc.writer.write(dt.unwrap().into_bytes().as_ref()));
