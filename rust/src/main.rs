@@ -104,6 +104,12 @@ fn update_videos() -> Redirect {
 
 }
 
+#[get("/delete/<vid>")]
+fn delete(vid: &str) -> Redirect {
+    youtube_video::delete_video(&DB, vid);
+    Redirect::to("/")
+}
+
 #[get("/")]
 fn index() -> String {
     let mut data = BTreeMap::new();
@@ -142,7 +148,14 @@ fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), 
         .map(|t| t.format("%H:%M - %d.%m").to_string())
         .expect("Something went wrong with parsing a date");
 
-    try!(rc.writer.write(dt.unwrap().into_bytes().as_ref()));
+    try!(rc.writer.write(dt.into_bytes().as_ref()));
+    Ok(())
+}
+
+fn video_url(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+    let param = h.param(0).unwrap().value().to_string().replace("\"","");
+    let url = "https://www.youtube.com/watch?v=".to_string() + param.as_str();
+    try!(rc.writer.write(url.into_bytes().as_ref()));
     Ok(())
 }
 
@@ -162,11 +175,12 @@ fn main() {
         assert!(HB.lock().unwrap().register_template_string("subs", its).is_ok());
 
         HB.lock().unwrap().register_helper("video_time",Box::new(video_time));
+        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
 
 
     println!("Starting server");
-    rocket::ignite().mount("/", routes![update_subs, subs, update_videos, index]).launch();
+    rocket::ignite().mount("/", routes![update_subs, subs, update_videos, delete, index]).launch();
 
 
     // now you can use t.access_token to authenticate API calls within your

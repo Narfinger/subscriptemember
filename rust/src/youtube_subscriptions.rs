@@ -76,21 +76,22 @@ pub fn get_subs(t: &oauth2::Token,
 
     let dbconn: &SqliteConnection = &db.lock().unwrap();
     if update_subs {
-        delete(subscriptions::table).execute(dbconn);
+        delete(subscriptions::table).execute(dbconn).expect("Deletion of old subscriptions failed");
 
         let ytsubs = get_subscriptions_for_me(t);
         let it = ytsubs.into_iter();
         let subs = it.map(construct_subscription).collect::<Vec<NewSubscription>>();
         insert(&subs)
             .into(subscriptions::table)
-            .execute(dbconn);
+            .execute(dbconn)
+            .expect("Insertion of new subs failed");
     }
     let mut nsubs = subscriptions.load::<Subscription>(dbconn).unwrap();
     if update_subs {
         get_upload_playlists(t, &mut nsubs);
         //update values
         for s in &nsubs {
-            update(subscriptions.find(s.sid)).set(uploadplaylist.eq(s.uploadplaylist.clone())).execute(dbconn);
+            update(subscriptions.find(s.sid)).set(uploadplaylist.eq(s.uploadplaylist.clone())).execute(dbconn).expect("Updating Playlist failed on a sub");
         }
     }
     nsubs

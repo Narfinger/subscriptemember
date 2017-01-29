@@ -26,8 +26,6 @@
 		    <th>Duration</th>
 		    <th>Play</th>
 		    <th>Delete</th>
-		    <th>Vid ID</th>
-		    <th>URL</th>
 		</tr>
 		{{#each vids}}
 		<tr>
@@ -36,11 +34,9 @@
 		    <td>{{title}}</td>
 		    <td>{{video_time published_at}}</td>
 		    <td>NA</td>
-		    <td>NA</td>
-		    <td>NA</td>
-		    <td>{{vid}}</td>
-		    <td>{{url}}</td>
-		    </tr>
+		    <td><a href="{{video_url vid}}">Play</a></td>
+		    <td><a href="/delete/{{vid}}/">Delete</a></td>
+		</tr>
 		{{/each}}
 	    </table>
 	</div>

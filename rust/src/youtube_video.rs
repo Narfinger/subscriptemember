@@ -64,10 +64,11 @@ pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec
     println!("New Videos length: {}", vids.len());
     insert(&vids)
         .into(videos::table)
-        .execute(dbconn);
-    delete(config::table).execute(dbconn);
+        .execute(dbconn)
+        .expect("Insertion of Videos Failed");
+    delete(config::table).execute(dbconn).expect("Deletion of old config failed");
     let nc = NewConfig{ lastupdate: UTC::now().to_rfc3339()};
-    insert(&nc).into(config::table).execute(dbconn);
+    insert(&nc).into(config::table).execute(dbconn).expect("Insertion of config failed");
 }
 
 
@@ -76,4 +77,13 @@ pub fn get_videos(db: &Mutex<SqliteConnection>) -> Vec<Video> {
     
     let dbconn: &SqliteConnection = &db.lock().unwrap();
     videos.load::<Video>(dbconn).unwrap()
+}
+
+pub fn delete_video(db: &Mutex<SqliteConnection>, videoid: &str) {
+    use schema::videos::dsl::*;
+
+    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    delete(videos.filter(vid.like(videoid)))
+        .execute(dbconn)
+        .expect("Deleting failed");
 }
