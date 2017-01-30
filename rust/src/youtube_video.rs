@@ -56,12 +56,11 @@ pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec
 
 
     let us = get_lastupdate_in_unixtime(db);
-    let dbconn: &SqliteConnection = &db.lock().unwrap();
-
     let vids:Vec<NewVideo> = query_videos(t,subs, us);
 
     
     println!("New Videos length: {}", vids.len());
+    let dbconn: &SqliteConnection = &db.lock().unwrap();
     insert(&vids)
         .into(videos::table)
         .execute(dbconn)

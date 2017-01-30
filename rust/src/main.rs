@@ -100,8 +100,9 @@ fn subs() -> String {
 
 #[get("/updateVideos")]
 fn update_videos() -> Redirect {
-    let subs = youtube_subscriptions::get_subs(&TK, &DB, false);
-    youtube_video::update_videos(&TK, &DB, &subs);
+    thread::spawn(|| {
+        let subs = youtube_subscriptions::get_subs(&TK, &DB, false);
+        youtube_video::update_videos(&TK, &DB, &subs); });
     Redirect::to("/")
 
 }
