@@ -7,7 +7,7 @@ use diesel::prelude::*;
 use diesel::{insert,delete};
 use youtube_base::{YoutubeItem,YoutubeSnippet,query};
 use subs_and_video;
-use subs_and_video::{Subscription,Video,NewVideo,Config,NewConfig};
+use subs_and_video::{Subscription,Video,NewVideo,Config,NewConfig,get_lastupdate_in_unixtime};
 
 const PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
 
@@ -35,19 +35,6 @@ fn construct_new_video(s :&Subscription, i: YoutubeItem<YoutubeSnippet>) -> NewV
              channelname: s.channelname.clone(),
              //duration: "".to_string(),
              url: "".to_string()}
-}
-
-fn get_lastupdate_in_unixtime(db: &Mutex<SqliteConnection>) -> i64 {
-    use schema::config::dsl::*;
-
-    let dbconn: &SqliteConnection = &db.lock().unwrap();
-    let val = config.load::<Config>(dbconn).unwrap();
-
-    if val.is_empty() {
-        0
-    } else {
-        DateTime::parse_from_rfc3339(&val[0].lastupdate).map(|s| s.timestamp()).unwrap_or(0)
-    }
 }
 
 pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec<Subscription>) {

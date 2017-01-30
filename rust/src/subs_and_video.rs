@@ -3,6 +3,9 @@ use std::time::Duration;
 use std::cmp::Ordering;
 use schema::{subscriptions,videos,config};
 use chrono::DateTime;
+use std::sync::Mutex;
+use diesel::sqlite::SqliteConnection;
+use diesel::LoadDsl;
 
 #[derive(Debug,Serialize,Deserialize,Queryable)]
 pub struct Subscription {
@@ -93,4 +96,17 @@ pub struct Config {
 #[table_name="config"]
 pub struct NewConfig {
     pub lastupdate: String,
+}
+
+pub fn get_lastupdate_in_unixtime(db: &Mutex<SqliteConnection>) -> i64 {
+    use schema::config::dsl::*;
+    
+    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    let val = config.load::<Config>(dbconn).unwrap();
+
+    if val.is_empty() {
+        0
+    } else {
+        DateTime::parse_from_rfc3339(&val[0].lastupdate).map(|s| s.timestamp()).unwrap_or(0)
+    }
 }

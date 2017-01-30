@@ -29,6 +29,7 @@ pub mod youtube_base;
 pub mod youtube_subscriptions;
 pub mod youtube_video;
 pub mod subs_and_video;
+pub mod giantbomb_video;
 
 use std::sync::Mutex;
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
