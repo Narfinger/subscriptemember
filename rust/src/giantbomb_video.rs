@@ -4,7 +4,7 @@ use serde_json;
 use std::sync::Mutex;
 use diesel::insert;
 use diesel::sqlite::SqliteConnection;
-use subs_and_video::{GBKey,NewVideo};
+use subs_and_video::{GBKey,NewVideo,make_gb_url};
 
 static LIMIT: &'static str = "10";
 
@@ -39,7 +39,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
         thumbnail: "NA".to_string(),
         published_at: 0,
         channelname: "GiantBomb".to_string(),
-        url: "".to_string()
+        url: make_gb_url(v.site_detail_url.clone()),
     }
 }
 

@@ -86,6 +86,14 @@ pub struct NewVideo {
     pub url: String
 }
 
+pub fn make_youtube_url(s: String) -> String {
+    "https://www.youtube.com/watch?v=".to_string() + &s
+}
+
+pub fn make_gb_url(s: String) -> String {
+    s
+}
+
 pub fn from_youtube_datetime_to_timestamp(s: &str) -> i64 {
     let dt = DateTime::parse_from_rfc3339(s).unwrap();
     dt.timestamp()

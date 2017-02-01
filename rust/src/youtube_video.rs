@@ -7,7 +7,7 @@ use diesel::prelude::*;
 use diesel::{insert,delete};
 use youtube_base::{YoutubeItem,YoutubeSnippet,query};
 use subs_and_video;
-use subs_and_video::{Subscription,Video,NewVideo,Config,NewConfig,get_lastupdate_in_unixtime};
+use subs_and_video::{Subscription,Video,NewVideo,Config,NewConfig,get_lastupdate_in_unixtime,make_youtube_url};
 
 const PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
 
@@ -28,13 +28,15 @@ fn query_videos<'f>(t: &'f oauth2::Token, subs: &'f Vec<Subscription>, unix_stam
 
 fn construct_new_video(s :&Subscription, i: YoutubeItem<YoutubeSnippet>) -> NewVideo {
     let snippet = i.snippet.unwrap();
-    NewVideo{vid: snippet.resource.video_id.unwrap(),
+    let vid = snippet.resource.video_id.unwrap();
+    NewVideo{vid: vid.clone(),
              title: snippet.title,
              thumbnail: snippet.thumbnails.default.thmburl,
              published_at: subs_and_video::from_youtube_datetime_to_timestamp(&snippet.published_at),
              channelname: s.channelname.clone(),
              //duration: "".to_string(),
-             url: "".to_string()}
+             url: make_youtube_url(vid),
+    }
 }
 
 pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec<Subscription>) {
