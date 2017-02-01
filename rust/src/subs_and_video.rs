@@ -86,6 +86,12 @@ pub fn from_youtube_datetime_to_timestamp(s: &str) -> i64 {
     dt.timestamp()
 }
 
+pub fn from_giantbomb_datetime_to_timestamp(s: &str) -> i64 {
+    let dt = DateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").unwrap();
+    println!("this is not timezone aware");
+    dt.timestamp()
+}
+
 #[derive(Debug,Queryable)]
 pub struct Config {
     pub id: i32,

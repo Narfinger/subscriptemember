@@ -165,12 +165,12 @@ fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), 
     Ok(())
 }
 
-fn video_url(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
-    let param = h.param(0).unwrap().value().to_string().replace("\"", "");
-    let url = "https://www.youtube.com/watch?v=".to_string() + param.as_str();
-    try!(rc.writer.write_all(url.into_bytes().as_ref()));
-    Ok(())
-}
+// fn video_url(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+//     let param = h.param(0).unwrap().value().to_string().replace("\"", "");
+//     let url = "https://www.youtube.com/watch?v=".to_string() + param.as_str();
+//     try!(rc.writer.write_all(url.into_bytes().as_ref()));
+//     Ok(())
+// }
 
 fn main() {
     println!("Registering templates");
@@ -182,7 +182,7 @@ fn main() {
         assert!(HB.lock().unwrap().register_template_string("subs", its).is_ok());
 
         HB.lock().unwrap().register_helper("video_time", Box::new(video_time));
-        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
+//        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
 
 
