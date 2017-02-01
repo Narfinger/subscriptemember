@@ -1,6 +1,7 @@
 use oauth2;
 use std::sync::Mutex;
 use std::iter::Iterator;
+use std::time::Duration;
 use chrono::UTC;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;

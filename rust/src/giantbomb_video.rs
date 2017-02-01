@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use diesel::insert;
 use diesel::sqlite::SqliteConnection;
 use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp};
+use std::time::Duration;
 
 static LIMIT: &'static str = "10";
 
@@ -43,7 +44,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
         published_at: from_giantbomb_datetime_to_timestamp(&v.publish_date),
         channelname: "GiantBomb".to_string(),
         url: make_gb_url(v.site_detail_url.clone()),
-        duration: 0,
+        duration: v.length_seconds.parse().unwrap_or(0),
     }
 }
 

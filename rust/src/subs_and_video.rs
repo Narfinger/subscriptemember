@@ -1,5 +1,4 @@
 use std::fmt;
-use std::time::Duration;
 use std::cmp::Ordering;
 use schema::{subscriptions, videos, config};
 use chrono::DateTime;
