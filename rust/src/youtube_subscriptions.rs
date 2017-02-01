@@ -44,8 +44,8 @@ fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
     match_subs_to_res(subs, &upload_playlist);
 }
 
-fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &Vec<YoutubeItem<YoutubeContentDetails>>) {
-    fn find_and_replace(s: &mut Subscription, ups: &Vec<YoutubeItem<YoutubeContentDetails>>) {
+fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &[YoutubeItem<YoutubeContentDetails>]) {
+    fn find_and_replace(s: &mut Subscription, ups: &[YoutubeItem<YoutubeContentDetails>]) {
         let val: &YoutubeItem<YoutubeContentDetails> = ups.iter().find(|ups_elem| ups_elem.iid == s.channelid).unwrap();
         let v = val.content_details.as_ref().and_then(|cd| cd.related_playlists.as_ref()).map(|rlp| rlp.uploads.clone()).unwrap_or_else(||"No Playlist Found".to_string());
         s.uploadplaylist = v;

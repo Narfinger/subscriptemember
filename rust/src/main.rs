@@ -163,14 +163,14 @@ fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), 
     println!("this needs to be timezone aware");
     //let dt: DateTime<Local> = DateTime::from_utc(d, &Local).format("%H:%M - %d.%m").to_string();
 
-    try!(rc.writer.write(dt.into_bytes().as_ref()));
+    try!(rc.writer.write_all(dt.into_bytes().as_ref()));
     Ok(())
 }
 
 fn video_url(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
     let param = h.param(0).unwrap().value().to_string().replace("\"","");
     let url = "https://www.youtube.com/watch?v=".to_string() + param.as_str();
-    try!(rc.writer.write(url.into_bytes().as_ref()));
+    try!(rc.writer.write_all(url.into_bytes().as_ref()));
     Ok(())
 }
 

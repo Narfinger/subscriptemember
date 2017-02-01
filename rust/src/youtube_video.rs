@@ -1,18 +1,18 @@
 use oauth2;
 use std::sync::Mutex;
 use std::iter::Iterator;
-use chrono::{DateTime,UTC};
+use chrono::UTC;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert,delete};
 use youtube_base::{YoutubeItem,YoutubeSnippet,query};
 use subs_and_video;
-use subs_and_video::{Subscription,Video,NewVideo,Config,NewConfig,get_lastupdate_in_unixtime,make_youtube_url};
+use subs_and_video::{Subscription,Video,NewVideo,NewConfig,get_lastupdate_in_unixtime,make_youtube_url};
 
 const PL_URL: &'static str = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
 
 
-fn query_videos<'f>(t: &'f oauth2::Token, subs: &'f Vec<Subscription>, unix_stamp: i64) -> Vec<NewVideo> {
+fn query_videos<'f>(t: &'f oauth2::Token, subs: &'f [Subscription], unix_stamp: i64) -> Vec<NewVideo> {
     fn build_string(s: &Subscription) -> String {
         PL_URL.to_string() + &s.uploadplaylist + "&access_token="
     }
@@ -39,7 +39,7 @@ fn construct_new_video(s :&Subscription, i: YoutubeItem<YoutubeSnippet>) -> NewV
     }
 }
 
-pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &Vec<Subscription>) {
+pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &[Subscription]) {
     use schema::videos;
     use schema::config;
 
