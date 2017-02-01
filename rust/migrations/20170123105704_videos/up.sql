@@ -14,6 +14,7 @@ CREATE TABLE videos (
   thumbnail VARCHAR NOT NULL,
   published_at BigInt NOT NULL,
   channelname VARCHAR NOT NULL,
+  duration BigInt NOT NULL,
   url VARCHAR NOT NULL
 );
 

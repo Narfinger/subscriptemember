@@ -43,6 +43,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
         published_at: from_giantbomb_datetime_to_timestamp(&v.publish_date),
         channelname: "GiantBomb".to_string(),
         url: make_gb_url(v.site_detail_url.clone()),
+        duration: 0,
     }
 }
 

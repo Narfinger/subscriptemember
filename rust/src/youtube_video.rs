@@ -39,7 +39,7 @@ fn construct_new_video(s: &Subscription, i: YoutubeItem<YoutubeSnippet>) -> NewV
         thumbnail: snippet.thumbnails.default.thmburl,
         published_at: subs_and_video::from_youtube_datetime_to_timestamp(&snippet.published_at),
         channelname: s.channelname.clone(),
-        //duration: "".to_string(),
+        duration: 0,
         url: make_youtube_url(vid),
     }
 }

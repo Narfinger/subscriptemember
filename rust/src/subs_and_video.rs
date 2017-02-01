@@ -51,7 +51,7 @@ pub struct Video {
     pub thumbnail: String,
     pub published_at: i64, //unix timestamp
     pub channelname: String,
-    //pub duration: Duration,
+    pub duration: i64, //duration in seconds
     pub url: String,
 }
 
@@ -68,8 +68,8 @@ pub struct NewVideo {
     pub title: String,
     pub thumbnail: String,
     pub published_at: i64,
-    //pub duration: String,
     pub channelname: String,
+    pub duration: i64,
     pub url: String,
 }
 
