@@ -7,6 +7,11 @@ use std::sync::Mutex;
 use diesel::sqlite::SqliteConnection;
 use diesel::LoadDsl;
 
+#[derive(Debug,Deserialize)]
+pub struct GBKey {
+    pub key: String,
+}
+
 #[derive(Debug,Serialize,Deserialize,Queryable)]
 pub struct Subscription {
     pub sid: i32,

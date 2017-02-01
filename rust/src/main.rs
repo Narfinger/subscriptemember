@@ -48,12 +48,14 @@ use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
 use rocket::response::Redirect;
+use subs_and_video::GBKey;
 
 lazy_static! {
     static ref TK : oauth2::Token = setup_oauth().unwrap();
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
     //static ref handlebars : Handlebars::Registry = Handlebars::new();
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
+    static ref GBTK : Mutex<GBKey> = Mutex::new(setup_gbkey());
 }
 
 pub fn establish_connection() -> SqliteConnection {
@@ -84,6 +86,14 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
         .token(&["https://www.googleapis.com/auth/youtube"])
 }
 
+fn setup_gbkey() -> GBKey {
+    let mut f = File::open("client_secret_gb.json").expect("Did not find client_secret_gb.json");
+    let mut s = String::new();
+    f.read_to_string(&mut s).unwrap();
+
+    GBKey{key: s}
+}
+
 #[get("/updateSubs")]
 fn update_subs() -> Redirect {
     youtube_subscriptions::get_subs(&TK, &DB, true);
@@ -102,6 +112,7 @@ fn subs() -> String {
 #[get("/updateVideos")]
 fn update_videos() -> Redirect {
     thread::spawn(|| {
+        giantbomb_video::update_videos(&GBTK, &DB);
         let subs = youtube_subscriptions::get_subs(&TK, &DB, false);
         youtube_video::update_videos(&TK, &DB, &subs); });
     Redirect::to("/")
