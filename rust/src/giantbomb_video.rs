@@ -4,7 +4,7 @@ use serde_json;
 use std::sync::Mutex;
 use diesel::insert;
 use diesel::sqlite::SqliteConnection;
-use subs_and_video::{GBKey,NewVideo,make_gb_url};
+use subs_and_video::{GBKey, NewVideo, make_gb_url};
 
 static LIMIT: &'static str = "10";
 
@@ -23,17 +23,20 @@ pub struct GiantBombVideo {
     pub site_detail_url: String,
 }
 
-fn query_giantbomb<T>(t: &Mutex<GBKey>, url: String) -> GiantBombResult<T> where T: serde::Deserialize {
+fn query_giantbomb<T>(t: &Mutex<GBKey>, url: String) -> GiantBombResult<T>
+    where T: serde::Deserialize
+{
     let client = Client::new();
     let mut q = String::from(url);
     q.push_str("&api_key=");
     q.push_str(&t.lock().unwrap().key);
     let res = client.get(q.as_str()).send().unwrap();
-    serde_json::from_reader(res).unwrap_or_else(|e:serde_json::error::Error| panic!("error in json parsing: {}", e))
+    serde_json::from_reader(res)
+        .unwrap_or_else(|e: serde_json::error::Error| panic!("error in json parsing: {}", e))
 }
 
 fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
-    NewVideo{
+    NewVideo {
         vid: "NA".to_string(),
         title: v.name.clone(),
         thumbnail: "NA".to_string(),
@@ -44,7 +47,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
 }
 
 fn query_videos(t: &Mutex<GBKey>) -> Vec<NewVideo> {
-    let qstring = "https://www.giantbomb.com/api/videos/?format=json&limit=".to_string() + LIMIT;  
+    let qstring = "https://www.giantbomb.com/api/videos/?format=json&limit=".to_string() + LIMIT;
     let res = query_giantbomb(t, qstring);
     res.results
         .iter()
@@ -55,7 +58,7 @@ fn query_videos(t: &Mutex<GBKey>) -> Vec<NewVideo> {
 pub fn update_videos(t: &Mutex<GBKey>, db: &Mutex<SqliteConnection>) {
     use schema::videos;
     use diesel::ExecuteDsl;
-    
+
     let vids: Vec<NewVideo> = query_videos(t);
     let dbconn: &SqliteConnection = &db.lock().unwrap();
     insert(&vids)

@@ -4,7 +4,6 @@
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
 #[cfg(feature = "nightly")]
-
 #[macro_use]
 extern crate rocket;
 extern crate hyper;
@@ -42,8 +41,8 @@ use std::collections::BTreeMap;
 use std::env;
 use serde_json as json;
 use serde_json::value::ToJson;
-use handlebars::{Handlebars,Helper,RenderContext,RenderError};
-use chrono::{NaiveDateTime};
+use handlebars::{Handlebars, Helper, RenderContext, RenderError};
+use chrono::NaiveDateTime;
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
@@ -90,7 +89,7 @@ fn setup_gbkey() -> GBKey {
     let mut s = String::new();
     f.read_to_string(&mut s).unwrap();
 
-    GBKey{key: s}
+    GBKey { key: s }
 }
 
 #[get("/updateSubs")]
@@ -113,7 +112,8 @@ fn update_videos() -> Redirect {
     thread::spawn(|| {
         giantbomb_video::update_videos(&GBTK, &DB);
         let subs = youtube_subscriptions::get_subs(&TK, &DB, false);
-        youtube_video::update_videos(&TK, &DB, &subs); });
+        youtube_video::update_videos(&TK, &DB, &subs);
+    });
     Redirect::to("/")
 
 }
@@ -132,7 +132,7 @@ fn index() -> String {
     let lastrefreshed = "NA".to_json();
     let numberofvideos = vids.len().to_json();
     let totaltime = "NA".to_json();
-    
+
     data.insert("vids".to_string(), vids.to_json());
     data.insert("lastrefreshed".to_string(), lastrefreshed);
     data.insert("numberofvideos".to_string(), numberofvideos);
@@ -156,8 +156,8 @@ fn template_filename_to_string(s: &str) -> Result<String, String> {
 
 
 fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
-    let param = h.param(0).unwrap().value().to_string().replace("\"","").parse::<i64>().unwrap();
-    let d = NaiveDateTime::from_timestamp(param,0);
+    let param = h.param(0).unwrap().value().to_string().replace("\"", "").parse::<i64>().unwrap();
+    let d = NaiveDateTime::from_timestamp(param, 0);
     let dt = d.format("%H:%M - %d.%m").to_string();
     println!("this needs to be timezone aware");
 
@@ -166,7 +166,7 @@ fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), 
 }
 
 fn video_url(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
-    let param = h.param(0).unwrap().value().to_string().replace("\"","");
+    let param = h.param(0).unwrap().value().to_string().replace("\"", "");
     let url = "https://www.youtube.com/watch?v=".to_string() + param.as_str();
     try!(rc.writer.write_all(url.into_bytes().as_ref()));
     Ok(())
@@ -181,11 +181,14 @@ fn main() {
         let its = template_filename_to_string("templates/subs.html").unwrap();
         assert!(HB.lock().unwrap().register_template_string("subs", its).is_ok());
 
-        HB.lock().unwrap().register_helper("video_time",Box::new(video_time));
+        HB.lock().unwrap().register_helper("video_time", Box::new(video_time));
         HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
 
 
     println!("Starting server");
-    rocket::ignite().mount("/", routes![update_subs, subs, update_videos, delete, index]).launch();
+    rocket::ignite()
+        .mount("/",
+               routes![update_subs, subs, update_videos, delete, index])
+        .launch();
 }

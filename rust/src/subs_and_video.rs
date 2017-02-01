@@ -1,7 +1,7 @@
 use std::fmt;
 use std::time::Duration;
 use std::cmp::Ordering;
-use schema::{subscriptions,videos,config};
+use schema::{subscriptions, videos, config};
 use chrono::DateTime;
 use std::sync::Mutex;
 use diesel::sqlite::SqliteConnection;
@@ -52,13 +52,11 @@ pub struct Video {
     pub published_at: i64, //unix timestamp
     pub channelname: String,
     //pub duration: Duration,
-    pub url: String
+    pub url: String,
 }
 
 impl Ord for Video {
     fn cmp(&self, other: &Video) -> Ordering {
-        // let s = DateTime::parse_from_rfc3339(&self.published_at).map(|s| s.timestamp()).unwrap_or(0);
-        // let o = DateTime::parse_from_rfc3339(&other.published_at).map(|s| s.timestamp()).unwrap_or(0);
         self.published_at.cmp(&other.published_at)
     }
 }
@@ -72,7 +70,7 @@ pub struct NewVideo {
     pub published_at: i64,
     //pub duration: String,
     pub channelname: String,
-    pub url: String
+    pub url: String,
 }
 
 pub fn make_youtube_url(s: String) -> String {
@@ -102,7 +100,7 @@ pub struct NewConfig {
 
 pub fn get_lastupdate_in_unixtime(db: &Mutex<SqliteConnection>) -> i64 {
     use schema::config::dsl::*;
-    
+
     let dbconn: &SqliteConnection = &db.lock().unwrap();
     let val = config.load::<Config>(dbconn).unwrap();
 
