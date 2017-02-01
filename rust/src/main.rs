@@ -53,7 +53,6 @@ use subs_and_video::GBKey;
 lazy_static! {
     static ref TK : oauth2::Token = setup_oauth().unwrap();
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
-    //static ref handlebars : Handlebars::Registry = Handlebars::new();
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
     static ref GBTK : Mutex<GBKey> = Mutex::new(setup_gbkey());
 }
@@ -161,7 +160,6 @@ fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), 
     let d = NaiveDateTime::from_timestamp(param,0);
     let dt = d.format("%H:%M - %d.%m").to_string();
     println!("this needs to be timezone aware");
-    //let dt: DateTime<Local> = DateTime::from_utc(d, &Local).format("%H:%M - %d.%m").to_string();
 
     try!(rc.writer.write_all(dt.into_bytes().as_ref()));
     Ok(())
@@ -175,12 +173,6 @@ fn video_url(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), R
 }
 
 fn main() {
-    // println!("storing token to disk");
-    // let mut st = DiskTokenStorage("tk");
-    // st.set(1,["https://www.googleapis.com/auth/youtube"],t);
-    //    let tk = setup_oauth();
-
-    println!("DONE!!!");
     println!("Registering templates");
     {
         let its = template_filename_to_string("templates/index.html").unwrap();
@@ -196,11 +188,4 @@ fn main() {
 
     println!("Starting server");
     rocket::ignite().mount("/", routes![update_subs, subs, update_videos, delete, index]).launch();
-
-
-    // now you can use t.access_token to authenticate API calls within your
-    // given scopes. It will not be valid forever, but Authenticator will automatically
-    // refresh the token for you.
-
-    println!("Hello, world!");
 }

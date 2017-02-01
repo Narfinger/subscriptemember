@@ -153,17 +153,4 @@ pub fn query<T>(t: &oauth2::Token, url: &str) -> Query<T>
                url: url.to_string(),
                t: t.clone(),
                next_page: None}
-    // let mut result: Vec<YoutubeItem<T>> = Vec::new();
-    // let mut next_page = None;
-    // loop {
-    //     let res = query_simple_page(t, url, next_page);
-    //     result.extend(res.items);
-    //     next_page = res.next_page_token;
-    //     panic!("implement with iterator");
-    //     println!("{}", next_page.is_none());
-    //     if next_page.is_none() {
-    //         break;
-    //     }
-    // }
-    // result
 }

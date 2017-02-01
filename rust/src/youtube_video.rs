@@ -68,7 +68,6 @@ pub fn get_videos(db: &Mutex<SqliteConnection>) -> Vec<Video> {
     videos.order(published_at.desc())
         .load(dbconn)
         .unwrap()
-        //    .order(sql::<BigInt>("published_at").desc())
 }
 
 pub fn delete_video(db: &Mutex<SqliteConnection>, videoid: &str) {

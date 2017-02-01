@@ -52,7 +52,6 @@ pub struct Video {
     pub published_at: i64, //unix timestamp
     pub channelname: String,
     //pub duration: Duration,
-    //pub subscription: Option<Subscription>
     pub url: String
 }
 
@@ -63,16 +62,6 @@ impl Ord for Video {
         self.published_at.cmp(&other.published_at)
     }
 }
-
-// pub trait ToUnixTime {
-//     fn to_unix(&self) -> i64;
-// }
-
-// impl ToUnixTime for NewVideo {
-//     fn to_unix(&self) -> i64 {
-//         DateTime::parse_from_rfc3339(&self.published_at).map(|s| s.timestamp()).unwrap_or(0)
-//     }
-// }
 
 #[derive(Insertable)]
 #[table_name="videos"]
