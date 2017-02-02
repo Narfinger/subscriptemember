@@ -54,7 +54,7 @@ lazy_static! {
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
     static ref GBTK : GBKey = setup_gbkey();
-    static ref UPDATING_VIDEOS: Mutex<bool> = Mutex::new(false);
+    static ref UPDATING_VIDEOS: Mutex<()> = Mutex::new(());
 }
 
 pub fn establish_connection() -> SqliteConnection {
