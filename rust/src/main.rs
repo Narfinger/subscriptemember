@@ -30,7 +30,7 @@ pub mod youtube_video;
 pub mod subs_and_video;
 pub mod giantbomb_video;
 
-use std::sync::{Arc,Mutex};
+use std::sync::Mutex;
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
              DiskTokenStorage, GetToken};
 
@@ -54,6 +54,7 @@ lazy_static! {
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
     static ref GBTK : GBKey = setup_gbkey();
+    static ref UPDATING_VIDEOS: Mutex<bool> = Mutex::new(false);
 }
 
 pub fn establish_connection() -> SqliteConnection {
@@ -109,13 +110,15 @@ fn subs() -> String {
 
 #[get("/updateVideos")]
 fn update_videos() -> Redirect {
-    thread::spawn(|| {
-        giantbomb_video::update_videos(&GBTK, &DB);
-        let subs = youtube_subscriptions::get_subs(&TK, &DB, false);
-        youtube_video::update_videos(&TK, &DB, &subs);
-    });
+    let l = UPDATING_VIDEOS.try_lock();
+    if l.is_ok() {
+        thread::spawn(|| {
+            giantbomb_video::update_videos(&GBTK, &DB);
+            let subs = youtube_subscriptions::get_subs(&TK, &DB, false);
+            youtube_video::update_videos(&TK, &DB, &subs);
+        });
+    }
     Redirect::to("/")
-
 }
 
 #[get("/delete/<vid>")]
