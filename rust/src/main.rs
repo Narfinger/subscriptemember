@@ -7,12 +7,13 @@
 #[macro_use]
 extern crate rocket;
 extern crate hyper;
-extern crate yup_oauth2 as oauth2;
 extern crate serde;
 extern crate chrono;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
 extern crate serde_json;
+extern crate yup_oauth2 as oauth2;
 extern crate rocket;
 extern crate handlebars;
 #[macro_use]
@@ -41,6 +42,7 @@ use std::collections::BTreeMap;
 use std::env;
 use serde_json as json;
 use serde_json::value::ToJson;
+use serde_json::value::Map;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
 use diesel::Connection;
@@ -67,10 +69,25 @@ pub fn establish_connection() -> SqliteConnection {
 
 fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
     let mut f = File::open("client_secret.json").expect("Did not find client_secret.json");
-    let mut s = String::new();
-    f.read_to_string(&mut s).unwrap();
+    // let mut s = String::new();
+    // f.read_to_string(&mut s).unwrap();
 
-    let secret = json::from_str::<ConsoleApplicationSecret>(&s).unwrap().installed.unwrap();
+    // let b = json::from_reader(f).unwrap();
+    // let i: Map<String,String> = b["installed"].unwrap();
+    // let secret = oauth2::ApplicationSecret {
+    //     client_id: i["client_id"].to_string(),
+    //     client_secret: i["client_secret"].to_string(),
+    //     token_uri: b["installed"]["token_uri"],
+    //     auth_uri: b["installed"]["auth_uri"],
+    //     auth_provider_x509_cert_url: Some(b["installed"]["auth_provider_x509_cert_url"]),
+    //     redirect_uris: vec![b["installed"]["redirect_uris"][0],b["installed"]["redirect_uris"][1]],
+    //     client_email: None,
+    //     client_x509_cert_url: None,
+    //     project_id: b["installed"]["project_id"],
+    // };
+    
+
+    let secret = json::from_reader::<File,ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
     let mut cwd = std::env::current_dir().unwrap();
     cwd.push("tk");
     let cwd: String = String::from(cwd.to_str().expect("string conversion error"));
@@ -102,10 +119,11 @@ fn update_subs() -> Redirect {
 #[get("/subs")]
 fn subs() -> String {
     let sub = youtube_subscriptions::get_subs(&TK, &DB, false);
-    let mut data = BTreeMap::new();
-    data.insert("subs".to_string(), sub.to_json());
-    data.insert("numberofsubs".to_string(), sub.len().to_json());
-    HB.lock().unwrap().render("subs", &data).unwrap()
+    let data = json!({
+        "subs": sub,
+        "numberofsubs": sub.len(),
+    });
+    HB.lock().unwrap().render("subs", &data.to_string()).unwrap()
 }
 
 #[get("/updateVideos")]
@@ -132,15 +150,17 @@ fn index() -> String {
     let mut data = BTreeMap::new();
     let vids = youtube_video::get_videos(&DB);
 
-    let lastrefreshed = "NA".to_json();
-    let numberofvideos = vids.len().to_json();
-    let totaltime = "NA".to_json();
+    let lastrefreshed = "NA";
+    let numberofvideos = vids.len();
+    let totaltime = "NA";
 
-    data.insert("vids".to_string(), vids.to_json());
-    data.insert("lastrefreshed".to_string(), lastrefreshed);
-    data.insert("numberofvideos".to_string(), numberofvideos);
-    data.insert("totaltime".to_string(), totaltime);
-    HB.lock().unwrap().render("index", &data).map_err(|err| err.to_string()).unwrap()
+    let data = json!({
+        "vids": vids,
+        "lastrefreshed": lastrefreshed,
+        "numberofvideos": numberofvideos,
+        "totaltime": totaltime,
+    });
+    HB.lock().unwrap().render("index", &data.to_string()).map_err(|err| err.to_string()).unwrap()
 }
 
 fn template_filename_to_string(s: &str) -> Result<String, String> {
