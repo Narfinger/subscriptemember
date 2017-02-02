@@ -24,13 +24,13 @@ pub struct GiantBombVideo {
     pub site_detail_url: String,
 }
 
-fn query_giantbomb<T>(t: &Mutex<GBKey>, url: String) -> GiantBombResult<T>
+fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
     where T: serde::Deserialize
 {
     let client = Client::new();
     let mut q = String::from(url);
     q.push_str("&api_key=");
-    q.push_str(&t.lock().unwrap().key);
+    q.push_str(&t.key);
     let res = client.get(q.as_str()).send().unwrap();
     serde_json::from_reader(res)
         .unwrap_or_else(|e: serde_json::error::Error| panic!("error in json parsing: {}", e))
@@ -48,7 +48,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
     }
 }
 
-fn query_videos(t: &Mutex<GBKey>) -> Vec<NewVideo> {
+fn query_videos(t: &GBKey) -> Vec<NewVideo> {
     let qstring = "https://www.giantbomb.com/api/videos/?format=json&limit=".to_string() + LIMIT;
     let res = query_giantbomb(t, qstring);
     res.results
@@ -57,7 +57,7 @@ fn query_videos(t: &Mutex<GBKey>) -> Vec<NewVideo> {
         .collect::<Vec<NewVideo>>()
 }
 
-pub fn update_videos(t: &Mutex<GBKey>, db: &Mutex<SqliteConnection>) {
+pub fn update_videos(t: &GBKey, db: &Mutex<SqliteConnection>) {
     use schema::videos;
     use diesel::ExecuteDsl;
 

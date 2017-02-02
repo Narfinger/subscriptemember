@@ -30,7 +30,7 @@ pub mod youtube_video;
 pub mod subs_and_video;
 pub mod giantbomb_video;
 
-use std::sync::Mutex;
+use std::sync::{Arc,Mutex};
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
              DiskTokenStorage, GetToken};
 
@@ -53,7 +53,7 @@ lazy_static! {
     static ref TK : oauth2::Token = setup_oauth().unwrap();
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
-    static ref GBTK : Mutex<GBKey> = Mutex::new(setup_gbkey());
+    static ref GBTK : GBKey = setup_gbkey();
 }
 
 pub fn establish_connection() -> SqliteConnection {
@@ -186,6 +186,7 @@ fn main() {
     }
 
 
+    println!("Switching mutex to arcs?");
     println!("Starting server");
     rocket::ignite()
         .mount("/",
