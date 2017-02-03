@@ -27,6 +27,7 @@ pub struct GiantBombVideo {
 fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
     where T: serde::Deserialize
 {
+    println!("do with gzip?");
     let client = Client::new();
     let mut q = String::from(url);
     q.push_str("&api_key=");

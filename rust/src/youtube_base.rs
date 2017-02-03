@@ -1,8 +1,10 @@
 use std::collections::VecDeque;
 use oauth2;
-use hyper::Client;
+use hyper::{Client};
+use hyper::header::{Headers, AcceptEncoding, Encoding, qitem};
 use serde;
 use serde_json;
+use flate2::read::GzDecoder;
 
 #[derive(Debug,Deserialize)]
 pub struct YoutubePageInfo {
@@ -91,25 +93,35 @@ pub struct YoutubeSubscription {
     pub resource_id: YoutubeResource,
 }
 
+fn query_url_with_gzip<T>(url: &str) -> YoutubeResult<T>  where T: serde::Deserialize {
+    let client = Client::new();
+    let req = client.get(url);;
+    let mut headers = Headers::new();
+    headers.set(
+        AcceptEncoding(vec![qitem(Encoding::Gzip)])
+    );
+    req = req.headers(headers);
+    println!("query: {}", url);
+    let res = req.send().unwrap();
+    let mut decoder = GzDecoder::new(res).unwrap();
+
+    serde_json::from_reader(decoder).unwrap_or_else(|e:serde_json::error::Error|
+                                                panic!("error in json parsing: {}", e))
+}
+
 fn query_simple_page<T>(t: &oauth2::Token,
                         url: &str,
                         nextpage: Option<String>)
                         -> YoutubeResult<T>
     where T: serde::Deserialize
 {
-    let client = Client::new();
     let mut q = String::from(url);
     q.push_str(t.access_token.as_str());
     if let Some(nextpagetk) = nextpage {
         q.push_str("&pageToken=");
         q.push_str(nextpagetk.as_str());
     }
-
-    let res = client.get(q.as_str()).send().unwrap();
-    println!("query: {}", q);
-
-    serde_json::from_reader(res).unwrap_or_else(|e:serde_json::error::Error|
-                                                panic!("error in json parsing: {}", e))
+    query_url_with_gzip(q.as_str())
 }
 
 pub struct Query<T> {

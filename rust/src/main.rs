@@ -8,6 +8,7 @@
 extern crate rocket;
 extern crate hyper;
 extern crate serde;
+extern crate flate2;
 extern crate chrono;
 #[macro_use]
 extern crate serde_derive;
@@ -32,7 +33,7 @@ pub mod subs_and_video;
 pub mod giantbomb_video;
 
 use std::sync::Mutex;
-use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
+use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ApplicationSecret, ConsoleApplicationSecret,
              DiskTokenStorage, GetToken};
 
 use std::io::prelude::*;
@@ -87,7 +88,7 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
     // };
     
 
-    let secret = json::from_reader::<File,ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
+    let secret = json::from_reader::<File,ApplicationSecret>(f).unwrap().installed.unwrap();
     let mut cwd = std::env::current_dir().unwrap();
     cwd.push("tk");
     let cwd: String = String::from(cwd.to_str().expect("string conversion error"));

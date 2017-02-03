@@ -15,12 +15,11 @@ serde_derive = "0.9.5"
 hyper_serde = "0.3.0"
 rocket = "0.1.6"
 rocket_codegen = "0.1.6"
-yup-oauth2 = {version = "1.0.3", features = ["serde_derive"]}
+yup-oauth2 = {version = "1.0.3"}
 handlebars = {version = "0.24.1", features = ["serde_type"]}
 lazy_static = "0.2.2"
 chrono = {version = "0.2.25", features = ["serde"]}
 dotenv = "0.8.0"
-diesel = {version = "0.9.1", features = ["sqlite"]}
-diesel_codegen = {version = "0.9.0", features = ["sqlite"]}
-r2d2 = "0.7.1"
-r2d2-diesel = "0.9.0"
+diesel = {version = "0.10.0", features = ["sqlite"]}
+diesel_codegen = {version = "0.10.0", features = ["sqlite"]}
+flate2 = {version = "0.2.17", features = []}
