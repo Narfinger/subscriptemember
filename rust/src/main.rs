@@ -6,9 +6,8 @@
 #[cfg(feature = "nightly")]
 #[macro_use]
 extern crate rocket;
-extern crate hyper;
 extern crate serde;
-extern crate flate2;
+extern crate reqwest;
 extern crate chrono;
 #[macro_use]
 extern crate serde_derive;
@@ -34,7 +33,7 @@ pub mod giantbomb_video;
 
 use std::sync::Mutex;
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
-             DiskTokenStorage, GetToken};
+             DiskTokenStorage, GetToken, FlowType};
 
 use std::io::prelude::*;
 use std::fs::File;
@@ -50,7 +49,7 @@ use rocket::response::Redirect;
 use subs_and_video::GBKey;
 
 lazy_static! {
-    static ref TK : oauth2::Token = setup_oauth().unwrap();
+    static ref TK : oauth2::Token = setup_oauth();
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
     static ref GBTK : GBKey = setup_gbkey();
@@ -65,39 +64,26 @@ pub fn establish_connection() -> SqliteConnection {
         .expect(&format!("Error connecting to {}", database_url))
 }
 
-fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
+fn setup_oauth() -> oauth2::Token {
     let f = File::open("client_secret.json").expect("Did not find client_secret.json");
-    // let mut s = String::new();
-    // f.read_to_string(&mut s).unwrap();
-
-    // let b = json::from_reader(f).unwrap();
-    // let i: Map<String,String> = b["installed"].unwrap();
-    // let secret = oauth2::ApplicationSecret {
-    //     client_id: i["client_id"].to_string(),
-    //     client_secret: i["client_secret"].to_string(),
-    //     token_uri: b["installed"]["token_uri"],
-    //     auth_uri: b["installed"]["auth_uri"],
-    //     auth_provider_x509_cert_url: Some(b["installed"]["auth_provider_x509_cert_url"]),
-    //     redirect_uris: vec![b["installed"]["redirect_uris"][0],b["installed"]["redirect_uris"][1]],
-    //     client_email: None,
-    //     client_x509_cert_url: None,
-    //     project_id: b["installed"]["project_id"],
-    // };
-    
 
     let secret = json::from_reader::<File,ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
     let mut cwd = std::env::current_dir().unwrap();
-    cwd.push("tk");
+    cwd.push("tk ");
     let cwd: String = String::from(cwd.to_str().expect("string conversion error"));
-    println!("{}", cwd);
     let ntk = DiskTokenStorage::new(&cwd).expect("disk storage token is broken");
-
-    Authenticator::new(&secret,
-                       DefaultAuthenticatorDelegate,
-                       hyper::Client::new(),
-                       ntk,
-                       None)
-        .token(&["https://www.googleapis.com/auth/youtube"])
+    println!("s {:?}", secret.client_id);
+    
+    let realtk = Authenticator::new(&secret,
+                                    DefaultAuthenticatorDelegate,
+                                    reqwest::Client::new(),
+                                    ntk,
+                                    Some(FlowType::InstalledRedirect(8080)))
+        .token(&["https://www.googleapis.com/auth/youtube"]);
+    if let Err(e) = realtk {
+        panic!("Error in token generation: {:?}", e);
+    }
+    realtk.unwrap()
 }
 
 fn setup_gbkey() -> GBKey {
@@ -204,9 +190,8 @@ fn main() {
         HB.lock().unwrap().register_helper("video_time", Box::new(video_time));
 //        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
-
-
-    println!("Switching mutex to arcs?");
+    println!("Checking token: {}", TK.token_type);
+    
     println!("Starting server");
     rocket::ignite()
         .mount("/",

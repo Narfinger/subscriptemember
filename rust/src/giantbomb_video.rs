@@ -1,9 +1,9 @@
-use hyper::Client;
 use serde;
 use serde_json;
 use std::sync::Mutex;
 use diesel::insert;
 use diesel::sqlite::SqliteConnection;
+use reqwest;
 use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp};
 use std::time::Duration;
 
@@ -28,11 +28,10 @@ fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
     where T: serde::Deserialize
 {
     println!("do with gzip?");
-    let client = Client::new();
     let mut q = String::from(url);
     q.push_str("&api_key=");
     q.push_str(&t.key);
-    let res = client.get(q.as_str()).send().unwrap();
+    let res = reqwest::get(q.as_str()).unwrap();
     serde_json::from_reader(res)
         .unwrap_or_else(|e: serde_json::error::Error| panic!("error in json parsing: {}", e))
 }
