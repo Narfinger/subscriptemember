@@ -33,17 +33,14 @@ pub mod subs_and_video;
 pub mod giantbomb_video;
 
 use std::sync::Mutex;
-use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ApplicationSecret, ConsoleApplicationSecret,
+use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
              DiskTokenStorage, GetToken};
 
 use std::io::prelude::*;
 use std::fs::File;
 use std::thread;
-use std::collections::BTreeMap;
 use std::env;
 use serde_json as json;
-use serde_json::value::ToJson;
-use serde_json::value::Map;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
 use diesel::Connection;
@@ -69,7 +66,7 @@ pub fn establish_connection() -> SqliteConnection {
 }
 
 fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
-    let mut f = File::open("client_secret.json").expect("Did not find client_secret.json");
+    let f = File::open("client_secret.json").expect("Did not find client_secret.json");
     // let mut s = String::new();
     // f.read_to_string(&mut s).unwrap();
 
@@ -88,7 +85,7 @@ fn setup_oauth() -> Result<oauth2::Token, Box<std::error::Error>> {
     // };
     
 
-    let secret = json::from_reader::<File,ApplicationSecret>(f).unwrap().installed.unwrap();
+    let secret = json::from_reader::<File,ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
     let mut cwd = std::env::current_dir().unwrap();
     cwd.push("tk");
     let cwd: String = String::from(cwd.to_str().expect("string conversion error"));
@@ -148,7 +145,6 @@ fn delete(vid: &str) -> Redirect {
 
 #[get("/")]
 fn index() -> String {
-    let mut data = BTreeMap::new();
     let vids = youtube_video::get_videos(&DB);
 
     let lastrefreshed = "NA";

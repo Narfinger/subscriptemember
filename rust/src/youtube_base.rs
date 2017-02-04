@@ -95,7 +95,7 @@ pub struct YoutubeSubscription {
 
 fn query_url_with_gzip<T>(url: &str) -> YoutubeResult<T>  where T: serde::Deserialize {
     let client = Client::new();
-    let req = client.get(url);;
+    let mut req = client.get(url);;
     let mut headers = Headers::new();
     headers.set(
         AcceptEncoding(vec![qitem(Encoding::Gzip)])
@@ -103,7 +103,7 @@ fn query_url_with_gzip<T>(url: &str) -> YoutubeResult<T>  where T: serde::Deseri
     req = req.headers(headers);
     println!("query: {}", url);
     let res = req.send().unwrap();
-    let mut decoder = GzDecoder::new(res).unwrap();
+    let decoder = GzDecoder::new(res).unwrap();
 
     serde_json::from_reader(decoder).unwrap_or_else(|e:serde_json::error::Error|
                                                 panic!("error in json parsing: {}", e))

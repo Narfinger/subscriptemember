@@ -7,7 +7,7 @@ authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
 default = []
 
 [dependencies]
-clippy = {version = "0.0.110", optional = true}
+clippy = {version = "0.0.112", optional = true}
 hyper = "0.10.4"
 serde = "0.9.5"
 serde_json = "0.9.4"
@@ -15,7 +15,7 @@ serde_derive = "0.9.5"
 hyper_serde = "0.3.0"
 rocket = "0.1.6"
 rocket_codegen = "0.1.6"
-yup-oauth2 = {version = "1.0.3"}
+yup-oauth2 = {version = "1.0.4"}
 handlebars = {version = "0.24.1", features = ["serde_type"]}
 lazy_static = "0.2.2"
 chrono = {version = "0.2.25", features = ["serde"]}
