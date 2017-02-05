@@ -1,5 +1,4 @@
 use serde;
-use serde_json;
 use std::sync::Mutex;
 use diesel::insert;
 use diesel::sqlite::SqliteConnection;
@@ -27,13 +26,10 @@ pub struct GiantBombVideo {
 fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
     where T: serde::Deserialize
 {
-    println!("do with gzip?");
     let mut q = String::from(url);
     q.push_str("&api_key=");
     q.push_str(&t.key);
-    let res = reqwest::get(q.as_str()).unwrap();
-    serde_json::from_reader(res)
-        .unwrap_or_else(|e: serde_json::error::Error| panic!("error in json parsing: {}", e))
+    reqwest::get(q.as_str()).and_then(|mut s| s.json()).unwrap_or_else(|e| panic!("error in json parsing: {}", e))
 }
 
 fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
