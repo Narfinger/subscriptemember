@@ -6,6 +6,7 @@
 #[cfg(feature = "nightly")]
 #[macro_use]
 extern crate rocket;
+
 extern crate serde;
 extern crate reqwest;
 extern crate chrono;
@@ -13,6 +14,8 @@ extern crate chrono;
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
+extern crate hyper;
+extern crate hyper_rustls;
 extern crate yup_oauth2 as oauth2;
 extern crate rocket;
 extern crate handlebars;
@@ -40,6 +43,7 @@ use std::fs::File;
 use std::thread;
 use std::env;
 use serde_json as json;
+use hyper::net::HttpsConnector;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
 use diesel::Connection;
@@ -69,16 +73,18 @@ fn setup_oauth() -> oauth2::Token {
 
     let secret = json::from_reader::<File,ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
     let mut cwd = std::env::current_dir().unwrap();
-    cwd.push("tk ");
+    cwd.push("tk");
     let cwd: String = String::from(cwd.to_str().expect("string conversion error"));
     let ntk = DiskTokenStorage::new(&cwd).expect("disk storage token is broken");
     println!("s {:?}", secret.client_id);
     
+    let client = hyper::Client::with_connector(
+        HttpsConnector::new(hyper_rustls::TlsClient::new()));
     let realtk = Authenticator::new(&secret,
                                     DefaultAuthenticatorDelegate,
-                                    reqwest::Client::new(),
+                                    client,
                                     ntk,
-                                    Some(FlowType::InstalledRedirect(8080)))
+                                    Some(FlowType::InstalledInteractive))
         .token(&["https://www.googleapis.com/auth/youtube"]);
     if let Err(e) = realtk {
         panic!("Error in token generation: {:?}", e);
@@ -107,7 +113,8 @@ fn subs() -> String {
         "subs": sub,
         "numberofsubs": sub.len(),
     });
-    HB.lock().unwrap().render("subs", &data.to_string()).unwrap()
+    println!("the data we send is: {:?}", data.to_string());
+    HB.lock().unwrap().render("subs", &data).unwrap()
 }
 
 #[get("/updateVideos")]
@@ -143,7 +150,7 @@ fn index() -> String {
         "numberofvideos": numberofvideos,
         "totaltime": totaltime,
     });
-    HB.lock().unwrap().render("index", &data.to_string()).map_err(|err| err.to_string()).unwrap()
+    HB.lock().unwrap().render("index", &data).map_err(|err| err.to_string()).unwrap()
 }
 
 fn template_filename_to_string(s: &str) -> Result<String, String> {

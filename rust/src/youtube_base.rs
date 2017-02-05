@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::collections::VecDeque;
 use oauth2;
 use serde;
@@ -103,9 +104,10 @@ fn query_simple_page<T>(t: &oauth2::Token,
         q.push_str("&pageToken=");
         q.push_str(nextpagetk.as_str());
     }
-
-    let resp = reqwest::get(q.as_str()).unwrap();
-    serde_json::from_reader(resp).unwrap_or_else(|e:serde_json::error::Error| panic!("error in json parsing: {}", e))
+    println!("Query: {}", q);
+    let mut resp = reqwest::get(q.as_str()).unwrap();
+    //println!("Query status: {}", resp.status());
+    resp.json::<YoutubeResult<T>>().unwrap_or_else(|e| panic!("error in json parsing: {}", e))
 }
 
 pub struct Query<T> {
