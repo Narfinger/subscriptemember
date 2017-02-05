@@ -18,7 +18,7 @@ pub struct GiantBombVideo {
     pub deck: String,
     pub hd_url: String,
     pub name: String,
-    pub length_seconds: String,
+    pub length_seconds: i64,
     pub publish_date: String,
     pub site_detail_url: String,
 }
@@ -29,6 +29,7 @@ fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
     let mut q = String::from(url);
     q.push_str("&api_key=");
     q.push_str(&t.key);
+    println!("Query: {}", q);
     reqwest::get(q.as_str()).and_then(|mut s| s.json()).unwrap_or_else(|e| panic!("error in json parsing: {}", e))
 }
 
@@ -40,7 +41,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
         published_at: from_giantbomb_datetime_to_timestamp(&v.publish_date),
         channelname: "GiantBomb".to_string(),
         url: make_gb_url(v.site_detail_url.clone()),
-        duration: v.length_seconds.parse().unwrap_or(0),
+        duration: v.length_seconds,
     }
 }
 

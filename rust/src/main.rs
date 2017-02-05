@@ -10,6 +10,7 @@ extern crate rocket;
 extern crate serde;
 extern crate reqwest;
 extern crate chrono;
+extern crate chrono_tz;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]

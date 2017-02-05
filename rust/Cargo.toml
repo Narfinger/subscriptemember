@@ -19,6 +19,7 @@ yup-oauth2 = {version = "1.0.4"}
 handlebars = {version = "0.25", features = ["serde_type"]}
 lazy_static = "0.2.2"
 chrono = {version = "0.2.25", features = ["serde"]}
+chrono-tz = "0.2.4"
 dotenv = "0.8.0"
 diesel = {version = "0.10.0", features = ["sqlite"]}
 diesel_codegen = {version = "0.10.0", features = ["sqlite"]}
