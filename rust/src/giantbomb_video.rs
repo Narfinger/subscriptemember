@@ -4,7 +4,6 @@ use diesel::insert;
 use diesel::sqlite::SqliteConnection;
 use reqwest;
 use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp};
-use std::time::Duration;
 
 static LIMIT: &'static str = "10";
 
@@ -17,6 +16,7 @@ pub struct GiantBombResult<T> {
 pub struct GiantBombVideo {
     pub deck: String,
     pub hd_url: String,
+    pub youtube_id: String,
     pub name: String,
     pub length_seconds: i64,
     pub publish_date: String,
@@ -30,12 +30,14 @@ fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
     q.push_str("&api_key=");
     q.push_str(&t.key);
     println!("Query: {}", q);
-    reqwest::get(q.as_str()).and_then(|mut s| s.json()).unwrap_or_else(|e| panic!("error in json parsing: {}", e))
+    reqwest::get(q.as_str())
+        .and_then(|mut s| s.json())
+        .unwrap_or_else(|e| panic!("error in json parsing: {}", e))
 }
 
 fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
     NewVideo {
-        vid: "NA".to_string(),
+        vid: v.youtube_id.clone(),
         title: v.name.clone(),
         thumbnail: "NA".to_string(),
         published_at: from_giantbomb_datetime_to_timestamp(&v.publish_date),
