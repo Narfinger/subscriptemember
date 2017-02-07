@@ -56,7 +56,7 @@ use dotenv::dotenv;
 use rocket::response::Redirect;
 use rocket::response::content::Content;
 use rocket::http::ContentType;
-use subs_and_video::GBKey;
+use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 
 lazy_static! {
     static ref TK : oauth2::Token = setup_oauth();
@@ -145,7 +145,10 @@ fn delete(vid: &str) -> Redirect {
 fn index() -> Content<String> {
     let vids = youtube_video::get_videos(&DB);
 
-    let lastrefreshed = "NA";
+
+    let lastrefreshed =
+        format!("{}", NaiveDateTime::from_timestamp(get_lastupdate_in_unixtime(&DB), 0)
+                                .format("%H:%M:%S %d.%m.%Y"));
     let numberofvideos = vids.len();
     let totaltime: i64 = vids.iter().map(|v| v.duration).sum();
 
@@ -178,7 +181,7 @@ fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), 
     let param = h.param(0).unwrap().value().to_string().replace("\"", "").parse::<i64>().unwrap();
     let d = NaiveDateTime::from_timestamp(param, 0);
     let dt = d.format("%H:%M - %d.%m").to_string();
-    println!("this needs to be timezone aware");
+    //println!("this needs to be timezone aware");
 
     try!(rc.writer.write_all(dt.into_bytes().as_ref()));
     Ok(())
