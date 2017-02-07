@@ -1,12 +1,14 @@
 use std::fmt;
 use std::cmp::Ordering;
+use std::str;
+use std::str::FromStr;
 use schema::{subscriptions, videos, config};
 use chrono::{NaiveDateTime,DateTime,TimeZone};
 use chrono_tz::US::Pacific;
 use std::sync::Mutex;
 use diesel::sqlite::SqliteConnection;
 use diesel::LoadDsl;
-use nom::{be_u64,IResult};
+use nom::digit;
 
 #[derive(Debug,Deserialize)]
 pub struct GBKey {
@@ -95,11 +97,12 @@ pub fn from_giantbomb_datetime_to_timestamp(s: &str) -> i64 {
     dttz.timestamp()
 }
 
-named!(youtube_duration_hour <&[u8],u64>, preceded!(tag!("H"), call!(be_u64)) );
-named!(youtube_duration_minutes <&[u8],u64>, preceded!(tag!("M"), call!(be_u64)) );
-named!(youtube_duration_seconds <&[u8],u64>, preceded!(tag!("S"), call!(be_u64)) );
+named!(number<u64>, map_res!(map_res!(ws!(digit),str::from_utf8),FromStr::from_str) );
+named!(youtube_duration_hour    <&[u8],u64>, chain!(v: number ~ tag!("H"), || {v} ) );
+named!(youtube_duration_minutes <&[u8],u64>, chain!(v: number ~ tag!("M"), || {v} ) );
+named!(youtube_duration_seconds <&[u8],u64>, chain!(v: number ~ tag!("S"), || {v} ) );
 
-named!(youtube_duration <&[u8],u64>, chain!(
+named!(pub youtube_duration <&[u8],u64>, chain!(
     tag!("P") ~
     hours: opt!(youtube_duration_hour) ~
         minutes: opt!(youtube_duration_minutes) ~
@@ -111,12 +114,17 @@ named!(youtube_duration <&[u8],u64>, chain!(
 ));
 
 #[test]
-fn youtube_parse_test() {
-    assert_eq!(youtube_duration(&b"P23H4M1S"[..]), IResult::Done(&b""[..], 83055));
+fn youtube_duration_parse_test() {
+    //simple tests    
+    assert_eq!(youtube_duration_hour   (&b"23H"[..]), IResult::Done(&b""[..], 23));
+    assert_eq!(youtube_duration_minutes(&b"23M"[..]), IResult::Done(&b""[..], 23));
+    assert_eq!(youtube_duration_seconds(&b"23S"[..]), IResult::Done(&b""[..], 23));
+    
+    assert_eq!(youtube_duration(&b"P23H4M1S"[..]), IResult::Done(&b""[..], 83041));
     
     assert_eq!(youtube_duration(&b"P1S"[..]), IResult::Done(&b""[..], 1));
     assert_eq!(youtube_duration(&b"P14S"[..]), IResult::Done(&b""[..], 14));
-    assert_eq!(youtube_duration(&b"P4M1S"[..]), IResult::Done(&b""[..], 301));
+    assert_eq!(youtube_duration(&b"P4M1S"[..]), IResult::Done(&b""[..], 241));
     assert_eq!(youtube_duration(&b"P17M5S"[..]), IResult::Done(&b""[..], 1025));
     assert_eq!(youtube_duration(&b"P23M14S"[..]), IResult::Done(&b""[..], 1394));
     assert_eq!(youtube_duration(&b"P1H33M14S"[..]), IResult::Done(&b""[..], 5594));

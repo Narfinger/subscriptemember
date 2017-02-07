@@ -1,7 +1,6 @@
 use oauth2;
 use std::sync::Mutex;
 use std::iter::Iterator;
-use std::time::Duration;
 use chrono::UTC;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
@@ -9,7 +8,7 @@ use diesel::{insert, delete};
 use youtube_base::{YoutubeItem, YoutubeSnippet, query};
 use subs_and_video;
 use subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in_unixtime,
-                     make_youtube_url};
+                     make_youtube_url, youtube_duration};
 
 const PL_URL: &'static str = "https://www.googleapis.\
                               com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";

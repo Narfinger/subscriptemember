@@ -45,7 +45,6 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::thread;
 use std::env;
-use std::time::Duration;
 use serde_json as json;
 use hyper::net::HttpsConnector;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
