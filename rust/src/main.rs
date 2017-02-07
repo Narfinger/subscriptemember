@@ -18,8 +18,8 @@ extern crate serde_json;
 extern crate hyper;
 extern crate hyper_rustls;
 extern crate yup_oauth2 as oauth2;
-extern crate rocket;
 extern crate handlebars;
+extern crate rocket;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -51,6 +51,8 @@ use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
 use rocket::response::Redirect;
+use rocket::response::content::Content;
+use rocket::http::ContentType;
 use subs_and_video::GBKey;
 
 lazy_static! {
@@ -72,15 +74,14 @@ pub fn establish_connection() -> SqliteConnection {
 fn setup_oauth() -> oauth2::Token {
     let f = File::open("client_secret.json").expect("Did not find client_secret.json");
 
-    let secret = json::from_reader::<File,ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
+    let secret = json::from_reader::<File, ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
     let mut cwd = std::env::current_dir().unwrap();
     cwd.push("tk");
     let cwd: String = String::from(cwd.to_str().expect("string conversion error"));
     let ntk = DiskTokenStorage::new(&cwd).expect("disk storage token is broken");
     println!("s {:?}", secret.client_id);
-    
-    let client = hyper::Client::with_connector(
-        HttpsConnector::new(hyper_rustls::TlsClient::new()));
+
+    let client = hyper::Client::with_connector(HttpsConnector::new(hyper_rustls::TlsClient::new()));
     let realtk = Authenticator::new(&secret,
                                     DefaultAuthenticatorDelegate,
                                     client,
@@ -108,14 +109,14 @@ fn update_subs() -> Redirect {
 }
 
 #[get("/subs")]
-fn subs() -> String {
+fn subs() -> Content<String> {
     let sub = youtube_subscriptions::get_subs(&TK, &DB, false);
     let data = json!({
         "subs": sub,
         "numberofsubs": sub.len(),
     });
-    println!("the data we send is: {:?}", data.to_string());
-    HB.lock().unwrap().render("subs", &data).unwrap()
+    Content(ContentType::HTML,
+            HB.lock().unwrap().render("subs", &data).unwrap())
 }
 
 #[get("/updateVideos")]
@@ -138,7 +139,7 @@ fn delete(vid: &str) -> Redirect {
 }
 
 #[get("/")]
-fn index() -> String {
+fn index() -> Content<String> {
     let vids = youtube_video::get_videos(&DB);
 
     let lastrefreshed = "NA";
@@ -151,7 +152,8 @@ fn index() -> String {
         "numberofvideos": numberofvideos,
         "totaltime": totaltime,
     });
-    HB.lock().unwrap().render("index", &data).map_err(|err| err.to_string()).unwrap()
+    Content(ContentType::HTML,
+            HB.lock().unwrap().render("index", &data).map_err(|err| err.to_string()).unwrap())
 }
 
 fn template_filename_to_string(s: &str) -> Result<String, String> {
@@ -189,17 +191,17 @@ fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), 
 fn main() {
     println!("Registering templates");
     {
-        let its = template_filename_to_string("templates/index.html").unwrap();
+        let its = template_filename_to_string("templates/index.hbs").unwrap();
         assert!(HB.lock().unwrap().register_template_string("index", its).is_ok());
 
-        let its = template_filename_to_string("templates/subs.html").unwrap();
+        let its = template_filename_to_string("templates/subs.hbs").unwrap();
         assert!(HB.lock().unwrap().register_template_string("subs", its).is_ok());
 
         HB.lock().unwrap().register_helper("video_time", Box::new(video_time));
-//        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
+        //        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
     println!("Checking token: {}", TK.token_type);
-    
+
     println!("Starting server");
     rocket::ignite()
         .mount("/",
