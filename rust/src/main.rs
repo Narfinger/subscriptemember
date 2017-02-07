@@ -43,6 +43,7 @@ use std::io::prelude::*;
 use std::fs::File;
 use std::thread;
 use std::env;
+use std::time::Duration;
 use serde_json as json;
 use hyper::net::HttpsConnector;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
@@ -181,6 +182,25 @@ fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), 
     Ok(())
 }
 
+fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+    let param = h.param(0).unwrap().value().to_string().replace("\"", "").parse::<i64>().unwrap();
+
+    let seconds = param % 60;
+    let minutes = param / 60 % 60;
+    let hours = param / 60 / 60;
+
+    let mut st = String::new();
+    if hours > 0 {
+        st.push_str(format!("{}H:", hours).as_str());
+    }
+    if minutes > 0 {
+        st.push_str(format!("{:01}M:", minutes).as_str());
+    }
+    st.push_str(format!("{}S", seconds).as_str());
+    try!(rc.writer.write_all(st.into_bytes().as_ref()));
+    Ok(())
+}
+
 // fn video_url(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
 //     let param = h.param(0).unwrap().value().to_string().replace("\"", "");
 //     let url = "https://www.youtube.com/watch?v=".to_string() + param.as_str();
@@ -198,6 +218,7 @@ fn main() {
         assert!(HB.lock().unwrap().register_template_string("subs", its).is_ok());
 
         HB.lock().unwrap().register_helper("video_time", Box::new(video_time));
+        HB.lock().unwrap().register_helper("video_duration", Box::new(video_duration));
         //        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
     println!("Checking token: {}", TK.token_type);
