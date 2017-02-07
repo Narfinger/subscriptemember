@@ -6,6 +6,7 @@ use chrono_tz::US::Pacific;
 use std::sync::Mutex;
 use diesel::sqlite::SqliteConnection;
 use diesel::LoadDsl;
+use nom::{be_u64,IResult};
 
 #[derive(Debug,Deserialize)]
 pub struct GBKey {
@@ -92,6 +93,33 @@ pub fn from_giantbomb_datetime_to_timestamp(s: &str) -> i64 {
     let dt = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").unwrap_or_else(|e| panic!("Error: {}", e));
     let dttz = Pacific.from_local_datetime(&dt).unwrap();
     dttz.timestamp()
+}
+
+named!(youtube_duration_hour <&[u8],u64>, preceded!(tag!("H"), call!(be_u64)) );
+named!(youtube_duration_minutes <&[u8],u64>, preceded!(tag!("M"), call!(be_u64)) );
+named!(youtube_duration_seconds <&[u8],u64>, preceded!(tag!("S"), call!(be_u64)) );
+
+named!(youtube_duration <&[u8],u64>, chain!(
+    tag!("P") ~
+    hours: opt!(youtube_duration_hour) ~
+        minutes: opt!(youtube_duration_minutes) ~
+        seconds: youtube_duration_seconds
+        ,
+    || {
+        hours.unwrap_or(0)*60*60 + minutes.unwrap_or(0) *60 + seconds
+    }
+));
+
+#[test]
+fn youtube_parse_test() {
+    assert_eq!(youtube_duration(&b"P23H4M1S"[..]), IResult::Done(&b""[..], 83055));
+    
+    assert_eq!(youtube_duration(&b"P1S"[..]), IResult::Done(&b""[..], 1));
+    assert_eq!(youtube_duration(&b"P14S"[..]), IResult::Done(&b""[..], 14));
+    assert_eq!(youtube_duration(&b"P4M1S"[..]), IResult::Done(&b""[..], 301));
+    assert_eq!(youtube_duration(&b"P17M5S"[..]), IResult::Done(&b""[..], 1025));
+    assert_eq!(youtube_duration(&b"P23M14S"[..]), IResult::Done(&b""[..], 1394));
+    assert_eq!(youtube_duration(&b"P1H33M14S"[..]), IResult::Done(&b""[..], 5594));
 }
 
 #[derive(Debug,Queryable)]
