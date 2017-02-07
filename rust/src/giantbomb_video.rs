@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use diesel::insert;
 use diesel::sqlite::SqliteConnection;
 use reqwest;
+use uuid::Uuid;
 use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp};
 
 static LIMIT: &'static str = "10";
@@ -16,7 +17,7 @@ pub struct GiantBombResult<T> {
 pub struct GiantBombVideo {
     pub deck: String,
     pub hd_url: String,
-    pub youtube_id: String,
+    pub youtube_id: Option<String>,
     pub name: String,
     pub length_seconds: i64,
     pub publish_date: String,
@@ -36,8 +37,12 @@ fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
 }
 
 fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
+    let id = match v.youtube_id {
+        Some(ref i) => i.clone(),
+        None => format!("{}", Uuid::new_v4().simple()),
+    };
     NewVideo {
-        vid: v.youtube_id.clone(),
+        vid: id,
         title: v.name.clone(),
         thumbnail: "NA".to_string(),
         published_at: from_giantbomb_datetime_to_timestamp(&v.publish_date),

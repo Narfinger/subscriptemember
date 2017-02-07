@@ -29,6 +29,7 @@ extern crate diesel_codegen;
 extern crate dotenv;
 #[macro_use]
 extern crate nom;
+extern crate uuid;
 
 pub mod schema;
 pub mod youtube_base;
