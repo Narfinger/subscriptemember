@@ -145,7 +145,7 @@ fn index() -> Content<String> {
 
     let lastrefreshed = "NA";
     let numberofvideos = vids.len();
-    let totaltime = "NA";
+    let totaltime: i64 = vids.iter().map(|v| v.duration).sum();
 
     let data = json!({
         "vids": vids,
