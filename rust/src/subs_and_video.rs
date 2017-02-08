@@ -90,7 +90,6 @@ pub fn from_youtube_datetime_to_timestamp(s: &str) -> i64 {
 }
 
 pub fn from_giantbomb_datetime_to_timestamp(s: &str) -> i64 {
-    println!("string to parse: {}", s);
     //let dt = Pacific::parse_from_str(s, "%Y-%m-%d %H:%M:%S").unwrap_or_else(|e| panic!("Error: {}", e));
     let dt = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").unwrap_or_else(|e| panic!("Error: {}", e));
     let dttz = Pacific.from_local_datetime(&dt).unwrap();
