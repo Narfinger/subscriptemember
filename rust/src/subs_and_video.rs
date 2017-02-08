@@ -76,8 +76,8 @@ pub struct NewVideo {
     pub url: String,
 }
 
-pub fn make_youtube_url(s: &String) -> String {
-    "https://www.youtube.com/watch?v=".to_string() + &s
+pub fn make_youtube_url(s: &str) -> String {
+    "https://www.youtube.com/watch?v=".to_string() + s
 }
 
 pub fn make_gb_url(s: String) -> String {

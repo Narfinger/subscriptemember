@@ -24,11 +24,18 @@ fn query_videos<'f>(t: &'f oauth2::Token,
         PL_URL.to_string() + &s.uploadplaylist + "&access_token="
     }
 
+    //why does this not work? it should be better
+    // subs.par_iter()
+    //     .map(|s| (s, query::<YoutubeSnippet>(t, &build_string(s))))
+    //     .map(|(s, q)| (s, q.take(10).collect::<Vec<YoutubeItem<YoutubeSnippet>>>()))
+    //     .flat_map(|&(s, ref q)| q.into_iter().map(move |sn| construct_new_video(s, sn)))
+    //     .filter(|s| s.published_at > unix_stamp)
+    //     .collect::<Vec<NewVideo>>()
+
     let vids = subs.par_iter()
         .map(|s| (s, query::<YoutubeSnippet>(t, &build_string(s))))
         .map(|(s, q)| (s, q.take(10).collect::<Vec<YoutubeItem<YoutubeSnippet>>>()))
         .collect::<Vec<(&Subscription, Vec<YoutubeItem<YoutubeSnippet>>)>>();
-
     vids.iter()
         .flat_map(|&(s, ref q)| q.into_iter().map(move |sn| construct_new_video(s, sn)))
         .filter(|s| s.published_at > unix_stamp)
