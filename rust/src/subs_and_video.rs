@@ -80,8 +80,8 @@ pub fn make_youtube_url(s: &str) -> String {
     "https://www.youtube.com/watch?v=".to_string() + s
 }
 
-pub fn make_gb_url(s: String) -> String {
-    s
+pub fn make_gb_url(s: &str) -> String {
+    s.to_string()
 }
 
 pub fn from_youtube_datetime_to_timestamp(s: &str) -> i64 {

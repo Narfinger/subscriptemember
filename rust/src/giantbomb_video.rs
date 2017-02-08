@@ -56,7 +56,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
         thumbnail: v.image.small_url.clone(),
         published_at: from_giantbomb_datetime_to_timestamp(&v.publish_date),
         channelname: "GiantBomb".to_string(),
-        url: make_gb_url(v.site_detail_url.clone()),
+        url: make_gb_url(v.site_detail_url.as_ref()),
         duration: v.length_seconds,
     }
 }

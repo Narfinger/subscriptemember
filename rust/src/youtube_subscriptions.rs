@@ -77,9 +77,9 @@ pub fn get_subs(t: &oauth2::Token,
     if update_subs {
         delete(subscriptions::table).execute(dbconn).expect("Deletion of old subscriptions failed");
 
-        let ytsubs = get_subscriptions_for_me(t);
-        let it = ytsubs.into_iter();
-        let subs = it.map(construct_subscription).collect::<Vec<NewSubscription>>();
+        let subs = get_subscriptions_for_me(t)
+            .map(construct_subscription)
+            .collect::<Vec<NewSubscription>>();
         insert(&subs)
             .into(subscriptions::table)
             .execute(dbconn)
