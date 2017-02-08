@@ -4,7 +4,8 @@ use diesel::insert;
 use diesel::sqlite::SqliteConnection;
 use reqwest;
 use uuid::Uuid;
-use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp};
+use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp,
+                     get_lastupdate_in_unixtime};
 
 static LIMIT: &'static str = "10";
 
@@ -61,12 +62,13 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
     }
 }
 
-fn query_videos(t: &GBKey) -> Vec<NewVideo> {
+fn query_videos(t: &GBKey, unix_stamp: i64) -> Vec<NewVideo> {
     let qstring = "https://www.giantbomb.com/api/videos/?format=json&limit=".to_string() + LIMIT;
     let res = query_giantbomb(t, qstring);
     res.results
         .iter()
         .map(construct_new_video)
+        .filter(|v| v.published_at > unix_stamp)
         .collect::<Vec<NewVideo>>()
 }
 
@@ -74,7 +76,8 @@ pub fn update_videos(t: &GBKey, db: &Mutex<SqliteConnection>) {
     use schema::videos;
     use diesel::ExecuteDsl;
 
-    let vids: Vec<NewVideo> = query_videos(t);
+    let us = get_lastupdate_in_unixtime(db);
+    let vids: Vec<NewVideo> = query_videos(t, us);
     let dbconn: &SqliteConnection = &db.lock().unwrap();
     insert(&vids)
         .into(videos::table)
