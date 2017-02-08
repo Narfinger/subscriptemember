@@ -30,6 +30,7 @@ extern crate dotenv;
 #[macro_use]
 extern crate nom;
 extern crate uuid;
+extern crate rayon;
 
 pub mod schema;
 pub mod youtube_base;
