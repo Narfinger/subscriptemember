@@ -9,12 +9,18 @@ use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_ti
 static LIMIT: &'static str = "10";
 
 #[derive(Debug,Deserialize)]
-pub struct GiantBombResult<T> {
+struct GiantBombResult<T> {
     results: Vec<T>,
 }
 
 #[derive(Debug,Deserialize)]
-pub struct GiantBombVideo {
+struct GiantBombThumbnail {
+    pub medium_url: String,
+    pub small_url: String,
+}
+
+#[derive(Debug,Deserialize)]
+struct GiantBombVideo {
     pub deck: String,
     pub hd_url: String,
     pub youtube_id: Option<String>,
@@ -22,7 +28,10 @@ pub struct GiantBombVideo {
     pub length_seconds: i64,
     pub publish_date: String,
     pub site_detail_url: String,
+    pub image: GiantBombThumbnail,
 }
+
+
 
 fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
     where T: serde::Deserialize
@@ -44,7 +53,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
     NewVideo {
         vid: id,
         title: v.name.clone(),
-        thumbnail: "NA".to_string(),
+        thumbnail: v.image.small_url.clone(),
         published_at: from_giantbomb_datetime_to_timestamp(&v.publish_date),
         channelname: "GiantBomb".to_string(),
         url: make_gb_url(v.site_detail_url.clone()),
