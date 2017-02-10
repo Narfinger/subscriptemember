@@ -5,7 +5,8 @@ use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert, delete, update};
 
-use youtube_base::{YoutubeItem, YoutubeSubscription, YoutubeContentDetails, Query, query};
+use youtube_base::{YoutubeItem, YoutubeSubscription, YoutubeRelatedPlaylistsContentDetails, Query,
+                   query};
 use subs_and_video::{Subscription, NewSubscription};
 
 const SUB_URL: &'static str = "https://www.googleapis.\
@@ -20,17 +21,17 @@ fn get_subscriptions_for_me(t: &oauth2::Token) -> Query<YoutubeSubscription> {
 }
 
 fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
-    let mut upload_playlist: Vec<YoutubeItem<YoutubeContentDetails>> = Vec::new();
+    let mut upload_playlist: Vec<YoutubeItem<YoutubeRelatedPlaylistsContentDetails>> = Vec::new();
     for chunk in subs.chunks(50) {
         let onlyids = chunk.iter().map(|s: &Subscription| s.channelid.clone());
         let mut singlestringids: String =
             onlyids.fold("".to_string(), |comb: String, s| comb + &s + ",");
         singlestringids.pop();
         let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + "&access_token=";
-        let res: Query<YoutubeContentDetails> = query(t, &queryurl);
+        let res: Query<YoutubeRelatedPlaylistsContentDetails> = query(t, &queryurl);
 
         println!("this is super inefficient");
-        let mut realres = res.collect::<Vec<YoutubeItem<YoutubeContentDetails>>>();
+        let mut realres = res.collect::<Vec<YoutubeItem<YoutubeRelatedPlaylistsContentDetails>>>();
         upload_playlist.append(&mut realres);
     }
 
@@ -38,9 +39,11 @@ fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
     match_subs_to_res(subs, &upload_playlist);
 }
 
-fn match_subs_to_res(subs: &mut Vec<Subscription>, ups: &[YoutubeItem<YoutubeContentDetails>]) {
-    fn find_and_replace(s: &mut Subscription, ups: &[YoutubeItem<YoutubeContentDetails>]) {
-        let val: &YoutubeItem<YoutubeContentDetails> =
+fn match_subs_to_res(subs: &mut Vec<Subscription>,
+                     ups: &[YoutubeItem<YoutubeRelatedPlaylistsContentDetails>]) {
+    fn find_and_replace(s: &mut Subscription,
+                        ups: &[YoutubeItem<YoutubeRelatedPlaylistsContentDetails>]) {
+        let val: &YoutubeItem<YoutubeRelatedPlaylistsContentDetails> =
             ups.iter().find(|ups_elem| ups_elem.iid == s.channelid).unwrap();
         let v = val.content_details
             .as_ref()

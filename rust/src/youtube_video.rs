@@ -5,7 +5,7 @@ use chrono::UTC;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert, delete};
-use youtube_base::{YoutubeItem, YoutubeSnippet, query};
+use youtube_base::{YoutubeItem, YoutubeSnippet, YoutubeDurationContentDetails, query};
 use subs_and_video;
 use subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in_unixtime,
                      make_youtube_url, youtube_duration};
@@ -14,6 +14,8 @@ use rayon::prelude::*;
 const PL_URL: &'static str = "https://www.googleapis.\
                               com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
 
+const VID_URL: &'static str = "https://www.googleapis.\
+                               com/youtube/v3/videos?part=contentDetails&maxResults=50&id=";
 
 fn query_videos<'f>(t: &'f oauth2::Token,
                     subs: &'f [Subscription],
@@ -56,14 +58,41 @@ fn construct_new_video(s: &Subscription, i: &YoutubeItem<YoutubeSnippet>) -> New
     }
 }
 
+fn update_vid(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewVideo]) {
+    let pos = v.iter().position(|e| e.vid == i.iid);
+    if pos.is_some() {
+        let dur = youtube_duration(i.content_details.as_ref().unwrap().duration.as_bytes())
+            .to_result()
+            .unwrap_or(0) as i64;
+        v[pos.unwrap()].duration = dur;
+    }
+}
+
+fn update_video_running_time(t: &oauth2::Token, mut v: &mut Vec<NewVideo>) {
+    for chunk in v.chunks_mut(50) {
+        let mut singlestringids = chunk.iter()
+            .map(|s: &NewVideo| s.vid.clone())
+            .fold("".to_string(), |comb: String, s| comb + &s + ",");
+        singlestringids.pop();
+        let queryurl = VID_URL.to_string() + &singlestringids + "&access_token=";
+
+        let q = query::<YoutubeDurationContentDetails>(t, &queryurl);
+
+        for i in q {
+            update_vid(&i, chunk);
+        }
+    }
+}
+
 pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &[Subscription]) {
     use schema::videos;
     use schema::config;
 
 
     let us = get_lastupdate_in_unixtime(db);
-    let vids: Vec<NewVideo> = query_videos(t, subs, us);
-
+    let mut vids: Vec<NewVideo> = query_videos(t, subs, us);
+    println!("Updating video running time");
+    update_video_running_time(t, &mut vids);
 
     println!("New Videos length: {}", vids.len());
     let dbconn: &SqliteConnection = &db.lock().unwrap();
@@ -75,7 +104,6 @@ pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &[Su
     let nc = NewConfig { lastupdate: UTC::now().to_rfc3339() };
     insert(&nc).into(config::table).execute(dbconn).expect("Insertion of config failed");
 }
-
 
 pub fn get_videos(db: &Mutex<SqliteConnection>) -> Vec<Video> {
     use schema::videos::dsl::*;

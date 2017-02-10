@@ -31,7 +31,7 @@ pub struct YoutubeItem<T> {
 }
 
 #[derive(Debug,Deserialize)]
-pub struct YoutubeContentDetails {
+pub struct YoutubeRelatedPlaylistsContentDetails {
     #[serde(rename="relatedPlaylists")]
     pub related_playlists: Option<YoutubeRelatedPlaylists>,
 }
@@ -90,10 +90,14 @@ pub struct YoutubeSubscription {
     pub resource_id: YoutubeResource,
 }
 
-fn query_simple_page<T>(t: &oauth2::Token,
-                        url: &str,
-                        nextpage: Option<String>)
-                        -> YoutubeResult<T>
+#[derive(Debug,Deserialize)]
+pub struct YoutubeDurationContentDetails {
+    pub duration: String,
+    pub dimension: String,
+    pub definition: String,
+}
+
+fn query_simple_page<T>(t: &oauth2::Token, url: &str, nextpage: Option<String>) -> YoutubeResult<T>
     where T: serde::Deserialize
 {
     let mut q = String::from(url);
@@ -103,7 +107,9 @@ fn query_simple_page<T>(t: &oauth2::Token,
         q.push_str(nextpagetk.as_str());
     }
     println!("Query: {}", q);
-    reqwest::get(q.as_str()).and_then(|mut r| r.json::<YoutubeResult<T>>()).unwrap_or_else(|e| panic!("error in json parsing: {}", e))
+    reqwest::get(q.as_str())
+        .and_then(|mut r| r.json::<YoutubeResult<T>>())
+        .unwrap_or_else(|e| panic!("error in json parsing: {}", e))
 }
 
 pub struct Query<T> {
@@ -114,7 +120,9 @@ pub struct Query<T> {
     next_page: Option<String>,
 }
 
-impl<'a,T> Iterator for Query<T> where T: serde::Deserialize {
+impl<'a, T> Iterator for Query<T>
+    where T: serde::Deserialize
+{
     type Item = YoutubeItem<T>;
     fn next(&mut self) -> Option<YoutubeItem<T>> {
         if !self.initialised {
@@ -126,11 +134,11 @@ impl<'a,T> Iterator for Query<T> where T: serde::Deserialize {
 
         if self.storage.is_empty() {
             if self.next_page.is_some() {
-                let res = query_simple_page(&self.t, &self.url,self.next_page.clone());
+                let res = query_simple_page(&self.t, &self.url, self.next_page.clone());
                 self.storage = res.items;
                 self.next_page = res.next_page_token;
             } else {
-                return None
+                return None;
             }
         }
 
@@ -139,12 +147,14 @@ impl<'a,T> Iterator for Query<T> where T: serde::Deserialize {
 }
 
 
-pub fn query<T>(t: &oauth2::Token, url: &str) -> Query<T> 
+pub fn query<T>(t: &oauth2::Token, url: &str) -> Query<T>
     where T: serde::Deserialize
 {
-    Query::<T>{initialised: false,
-               storage: VecDeque::with_capacity(50),
-               url: url.to_string(),
-               t: t.clone(),
-               next_page: None}
+    Query::<T> {
+        initialised: false,
+        storage: VecDeque::with_capacity(50),
+        url: url.to_string(),
+        t: t.clone(),
+        next_page: None,
+    }
 }
