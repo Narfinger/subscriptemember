@@ -8,7 +8,7 @@ use chrono_tz::US::Pacific;
 use std::sync::Mutex;
 use diesel::sqlite::SqliteConnection;
 use diesel::LoadDsl;
-use nom::digit;
+use nom::{IResult,digit};
 
 #[derive(Debug,Deserialize)]
 pub struct GBKey {
