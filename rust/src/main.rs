@@ -44,9 +44,11 @@ use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecr
              DiskTokenStorage, GetToken, FlowType};
 
 use std::io::prelude::*;
+use std::io;
 use std::fs::File;
 use std::thread;
 use std::env;
+use std::os::unix::net::UnixStream;
 use serde_json as json;
 use hyper::net::HttpsConnector;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
@@ -54,10 +56,12 @@ use chrono::NaiveDateTime;
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
-use rocket::response::Redirect;
+use rocket::response::{Redirect, Stream};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
+const SOCKET: &'static str = "/tmp/rocket.sock";
+
 
 lazy_static! {
     static ref TK : oauth2::Token = setup_oauth();
@@ -65,6 +69,7 @@ lazy_static! {
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
     static ref GBTK : GBKey = setup_gbkey();
     static ref UPDATING_VIDEOS: Mutex<()> = Mutex::new(());
+//    static ref SOCKETS : (UnixStream,UnixStream) = UnixStream::pair().unwrap(); //rx,tx 
 }
 
 pub fn establish_connection() -> SqliteConnection {
@@ -142,10 +147,14 @@ fn delete(vid: &str) -> Redirect {
     Redirect::to("/")
 }
 
+#[get("/socket")]
+fn socket() -> io::Result<Stream<UnixStream>> {
+    UnixStream::connect(SOCKET).map(|s| Stream::from(s))
+}
+
 #[get("/")]
 fn index() -> Content<String> {
     let vids = youtube_video::get_videos(&DB);
-
 
     let lastrefreshed =
         format!("{}", NaiveDateTime::from_timestamp(get_lastupdate_in_unixtime(&DB), 0)
@@ -229,9 +238,10 @@ fn main() {
     }
     println!("Checking token: {}", TK.token_type);
 
+    
     println!("Starting server");
     rocket::ignite()
         .mount("/",
-               routes![update_subs, subs, update_videos, delete, index])
+               routes![update_subs, subs, update_videos, delete, socket, index])
         .launch();
 }
