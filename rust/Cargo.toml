@@ -1,0 +1,30 @@
+[package]
+name = "subscriptemember"
+version = "0.1.0"
+authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
+
+[features]
+default = []
+
+[dependencies]
+clippy = {version = "0.0.114", optional = true}
+serde = "0.9.5"
+serde_json = "0.9.4"
+serde_derive = "0.9.5"
+rocket = "0.2.0"
+rocket_codegen = "0.2.0"
+rocket_contrib = {version = "0.2.0", features = ["handlebars_templates"]}
+hyper = "0.10.4"
+hyper-rustls = "0.3.1"
+yup-oauth2 = {version = "1.0.4"}
+handlebars = {version = "0.25", features = ["serde_type"]}
+lazy_static = "0.2.2"
+chrono = {version = "0.3.0", features = ["serde"]}
+chrono-tz = "0.3.0"
+dotenv = "0.8.0"
+diesel = {version = "0.10.0", features = ["sqlite"]}
+diesel_codegen = {version = "0.10.0", features = ["sqlite"]}
+reqwest = "0.4.0"
+nom = "2.1.0"
+uuid = {version = "0.2", features = ["v4"]}
+rayon = "0.6.0"

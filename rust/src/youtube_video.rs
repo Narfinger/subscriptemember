@@ -1,0 +1,125 @@
+use oauth2;
+use std::sync::Mutex;
+use std::iter::Iterator;
+use chrono::UTC;
+use diesel::sqlite::SqliteConnection;
+use diesel::prelude::*;
+use diesel::{insert, delete};
+use youtube_base::{YoutubeItem, YoutubeSnippet, YoutubeDurationContentDetails, query};
+use subs_and_video;
+use subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in_unixtime,
+                     make_youtube_url, youtube_duration};
+use rayon::prelude::*;
+
+const PL_URL: &'static str = "https://www.googleapis.\
+                              com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
+
+const VID_URL: &'static str = "https://www.googleapis.\
+                               com/youtube/v3/videos?part=contentDetails&maxResults=50&id=";
+
+fn query_videos<'f>(t: &'f oauth2::Token,
+                    subs: &'f [Subscription],
+                    //subs: &Vec<Subscription>,
+                    unix_stamp: i64)
+                    -> Vec<NewVideo> {
+    fn build_string(s: &Subscription) -> String {
+        PL_URL.to_string() + &s.uploadplaylist + "&access_token="
+    }
+
+    //why does this not work? it should be better
+    // subs.par_iter()
+    //     .map(|s| (s, query::<YoutubeSnippet>(t, &build_string(s))))
+    //     .map(|(s, q)| (s, q.take(10).collect::<Vec<YoutubeItem<YoutubeSnippet>>>()))
+    //     .flat_map(|&(s, ref q)| q.into_iter().map(move |sn| construct_new_video(s, sn)))
+    //     .filter(|s| s.published_at > unix_stamp)
+    //     .collect::<Vec<NewVideo>>()
+
+    let vids = subs.par_iter()
+        .map(|s| (s, query::<YoutubeSnippet>(t, &build_string(s))))
+        .map(|(s, q)| (s, q.take(10).collect::<Vec<YoutubeItem<YoutubeSnippet>>>()))
+        .collect::<Vec<(&Subscription, Vec<YoutubeItem<YoutubeSnippet>>)>>();
+    vids.iter()
+        .flat_map(|&(s, ref q)| q.into_iter().map(move |sn| construct_new_video(s, sn)))
+        .filter(|s| s.published_at > unix_stamp)
+        .collect::<Vec<NewVideo>>()
+}
+
+fn construct_new_video(s: &Subscription, i: &YoutubeItem<YoutubeSnippet>) -> NewVideo {
+    let snippet = i.snippet.as_ref().unwrap();
+    let vid = snippet.resource.video_id.as_ref().unwrap();
+    NewVideo {
+        vid: vid.clone(),
+        title: snippet.title.clone(),
+        thumbnail: snippet.thumbnails.default.thmburl.clone(),
+        published_at: subs_and_video::from_youtube_datetime_to_timestamp(&snippet.published_at),
+        channelname: s.channelname.clone(),
+        duration: 0,
+        url: make_youtube_url(vid),
+    }
+}
+
+fn update_vid(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewVideo]) {
+    let pos = v.iter().position(|e| e.vid == i.iid);
+    if pos.is_some() {
+        let dur = youtube_duration(i.content_details.as_ref().unwrap().duration.as_bytes())
+            .to_result()
+            .unwrap_or(0) as i64;
+        v[pos.unwrap()].duration = dur;
+    }
+}
+
+fn update_video_running_time(t: &oauth2::Token, mut v: &mut Vec<NewVideo>) {
+    for chunk in v.chunks_mut(50) {
+        let mut singlestringids = chunk.iter()
+            .map(|s: &NewVideo| s.vid.clone())
+            .fold("".to_string(), |comb: String, s| comb + &s + ",");
+        singlestringids.pop();
+        let queryurl = VID_URL.to_string() + &singlestringids + "&access_token=";
+
+        let q = query::<YoutubeDurationContentDetails>(t, &queryurl);
+
+        for i in q {
+            update_vid(&i, chunk);
+        }
+    }
+}
+
+pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &[Subscription]) {
+    use schema::videos;
+    use schema::config;
+
+
+    let us = get_lastupdate_in_unixtime(db);
+    let mut vids: Vec<NewVideo> = query_videos(t, subs, us);
+    println!("Updating video running time");
+    update_video_running_time(t, &mut vids);
+
+    println!("New Videos length: {}", vids.len());
+    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    insert(&vids)
+        .into(videos::table)
+        .execute(dbconn)
+        .expect("Insertion of Videos Failed");
+    delete(config::table).execute(dbconn).expect("Deletion of old config failed");
+    let nc = NewConfig { lastupdate: UTC::now().to_rfc3339() };
+    insert(&nc).into(config::table).execute(dbconn).expect("Insertion of config failed");
+}
+
+pub fn get_videos(db: &Mutex<SqliteConnection>) -> Vec<Video> {
+    use schema::videos::dsl::*;
+
+    let dbconn: &SqliteConnection = &db.lock().unwrap();
+
+    videos.order(published_at.desc())
+        .load(dbconn)
+        .unwrap()
+}
+
+pub fn delete_video(db: &Mutex<SqliteConnection>, videoid: &str) {
+    use schema::videos::dsl::*;
+
+    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    delete(videos.filter(vid.like(videoid)))
+        .execute(dbconn)
+        .expect("Deleting failed");
+}
