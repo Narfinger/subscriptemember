@@ -17,6 +17,7 @@ const PL_URL: &'static str = "https://www.googleapis.\
 const VID_URL: &'static str = "https://www.googleapis.\
                                com/youtube/v3/videos?part=contentDetails&maxResults=50&id=";
 
+/// Queries current Youtube Videos, filters them by `unix_stamp` and uses `subs` to get the uploadplaylist ids` 
 fn query_videos<'f>(t: &'f oauth2::Token,
                     subs: &'f [Subscription],
                     //subs: &Vec<Subscription>,
@@ -44,6 +45,7 @@ fn query_videos<'f>(t: &'f oauth2::Token,
         .collect::<Vec<NewVideo>>()
 }
 
+/// Takes a single `YoutubeItem<YoutubeSnippet>` and constructs a `NewVideo` according to this
 fn construct_new_video(s: &Subscription, i: &YoutubeItem<YoutubeSnippet>) -> NewVideo {
     let snippet = i.snippet.as_ref().unwrap();
     let vid = snippet.resource.video_id.as_ref().unwrap();
@@ -58,7 +60,8 @@ fn construct_new_video(s: &Subscription, i: &YoutubeItem<YoutubeSnippet>) -> New
     }
 }
 
-fn update_vid(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewVideo]) {
+/// Gets a current `YoutubeItem<YoutubeDurationcontentdetails>`, finds the appropiate video in `v` and updates the running time
+fn update_vid_time(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewVideo]) {
     let pos = v.iter().position(|e| e.vid == i.iid);
     if pos.is_some() {
         let dur = youtube_duration(i.content_details.as_ref().unwrap().duration.as_bytes())
@@ -68,6 +71,7 @@ fn update_vid(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewVideo]
     }
 }
 
+/// update all running time of videos given in `v`
 fn update_video_running_time(t: &oauth2::Token, mut v: &mut Vec<NewVideo>) {
     for chunk in v.chunks_mut(50) {
         let mut singlestringids = chunk.iter()
@@ -79,11 +83,12 @@ fn update_video_running_time(t: &oauth2::Token, mut v: &mut Vec<NewVideo>) {
         let q = query::<YoutubeDurationContentDetails>(t, &queryurl);
 
         for i in q {
-            update_vid(&i, chunk);
+            update_vid_time(&i, chunk);
         }
     }
 }
 
+/// Get new Videos and inserts them into the database
 pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &[Subscription]) {
     use schema::videos;
     use schema::config;
@@ -105,6 +110,7 @@ pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &[Su
     insert(&nc).into(config::table).execute(dbconn).expect("Insertion of config failed");
 }
 
+/// Returns current videos in the database
 pub fn get_videos(db: &Mutex<SqliteConnection>) -> Vec<Video> {
     use schema::videos::dsl::*;
 

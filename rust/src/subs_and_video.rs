@@ -81,15 +81,18 @@ pub fn make_youtube_url(s: &str) -> String {
     "https://www.youtube.com/watch?v=".to_string() + s
 }
 
+/// Construct a Giantbomb URL from the url field
 pub fn make_gb_url(s: &str) -> String {
     s.to_string()
 }
 
+/// Construct a unix epoch from a given youtube timestamp string
 pub fn from_youtube_datetime_to_timestamp(s: &str) -> i64 {
     let dt = DateTime::parse_from_rfc3339(s).unwrap();
     dt.timestamp()
 }
 
+/// Construct a unix epoch from a given giantbomb time string
 pub fn from_giantbomb_datetime_to_timestamp(s: &str) -> i64 {
     //let dt = Pacific::parse_from_str(s, "%Y-%m-%d %H:%M:%S").unwrap_or_else(|e| panic!("Error: {}", e));
     let dt = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").unwrap_or_else(|e| panic!("Error: {}", e));
@@ -102,6 +105,7 @@ named!(youtube_duration_hour    <&[u8],u64>, chain!(v: number ~ tag!("H"), || {v
 named!(youtube_duration_minutes <&[u8],u64>, chain!(v: number ~ tag!("M"), || {v} ) );
 named!(youtube_duration_seconds <&[u8],u64>, chain!(v: number ~ tag!("S"), || {v} ) );
 
+/// Parses a youtube duration string into unix epoch
 named!(pub youtube_duration <&[u8],u64>, chain!(
     tag!("P") ~
     tag!("T") ~
@@ -144,6 +148,7 @@ pub struct NewConfig {
     pub lastupdate: String,
 }
 
+/// Get the lastupdate from the database in unix epoch
 pub fn get_lastupdate_in_unixtime(db: &Mutex<SqliteConnection>) -> i64 {
     use schema::config::dsl::*;
 
