@@ -104,6 +104,7 @@ named!(youtube_duration_seconds <&[u8],u64>, chain!(v: number ~ tag!("S"), || {v
 
 named!(pub youtube_duration <&[u8],u64>, chain!(
     tag!("P") ~
+    tag!("T") ~
     hours: opt!(youtube_duration_hour) ~
         minutes: opt!(youtube_duration_minutes) ~
         seconds: youtube_duration_seconds
@@ -120,14 +121,15 @@ fn youtube_duration_parse_test() {
     assert_eq!(youtube_duration_minutes(&b"23M"[..]), IResult::Done(&b""[..], 23));
     assert_eq!(youtube_duration_seconds(&b"23S"[..]), IResult::Done(&b""[..], 23));
     
-    assert_eq!(youtube_duration(&b"P23H4M1S"[..]), IResult::Done(&b""[..], 83041));
+    assert_eq!(youtube_duration(&b"PT23H4M1S"[..]), IResult::Done(&b""[..], 83041));
+    assert_eq!(youtube_duration(&b"PT15M23S"[..]), IResult::Done(&b""[..], 923));
     
-    assert_eq!(youtube_duration(&b"P1S"[..]), IResult::Done(&b""[..], 1));
-    assert_eq!(youtube_duration(&b"P14S"[..]), IResult::Done(&b""[..], 14));
-    assert_eq!(youtube_duration(&b"P4M1S"[..]), IResult::Done(&b""[..], 241));
-    assert_eq!(youtube_duration(&b"P17M5S"[..]), IResult::Done(&b""[..], 1025));
-    assert_eq!(youtube_duration(&b"P23M14S"[..]), IResult::Done(&b""[..], 1394));
-    assert_eq!(youtube_duration(&b"P1H33M14S"[..]), IResult::Done(&b""[..], 5594));
+    assert_eq!(youtube_duration(&b"PT1S"[..]), IResult::Done(&b""[..], 1));
+    assert_eq!(youtube_duration(&b"PT14S"[..]), IResult::Done(&b""[..], 14));
+    assert_eq!(youtube_duration(&b"PT4M1S"[..]), IResult::Done(&b""[..], 241));
+    assert_eq!(youtube_duration(&b"PT17M5S"[..]), IResult::Done(&b""[..], 1025));
+    assert_eq!(youtube_duration(&b"PT23M14S"[..]), IResult::Done(&b""[..], 1394));
+    assert_eq!(youtube_duration(&b"PT1H33M14S"[..]), IResult::Done(&b""[..], 5594));
 }
 
 #[derive(Debug,Queryable)]
