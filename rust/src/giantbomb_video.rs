@@ -32,8 +32,7 @@ struct GiantBombVideo {
     pub image: GiantBombThumbnail,
 }
 
-
-
+/// query giantbomb api and returns the result in a `GiantBombResult<T>`
 fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
     where T: serde::Deserialize
 {
@@ -46,6 +45,7 @@ fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
         .unwrap_or_else(|e| panic!("error in json parsing: {}", e))
 }
 
+/// Given a `GiantBombVideo` and builds a `NewVideo` out of it
 fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
     let id = match v.youtube_id {
         Some(ref i) => i.clone(),
@@ -62,6 +62,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
     }
 }
 
+/// query the giantbomb videos, filter them according to `unix_stamp` and returns them
 fn query_videos(t: &GBKey, unix_stamp: i64) -> Vec<NewVideo> {
     let qstring = "https://www.giantbomb.com/api/videos/?format=json&limit=".to_string() + LIMIT;
     let res = query_giantbomb(t, qstring);
@@ -72,6 +73,7 @@ fn query_videos(t: &GBKey, unix_stamp: i64) -> Vec<NewVideo> {
         .collect::<Vec<NewVideo>>()
 }
 
+/// Update giantbomb videos and put them into the database
 pub fn update_videos(t: &GBKey, db: &Mutex<SqliteConnection>) {
     use schema::videos;
     use diesel::ExecuteDsl;
