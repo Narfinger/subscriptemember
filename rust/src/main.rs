@@ -150,7 +150,7 @@ fn delete(vid: &str) -> Redirect {
 
 #[get("/socket")]
 fn socket() -> io::Result<Stream<UnixStream>> {
-    SOCKET.try_clone().map(|s| Stream::from(s))
+    SOCKET.try_clone().map(Stream::from)
 }
 
 #[get("/static/<file..>")]
