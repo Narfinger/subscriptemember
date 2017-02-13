@@ -46,6 +46,7 @@ use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecr
 use std::io::prelude::*;
 use std::io;
 use std::fs::File;
+use std::path::{Path, PathBuf};
 use std::thread;
 use std::env;
 use std::os::unix::net::UnixStream;
@@ -56,11 +57,11 @@ use chrono::NaiveDateTime;
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
-use rocket::response::{Redirect, Stream};
+use rocket::response::{Redirect, Stream, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
-const SOCKET: &'static str = "/tmp/rocket.sock";
+//const SOCKET: &'static str = "/tmp/rocket.sock";
 
 
 lazy_static! {
@@ -69,7 +70,7 @@ lazy_static! {
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
     static ref GBTK : GBKey = setup_gbkey();
     static ref UPDATING_VIDEOS: Mutex<()> = Mutex::new(());
-//    static ref SOCKETS : (UnixStream,UnixStream) = UnixStream::pair().unwrap(); //rx,tx 
+    static ref SOCKET : UnixStream = UnixStream::pair().unwrap().0; //rx,tx 
 }
 
 pub fn establish_connection() -> SqliteConnection {
@@ -149,7 +150,12 @@ fn delete(vid: &str) -> Redirect {
 
 #[get("/socket")]
 fn socket() -> io::Result<Stream<UnixStream>> {
-    UnixStream::connect(SOCKET).map(|s| Stream::from(s))
+    SOCKET.try_clone().map(|s| Stream::from(s))
+}
+
+#[get("/static/<file..>")]
+fn static_files(file: PathBuf) -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/").join(file)).ok()
 }
 
 #[get("/")]
@@ -242,6 +248,6 @@ fn main() {
     println!("Starting server");
     rocket::ignite()
         .mount("/",
-               routes![update_subs, subs, update_videos, delete, socket, index])
+               routes![update_subs, subs, update_videos, delete, socket, static_files, index])
         .launch();
 }
