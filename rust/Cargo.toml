@@ -26,5 +26,5 @@ diesel = {version = "0.10.0", features = ["sqlite"]}
 diesel_codegen = {version = "0.10.0", features = ["sqlite"]}
 reqwest = "0.4.0"
 nom = "2.1.0"
-uuid = {version = "0.2", features = ["v4"]}
+uuid = {version = "0.4", features = ["v4"]}
 rayon = "0.6.0"
