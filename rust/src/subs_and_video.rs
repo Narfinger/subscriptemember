@@ -111,7 +111,7 @@ named!(pub youtube_duration <&[u8],u64>, chain!(
     tag!("T") ~
         hours: opt!(youtube_duration_hour) ~
         minutes: opt!(youtube_duration_minutes) ~
-        seconds: opt!(youtube_duration_seconds)
+        seconds: opt!(complete!(youtube_duration_seconds))
         ,
     || {
         hours.unwrap_or(0)*60*60 + minutes.unwrap_or(0) *60 + seconds.unwrap_or(0)
