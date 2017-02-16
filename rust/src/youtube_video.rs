@@ -64,7 +64,7 @@ fn construct_new_video(s: &Subscription, i: &YoutubeItem<YoutubeSnippet>) -> New
 fn update_vid_time(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewVideo]) {
     let pos = v.iter().position(|e| e.vid == i.iid);
     if pos.is_some() {
-        println!("Dur: {}", i.content_details.as_ref().unwrap().duration );
+        //println!("Dur: {}", i.content_details.as_ref().unwrap().duration );
         let dur = youtube_duration(i.content_details.as_ref().unwrap().duration.as_bytes())
              .to_result()
              .unwrap_or(0) as i64;
