@@ -149,8 +149,14 @@ fn delete(vid: &str) -> Redirect {
 }
 
 #[get("/socket")]
-fn socket() -> io::Result<Stream<UnixStream>> {
-    SOCKET.try_clone().map(Stream::from)
+fn socket() -> Stream<UnixStream> {
+    SOCKET.try_clone().map(Stream::from).unwrap()
+}
+
+
+#[get("/sockettest")]
+fn sockettest() {
+    SOCKET.try_clone().unwrap().write("test".as_bytes());
 }
 
 #[get("/static/<file..>")]
@@ -248,6 +254,6 @@ fn main() {
     println!("Starting server");
     rocket::ignite()
         .mount("/",
-               routes![update_subs, subs, update_videos, delete, socket, static_files, index])
+               routes![update_subs, subs, update_videos, delete, socket, sockettest, static_files, index])
         .launch();
 }

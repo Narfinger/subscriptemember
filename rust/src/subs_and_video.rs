@@ -109,12 +109,12 @@ named!(youtube_duration_seconds <&[u8],u64>, chain!(v: number ~ tag!("S"), || {v
 named!(pub youtube_duration <&[u8],u64>, chain!(
     tag!("P") ~
     tag!("T") ~
-    hours: opt!(youtube_duration_hour) ~
+        hours: opt!(youtube_duration_hour) ~
         minutes: opt!(youtube_duration_minutes) ~
-        seconds: youtube_duration_seconds
+        seconds: opt!(youtube_duration_seconds)
         ,
     || {
-        hours.unwrap_or(0)*60*60 + minutes.unwrap_or(0) *60 + seconds
+        hours.unwrap_or(0)*60*60 + minutes.unwrap_or(0) *60 + seconds.unwrap_or(0)
     }
 ));
 
@@ -134,6 +134,7 @@ fn youtube_duration_parse_test() {
     assert_eq!(youtube_duration(&b"PT17M5S"[..]), IResult::Done(&b""[..], 1025));
     assert_eq!(youtube_duration(&b"PT23M14S"[..]), IResult::Done(&b""[..], 1394));
     assert_eq!(youtube_duration(&b"PT1H33M14S"[..]), IResult::Done(&b""[..], 5594));
+    assert_eq!(youtube_duration(&b"PT45M"[..]), IResult::Done(&b""[..], 2700));
 }
 
 #[derive(Debug,Queryable)]
