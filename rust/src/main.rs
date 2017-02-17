@@ -218,12 +218,12 @@ fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<
 
     let mut st = String::new();
     if hours > 0 {
-        st.push_str(format!("{}H:", hours).as_str());
+        st.push_str(format!("{}:", hours).as_str());
     }
     if minutes > 0 {
-        st.push_str(format!("{:01}M:", minutes).as_str());
+        st.push_str(format!("{:02}:", minutes).as_str());
     }
-    st.push_str(format!("{}S", seconds).as_str());
+    st.push_str(format!("{:02}", seconds).as_str());
     try!(rc.writer.write_all(st.into_bytes().as_ref()));
     Ok(())
 }
