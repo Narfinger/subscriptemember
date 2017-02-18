@@ -89,7 +89,6 @@ fn setup_oauth() -> oauth2::Token {
     cwd.push("tk");
     let cwd: String = String::from(cwd.to_str().expect("string conversion error"));
     let ntk = DiskTokenStorage::new(&cwd).expect("disk storage token is broken");
-    println!("s {:?}", secret.client_id);
 
     let client = hyper::Client::with_connector(HttpsConnector::new(hyper_rustls::TlsClient::new()));
     let realtk = Authenticator::new(&secret,
