@@ -57,6 +57,7 @@ use chrono::NaiveDateTime;
 use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
 use dotenv::dotenv;
+use rocket::request::State;
 use rocket::response::{Redirect, Stream, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
@@ -64,8 +65,10 @@ use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 //const SOCKET: &'static str = "/tmp/rocket.sock";
 
 
+struct TK(oauth2::Token);
+
 lazy_static! {
-    static ref TK : oauth2::Token = setup_oauth();
+    //static ref TK : oauth2::Token = setup_oauth();
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
     static ref GBTK : GBKey = setup_gbkey();
@@ -112,14 +115,14 @@ fn setup_gbkey() -> GBKey {
 }
 
 #[get("/updateSubs")]
-fn update_subs() -> Redirect {
-    youtube_subscriptions::get_subs(&TK, &DB, true);
+fn update_subs(tk: State<TK>) -> Redirect {
+    youtube_subscriptions::get_subs(&tk.0, &DB, true);
     Redirect::to("/subs")
 }
 
 #[get("/subs")]
-fn subs() -> Content<String> {
-    let sub = youtube_subscriptions::get_subs(&TK, &DB, false);
+fn subs(tk: State<TK>) -> Content<String> {
+    let sub = youtube_subscriptions::get_subs(&tk.0, &DB, false);
     let data = json!({
         "subs": sub,
         "numberofsubs": sub.len(),
@@ -129,13 +132,13 @@ fn subs() -> Content<String> {
 }
 
 #[get("/updateVideos")]
-fn update_videos() -> Redirect {
+fn update_videos(tk: State<TK>) -> Redirect {
     let l = UPDATING_VIDEOS.try_lock();
     if l.is_ok() {
         thread::spawn(|| {
             giantbomb_video::update_videos(&GBTK, &DB);
-            let subs = youtube_subscriptions::get_subs(&TK, &DB, false);
-            youtube_video::update_videos(&TK, &DB, &subs);
+            let subs = youtube_subscriptions::get_subs(&tk.0, &DB, false);
+            youtube_video::update_videos(&tk.0, &DB, &subs);
         });
     }
     Redirect::to("/")
@@ -247,12 +250,13 @@ fn main() {
         HB.lock().unwrap().register_helper("video_duration", Box::new(video_duration));
         //        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
-    println!("Checking token: {}", TK.token_type);
+    //println!("Checking token: {}", TK.token_type);
 
     
     println!("Starting server");
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete, socket, sockettest, static_files, index])
+        .manage(TK(setup_oauth()))
         .launch();
 }
