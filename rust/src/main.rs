@@ -64,8 +64,8 @@ use rocket::http::ContentType;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 //const SOCKET: &'static str = "/tmp/rocket.sock";
 
-
 struct TK(oauth2::Token);
+
 
 lazy_static! {
     //static ref TK : oauth2::Token = setup_oauth();
@@ -135,10 +135,11 @@ fn subs(tk: State<TK>) -> Content<String> {
 fn update_videos(tk: State<TK>) -> Redirect {
     let l = UPDATING_VIDEOS.try_lock();
     if l.is_ok() {
-        thread::spawn(|| {
+        let ntk = tk.0.clone();
+        thread::spawn(move || {
             giantbomb_video::update_videos(&GBTK, &DB);
-            let subs = youtube_subscriptions::get_subs(&tk.0, &DB, false);
-            youtube_video::update_videos(&tk.0, &DB, &subs);
+            let subs = youtube_subscriptions::get_subs(&ntk, &DB, false);
+            youtube_video::update_videos(&ntk, &DB, &subs);
         });
     }
     Redirect::to("/")
