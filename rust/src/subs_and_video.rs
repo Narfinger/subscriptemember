@@ -11,7 +11,7 @@ use diesel::LoadDsl;
 use nom::digit;
 #[cfg(test)] use nom::IResult;
 
-#[derive(Debug,Deserialize)]
+#[derive(Debug,Deserialize,Clone)]
 pub struct GBKey {
     pub key: String,
 }

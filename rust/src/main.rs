@@ -65,13 +65,13 @@ use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 //const SOCKET: &'static str = "/tmp/rocket.sock";
 
 struct TK(oauth2::Token);
-
+struct GBTK(GBKey);
 
 lazy_static! {
     //static ref TK : oauth2::Token = setup_oauth();
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
     static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
-    static ref GBTK : GBKey = setup_gbkey();
+//    static ref GBTK : GBKey = setup_gbkey();
     static ref UPDATING_VIDEOS: Mutex<()> = Mutex::new(());
     static ref SOCKET : UnixStream = UnixStream::pair().unwrap().0; //rx,tx 
 }
@@ -132,12 +132,13 @@ fn subs(tk: State<TK>) -> Content<String> {
 }
 
 #[get("/updateVideos")]
-fn update_videos(tk: State<TK>) -> Redirect {
+fn update_videos(tk: State<TK>, gbtk: State<GBTK>) -> Redirect {
     let l = UPDATING_VIDEOS.try_lock();
     if l.is_ok() {
         let ntk = tk.0.clone();
+        let ngbtk = gbtk.0.clone();
         thread::spawn(move || {
-            giantbomb_video::update_videos(&GBTK, &DB);
+            giantbomb_video::update_videos(&ngbtk, &DB);
             let subs = youtube_subscriptions::get_subs(&ntk, &DB, false);
             youtube_video::update_videos(&ntk, &DB, &subs);
         });
@@ -259,5 +260,6 @@ fn main() {
         .mount("/",
                routes![update_subs, subs, update_videos, delete, socket, sockettest, static_files, index])
         .manage(TK(setup_oauth()))
+        .manage(GBTK(setup_gbkey()))
         .launch();
 }
