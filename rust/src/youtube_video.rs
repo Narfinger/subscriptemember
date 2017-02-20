@@ -102,7 +102,7 @@ pub fn update_videos(t: &oauth2::Token, db: &Pool<ConnectionManager<SqliteConnec
     println!("Updating video running time");
     update_video_running_time(t, &mut vids);
 
-    println!("New Videos length: {}", vids.len());
+    println!("New Youtube Videos length: {}", vids.len());
     let dbconn = db.get().expect("DB pool problem");
     insert(&vids)
         .into(videos::table)
