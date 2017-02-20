@@ -1,10 +1,12 @@
 use oauth2;
-use std::sync::Mutex;
 use std::iter::Iterator;
+use std::ops::Deref;
 use chrono::UTC;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert, delete};
+use r2d2::Pool;
+use r2d2_diesel::ConnectionManager;
 use youtube_base::{YoutubeItem, YoutubeSnippet, YoutubeDurationContentDetails, query};
 use subs_and_video;
 use subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in_unixtime,
@@ -91,10 +93,9 @@ fn update_video_running_time(t: &oauth2::Token, mut v: &mut Vec<NewVideo>) {
 }
 
 /// Get new Videos and inserts them into the database
-pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &[Subscription]) {
+pub fn update_videos(t: &oauth2::Token, db: &Pool<ConnectionManager<SqliteConnection>>, subs: &[Subscription]) {
     use schema::videos;
     use schema::config;
-
 
     let us = get_lastupdate_in_unixtime(db);
     let mut vids: Vec<NewVideo> = query_videos(t, subs, us);
@@ -102,32 +103,33 @@ pub fn update_videos(t: &oauth2::Token, db: &Mutex<SqliteConnection>, subs: &[Su
     update_video_running_time(t, &mut vids);
 
     println!("New Videos length: {}", vids.len());
-    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    let dbconn = db.get().expect("DB pool problem");
     insert(&vids)
         .into(videos::table)
-        .execute(dbconn)
+        .execute(dbconn.deref())
         .expect("Insertion of Videos Failed");
-    delete(config::table).execute(dbconn).expect("Deletion of old config failed");
+    
+    delete(config::table).execute(dbconn.deref()).expect("Deletion of old config failed");
     let nc = NewConfig { lastupdate: UTC::now().to_rfc3339() };
-    insert(&nc).into(config::table).execute(dbconn).expect("Insertion of config failed");
+    insert(&nc).into(config::table).execute(dbconn.deref()).expect("Insertion of config failed");
 }
 
 /// Returns current videos in the database
-pub fn get_videos(db: &Mutex<SqliteConnection>) -> Vec<Video> {
+pub fn get_videos(db: &Pool<ConnectionManager<SqliteConnection>>) -> Vec<Video> {
     use schema::videos::dsl::*;
 
-    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    let dbconn = db.get().expect("DB pool problem");
 
     videos.order(published_at.desc())
-        .load(dbconn)
+        .load(dbconn.deref())
         .unwrap()
 }
 
-pub fn delete_video(db: &Mutex<SqliteConnection>, videoid: &str) {
+pub fn delete_video(db: &Pool<ConnectionManager<SqliteConnection>>, videoid: &str) {
     use schema::videos::dsl::*;
 
-    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    let dbconn = db.get().expect("DB pool problem");
     delete(videos.filter(vid.like(videoid)))
-        .execute(dbconn)
+        .execute(dbconn.deref())
         .expect("Deleting failed");
 }

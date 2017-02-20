@@ -26,6 +26,8 @@ extern crate lazy_static;
 extern crate diesel;
 #[macro_use]
 extern crate diesel_codegen;
+extern crate r2d2;
+extern crate r2d2_diesel;
 extern crate dotenv;
 #[macro_use]
 extern crate nom;
@@ -54,8 +56,9 @@ use serde_json as json;
 use hyper::net::HttpsConnector;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
-use diesel::Connection;
 use diesel::sqlite::SqliteConnection;
+use r2d2::Pool;
+use r2d2_diesel::ConnectionManager;
 use dotenv::dotenv;
 use rocket::request::State;
 use rocket::response::{Redirect, Stream, NamedFile};
@@ -66,22 +69,14 @@ use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 
 struct TK(oauth2::Token);
 struct GBTK(GBKey);
+struct DB(Pool<ConnectionManager<SqliteConnection>>);
+
 
 lazy_static! {
-    //static ref TK : oauth2::Token = setup_oauth();
     static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
-    static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
-//    static ref GBTK : GBKey = setup_gbkey();
+//    static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
     static ref UPDATING_VIDEOS: Mutex<()> = Mutex::new(());
     static ref SOCKET : UnixStream = UnixStream::pair().unwrap().0; //rx,tx 
-}
-
-pub fn establish_connection() -> SqliteConnection {
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    SqliteConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
 }
 
 fn setup_oauth() -> oauth2::Token {
@@ -115,14 +110,14 @@ fn setup_gbkey() -> GBKey {
 }
 
 #[get("/updateSubs")]
-fn update_subs(tk: State<TK>) -> Redirect {
-    youtube_subscriptions::get_subs(&tk.0, &DB, true);
+fn update_subs(tk: State<TK>, db: State<DB>) -> Redirect {
+    youtube_subscriptions::get_subs(&tk.0, &db.0, true);
     Redirect::to("/subs")
 }
 
 #[get("/subs")]
-fn subs(tk: State<TK>) -> Content<String> {
-    let sub = youtube_subscriptions::get_subs(&tk.0, &DB, false);
+fn subs(tk: State<TK>, db: State<DB>) -> Content<String> {
+    let sub = youtube_subscriptions::get_subs(&tk.0, &db.0, false);
     let data = json!({
         "subs": sub,
         "numberofsubs": sub.len(),
@@ -132,23 +127,24 @@ fn subs(tk: State<TK>) -> Content<String> {
 }
 
 #[get("/updateVideos")]
-fn update_videos(tk: State<TK>, gbtk: State<GBTK>) -> Redirect {
+fn update_videos(tk: State<TK>, gbtk: State<GBTK>, db: State<DB>) -> Redirect {
     let l = UPDATING_VIDEOS.try_lock();
     if l.is_ok() {
         let ntk = tk.0.clone();
         let ngbtk = gbtk.0.clone();
+        let ndb = db.0.clone();
         thread::spawn(move || {
-            giantbomb_video::update_videos(&ngbtk, &DB);
-            let subs = youtube_subscriptions::get_subs(&ntk, &DB, false);
-            youtube_video::update_videos(&ntk, &DB, &subs);
+            giantbomb_video::update_videos(&ngbtk, &ndb);
+            let subs = youtube_subscriptions::get_subs(&ntk, &ndb, false);
+            youtube_video::update_videos(&ntk, &ndb, &subs);
         });
     }
     Redirect::to("/")
 }
 
 #[get("/delete/<vid>")]
-fn delete(vid: &str) -> Redirect {
-    youtube_video::delete_video(&DB, vid);
+fn delete(vid: &str, db: State<DB>) -> Redirect {
+    youtube_video::delete_video(&db.0, vid);
     Redirect::to("/")
 }
 
@@ -169,11 +165,11 @@ fn static_files(file: PathBuf) -> Option<NamedFile> {
 }
 
 #[get("/")]
-fn index() -> Content<String> {
-    let vids = youtube_video::get_videos(&DB);
+fn index(db: State<DB>) -> Content<String> {
+    let vids = youtube_video::get_videos(&db.0);
 
     let lastrefreshed =
-        format!("{}", NaiveDateTime::from_timestamp(get_lastupdate_in_unixtime(&DB), 0)
+        format!("{}", NaiveDateTime::from_timestamp(get_lastupdate_in_unixtime(&db.0), 0)
                                 .format("%H:%M:%S %d.%m.%Y"));
     let numberofvideos = vids.len();
     let totaltime: i64 = vids.iter().map(|v| v.duration).sum();
@@ -252,14 +248,21 @@ fn main() {
         HB.lock().unwrap().register_helper("video_duration", Box::new(video_duration));
         //        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
-    //println!("Checking token: {}", TK.token_type);
+    //println!("Checking token: {}", TK.token_type);    
+    dotenv().ok();
 
-    
+    println!("Setting up database");
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");       
+    let config = r2d2::Config::default();
+    let manager = ConnectionManager::<SqliteConnection>::new(database_url);
+    let pool = r2d2::Pool::new(config, manager).expect("Failed to create pool.");
+
     println!("Starting server");
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete, socket, sockettest, static_files, index])
         .manage(TK(setup_oauth()))
         .manage(GBTK(setup_gbkey()))
+        .manage(DB(pool))
         .launch();
 }

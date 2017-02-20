@@ -1,7 +1,9 @@
 use serde;
-use std::sync::Mutex;
 use diesel::insert;
 use diesel::sqlite::SqliteConnection;
+use r2d2::Pool;
+use r2d2_diesel::ConnectionManager;
+use std::ops::Deref;
 use reqwest;
 use uuid::Uuid;
 use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp,
@@ -74,15 +76,15 @@ fn query_videos(t: &GBKey, unix_stamp: i64) -> Vec<NewVideo> {
 }
 
 /// Update giantbomb videos and put them into the database
-pub fn update_videos(t: &GBKey, db: &Mutex<SqliteConnection>) {
+pub fn update_videos(t: &GBKey, db: &Pool<ConnectionManager<SqliteConnection>>) {
     use schema::videos;
     use diesel::ExecuteDsl;
 
     let us = get_lastupdate_in_unixtime(db);
     let vids: Vec<NewVideo> = query_videos(t, us);
-    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    let dbconn = db.get().expect("DB pool problem");
     insert(&vids)
         .into(videos::table)
-        .execute(dbconn)
+        .execute(dbconn.deref())
         .expect("Insertion of Videos Failed");
 }

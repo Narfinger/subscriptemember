@@ -5,9 +5,11 @@ use std::str::FromStr;
 use schema::{subscriptions, videos, config};
 use chrono::{NaiveDateTime,DateTime,TimeZone};
 use chrono_tz::US::Pacific;
-use std::sync::Mutex;
 use diesel::sqlite::SqliteConnection;
 use diesel::LoadDsl;
+use r2d2::Pool;
+use r2d2_diesel::ConnectionManager;
+use std::ops::Deref;
 use nom::digit;
 #[cfg(test)] use nom::IResult;
 
@@ -150,11 +152,11 @@ pub struct NewConfig {
 }
 
 /// Get the lastupdate from the database in unix epoch
-pub fn get_lastupdate_in_unixtime(db: &Mutex<SqliteConnection>) -> i64 {
+pub fn get_lastupdate_in_unixtime(db: &Pool<ConnectionManager<SqliteConnection>>) -> i64 {
     use schema::config::dsl::*;
 
-    let dbconn: &SqliteConnection = &db.lock().unwrap();
-    let val = config.load::<Config>(dbconn).unwrap();
+    let dbconn = db.get().expect("DB pool problem");
+    let val = config.load::<Config>(dbconn.deref()).unwrap();
 
     if val.is_empty() {
         0

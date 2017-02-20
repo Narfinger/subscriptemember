@@ -1,10 +1,11 @@
 use oauth2;
-use std::sync::Mutex;
 use std::iter::Iterator;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert, delete, update};
-
+use r2d2::Pool;
+use r2d2_diesel::ConnectionManager;
+use std::ops::Deref;
 use youtube_base::{YoutubeItem, YoutubeSubscription, YoutubeRelatedPlaylistsContentDetails, Query,
                    query};
 use subs_and_video::{Subscription, NewSubscription};
@@ -70,32 +71,34 @@ fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscriptio
 }
 
 pub fn get_subs(t: &oauth2::Token,
-                db: &Mutex<SqliteConnection>,
+                db: &Pool<ConnectionManager<SqliteConnection>>,
                 update_subs: bool)
                 -> Vec<Subscription> {
     use schema::subscriptions::dsl::*;
     use schema::subscriptions;
 
-    let dbconn: &SqliteConnection = &db.lock().unwrap();
+    let dbconn = db.get().expect("DB pool problem");
     if update_subs {
-        delete(subscriptions::table).execute(dbconn).expect("Deletion of old subscriptions failed");
+        delete(subscriptions::table)
+            .execute(dbconn.deref())
+            .expect("Deletion of old subscriptions failed");
 
         let subs = get_subscriptions_for_me(t)
             .map(construct_subscription)
             .collect::<Vec<NewSubscription>>();
         insert(&subs)
             .into(subscriptions::table)
-            .execute(dbconn)
+            .execute(dbconn.deref())
             .expect("Insertion of new subs failed");
     }
-    let mut nsubs = subscriptions.load::<Subscription>(dbconn).unwrap();
+    let mut nsubs = subscriptions.load::<Subscription>(dbconn.deref()).unwrap();
     if update_subs {
         get_upload_playlists(t, &mut nsubs);
         //update values
         for s in &nsubs {
             update(subscriptions.find(s.sid))
                 .set(uploadplaylist.eq(s.uploadplaylist.clone()))
-                .execute(dbconn)
+                .execute(dbconn.deref())
                 .expect("Updating Playlist failed on a sub");
         }
     }
