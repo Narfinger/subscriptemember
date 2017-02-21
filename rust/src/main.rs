@@ -70,10 +70,10 @@ use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 struct TK(oauth2::Token);
 struct GBTK(GBKey);
 struct DB(Pool<ConnectionManager<SqliteConnection>>);
-
+struct HB(handlebars::Handlebars);
 
 lazy_static! {
-    static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
+    //static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
 //    static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
     static ref UPDATING_VIDEOS: Mutex<()> = Mutex::new(());
     static ref SOCKET : UnixStream = UnixStream::pair().unwrap().0; //rx,tx 
@@ -116,14 +116,14 @@ fn update_subs(tk: State<TK>, db: State<DB>) -> Redirect {
 }
 
 #[get("/subs")]
-fn subs(tk: State<TK>, db: State<DB>) -> Content<String> {
+fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
     let sub = youtube_subscriptions::get_subs(&tk.0, &db.0, false);
     let data = json!({
         "subs": sub,
         "numberofsubs": sub.len(),
     });
     Content(ContentType::HTML,
-            HB.lock().unwrap().render("subs", &data).unwrap())
+            hb.0.render("subs", &data).unwrap())
 }
 
 #[get("/updateVideos")]
@@ -165,7 +165,7 @@ fn static_files(file: PathBuf) -> Option<NamedFile> {
 }
 
 #[get("/")]
-fn index(db: State<DB>) -> Content<String> {
+fn index(db: State<DB>, hb: State<HB>) -> Content<String> {
     let vids = youtube_video::get_videos(&db.0);
 
     let lastrefreshed =
@@ -181,7 +181,7 @@ fn index(db: State<DB>) -> Content<String> {
         "totaltime": totaltime,
     });
     Content(ContentType::HTML,
-            HB.lock().unwrap().render("index", &data).map_err(|err| err.to_string()).unwrap())
+            hb.0.render("index", &data).map_err(|err| err.to_string()).unwrap())
 }
 
 fn template_filename_to_string(s: &str) -> Result<String, String> {
@@ -237,15 +237,16 @@ fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<
 
 fn main() {
     println!("Registering templates");
+    let mut hb = Handlebars::new();
     {
         let its = template_filename_to_string("templates/index.hbs").unwrap();
-        assert!(HB.lock().unwrap().register_template_string("index", its).is_ok());
+        assert!(hb.register_template_string("index", its).is_ok());
 
         let its = template_filename_to_string("templates/subs.hbs").unwrap();
-        assert!(HB.lock().unwrap().register_template_string("subs", its).is_ok());
+        assert!(hb.register_template_string("subs", its).is_ok());
 
-        HB.lock().unwrap().register_helper("video_time", Box::new(video_time));
-        HB.lock().unwrap().register_helper("video_duration", Box::new(video_duration));
+        hb.register_helper("video_time", Box::new(video_time));
+        hb.register_helper("video_duration", Box::new(video_duration));
         //        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
     //println!("Checking token: {}", TK.token_type);    
@@ -264,5 +265,6 @@ fn main() {
         .manage(TK(setup_oauth()))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))
+        .manage(HB(hb))
         .launch();
 }
