@@ -19,6 +19,7 @@ extern crate hyper_rustls;
 extern crate yup_oauth2 as oauth2;
 extern crate handlebars;
 extern crate rocket;
+extern crate rocket_contrib;
 #[macro_use]
 extern crate diesel;
 #[macro_use]
@@ -60,6 +61,7 @@ use rocket::request::State;
 use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
+use rocket_contrib::JSON;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 
 struct TK(oauth2::Token);
@@ -144,10 +146,9 @@ fn delete(vid: &str, db: State<DB>) -> Redirect {
 }
 
 #[get("/socket")]
-fn socket(sc: State<MPSC>) -> String {
+fn socket(sc: State<MPSC>) -> JSON<i64> {
     let reader: &mpsc::Receiver<i64> = &sc.recv.lock().unwrap();
-    json!(reader.recv().unwrap());
-    "test".to_string()
+    JSON(reader.recv().unwrap())
 }
 
 
