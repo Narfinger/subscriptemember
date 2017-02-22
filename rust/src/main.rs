@@ -6,7 +6,6 @@
 #[cfg(feature = "nightly")]
 #[macro_use]
 extern crate rocket;
-
 extern crate serde;
 extern crate reqwest;
 extern crate chrono;
@@ -62,7 +61,6 @@ use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
-//const SOCKET: &'static str = "/tmp/rocket.sock";
 
 struct TK(oauth2::Token);
 struct GBTK(GBKey);
@@ -123,8 +121,6 @@ fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
 
 #[get("/updateVideos")]
 fn update_videos(tk: State<TK>, gbtk: State<GBTK>, db: State<DB>, upv: State<UpdatingVideos>) -> Redirect {
-    //let l = UPDATING_VIDEOS.try_lock();
-    //if l.is_ok() {
     if upv.0.try_lock().is_ok() {
         let ntk = tk.0.clone();
         let ngbtk = gbtk.0.clone();
@@ -155,7 +151,7 @@ fn socket(sc: State<MPSC>) -> String {
 #[get("/sockettest")]
 fn sockettest(sc: State<MPSC>) {
     let writer: &mpsc::Sender<i64> = &sc.send.lock().unwrap();
-    writer.send(64);
+    writer.send(64).expect("Error in writing");
 }
 
 #[get("/static/<file..>")]
