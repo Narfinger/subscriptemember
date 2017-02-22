@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::str;
 use std::str::FromStr;
 use schema::{subscriptions, videos, config};
-use chrono::{NaiveDateTime,DateTime,TimeZone};
+use chrono::{NaiveDateTime, DateTime, TimeZone};
 use chrono_tz::US::Pacific;
 use diesel::sqlite::SqliteConnection;
 use diesel::LoadDsl;
@@ -11,7 +11,8 @@ use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use std::ops::Deref;
 use nom::digit;
-#[cfg(test)] use nom::IResult;
+#[cfg(test)]
+use nom::IResult;
 
 #[derive(Debug,Deserialize,Clone)]
 pub struct GBKey {
@@ -96,8 +97,8 @@ pub fn from_youtube_datetime_to_timestamp(s: &str) -> i64 {
 
 /// Construct a unix epoch from a given giantbomb time string
 pub fn from_giantbomb_datetime_to_timestamp(s: &str) -> i64 {
-    //let dt = Pacific::parse_from_str(s, "%Y-%m-%d %H:%M:%S").unwrap_or_else(|e| panic!("Error: {}", e));
-    let dt = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").unwrap_or_else(|e| panic!("Error: {}", e));
+    let dt = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
+        .unwrap_or_else(|e| panic!("Error: {}", e));
     let dttz = Pacific.from_local_datetime(&dt).unwrap();
     dttz.timestamp()
 }
@@ -122,14 +123,14 @@ named!(pub youtube_duration <&[u8],u64>, chain!(
 
 #[test]
 fn youtube_duration_parse_test() {
-    //simple tests    
+    //simple tests
     assert_eq!(youtube_duration_hour   (&b"23H"[..]), IResult::Done(&b""[..], 23));
     assert_eq!(youtube_duration_minutes(&b"23M"[..]), IResult::Done(&b""[..], 23));
     assert_eq!(youtube_duration_seconds(&b"23S"[..]), IResult::Done(&b""[..], 23));
-    
+
     assert_eq!(youtube_duration(&b"PT23H4M1S"[..]), IResult::Done(&b""[..], 83041));
     assert_eq!(youtube_duration(&b"PT15M23S"[..]), IResult::Done(&b""[..], 923));
-    
+
     assert_eq!(youtube_duration(&b"PT1S"[..]), IResult::Done(&b""[..], 1));
     assert_eq!(youtube_duration(&b"PT14S"[..]), IResult::Done(&b""[..], 14));
     assert_eq!(youtube_duration(&b"PT4M1S"[..]), IResult::Done(&b""[..], 241));

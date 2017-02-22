@@ -19,7 +19,8 @@ const PL_URL: &'static str = "https://www.googleapis.\
 const VID_URL: &'static str = "https://www.googleapis.\
                                com/youtube/v3/videos?part=contentDetails&maxResults=50&id=";
 
-/// Queries current Youtube Videos, filters them by `unix_stamp` and uses `subs` to get the uploadplaylist ids` 
+/// Queries current Youtube Videos, filters them by `unix_stamp`
+/// and uses `subs` to get the uploadplaylist ids`
 fn query_videos<'f>(t: &'f oauth2::Token,
                     subs: &'f [Subscription],
                     //subs: &Vec<Subscription>,
@@ -62,15 +63,16 @@ fn construct_new_video(s: &Subscription, i: &YoutubeItem<YoutubeSnippet>) -> New
     }
 }
 
-/// Gets a current `YoutubeItem<YoutubeDurationcontentdetails>`, finds the appropiate video in `v` and updates the running time
+/// Gets a current `YoutubeItem<YoutubeDurationcontentdetails>`,
+/// finds the appropiate video in `v` and updates the running time
 fn update_vid_time(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewVideo]) {
     let pos = v.iter().position(|e| e.vid == i.iid);
     if pos.is_some() {
         //println!("Dur: {}", i.content_details.as_ref().unwrap().duration );
         let dur = youtube_duration(i.content_details.as_ref().unwrap().duration.as_bytes())
-             .to_result()
-             .unwrap_or(0) as i64;
-         v[pos.unwrap()].duration = dur;
+            .to_result()
+            .unwrap_or(0) as i64;
+        v[pos.unwrap()].duration = dur;
         //v[pos.unwrap()].duration = 0;
     }
 }
@@ -93,7 +95,9 @@ fn update_video_running_time(t: &oauth2::Token, mut v: &mut Vec<NewVideo>) {
 }
 
 /// Get new Videos and inserts them into the database
-pub fn update_videos(t: &oauth2::Token, db: &Pool<ConnectionManager<SqliteConnection>>, subs: &[Subscription]) {
+pub fn update_videos(t: &oauth2::Token,
+                     db: &Pool<ConnectionManager<SqliteConnection>>,
+                     subs: &[Subscription]) {
     use schema::videos;
     use schema::config;
 
@@ -108,7 +112,7 @@ pub fn update_videos(t: &oauth2::Token, db: &Pool<ConnectionManager<SqliteConnec
         .into(videos::table)
         .execute(dbconn.deref())
         .expect("Insertion of Videos Failed");
-    
+
     delete(config::table).execute(dbconn.deref()).expect("Deletion of old config failed");
     let nc = NewConfig { lastupdate: UTC::now().to_rfc3339() };
     insert(&nc).into(config::table).execute(dbconn.deref()).expect("Insertion of config failed");

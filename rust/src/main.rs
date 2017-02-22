@@ -69,7 +69,7 @@ struct HB(handlebars::Handlebars);
 struct UpdatingVideos(Mutex<()>);
 struct MPSC {
     send: Mutex<mpsc::Sender<i64>>,
-    recv: Mutex<mpsc::Receiver<i64>>,    
+    recv: Mutex<mpsc::Receiver<i64>>,
 }
 
 fn setup_oauth() -> oauth2::Token {
@@ -115,12 +115,15 @@ fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
         "subs": sub,
         "numberofsubs": sub.len(),
     });
-    Content(ContentType::HTML,
-            hb.0.render("subs", &data).unwrap())
+    Content(ContentType::HTML, hb.0.render("subs", &data).unwrap())
 }
 
 #[get("/updateVideos")]
-fn update_videos(tk: State<TK>, gbtk: State<GBTK>, db: State<DB>, upv: State<UpdatingVideos>) -> Redirect {
+fn update_videos(tk: State<TK>,
+                 gbtk: State<GBTK>,
+                 db: State<DB>,
+                 upv: State<UpdatingVideos>)
+                 -> Redirect {
     if upv.0.try_lock().is_ok() {
         let ntk = tk.0.clone();
         let ngbtk = gbtk.0.clone();
@@ -244,23 +247,27 @@ fn main() {
         hb.register_helper("video_duration", Box::new(video_duration));
         //        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
-    //println!("Checking token: {}", TK.token_type);    
+    //println!("Checking token: {}", TK.token_type);
     dotenv().ok();
 
     println!("Setting up database");
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");       
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let config = r2d2::Config::default();
     let manager = ConnectionManager::<SqliteConnection>::new(database_url);
     let pool = r2d2::Pool::new(config, manager).expect("Failed to create pool.");
 
     println!("Setting up channels");
     let ch = mpsc::channel();
-    let chstruct = MPSC{ send: Mutex::new(ch.0), recv: Mutex::new(ch.1)};
-    
+    let chstruct = MPSC {
+        send: Mutex::new(ch.0),
+        recv: Mutex::new(ch.1),
+    };
+
     println!("Starting server");
     rocket::ignite()
         .mount("/",
-               routes![update_subs, subs, update_videos, delete, socket, sockettest, static_files, index])
+               routes![update_subs, subs, update_videos, delete,
+                       socket, sockettest, static_files, index])
         .manage(TK(setup_oauth()))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))
