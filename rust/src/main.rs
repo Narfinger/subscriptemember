@@ -21,8 +21,6 @@ extern crate yup_oauth2 as oauth2;
 extern crate handlebars;
 extern crate rocket;
 #[macro_use]
-extern crate lazy_static;
-#[macro_use]
 extern crate diesel;
 #[macro_use]
 extern crate diesel_codegen;
@@ -46,12 +44,11 @@ use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecr
              DiskTokenStorage, GetToken, FlowType};
 
 use std::io::prelude::*;
-use std::io;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::env;
-use std::os::unix::net::UnixStream;
+use std::sync::mpsc;
 use serde_json as json;
 use hyper::net::HttpsConnector;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
@@ -61,7 +58,7 @@ use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use dotenv::dotenv;
 use rocket::request::State;
-use rocket::response::{Redirect, Stream, NamedFile};
+use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
@@ -71,12 +68,10 @@ struct TK(oauth2::Token);
 struct GBTK(GBKey);
 struct DB(Pool<ConnectionManager<SqliteConnection>>);
 struct HB(handlebars::Handlebars);
-
-lazy_static! {
-    //static ref HB : Mutex<handlebars::Handlebars> = Mutex::new(Handlebars::new());
-//    static ref DB : Mutex<SqliteConnection> = Mutex::new(establish_connection());
-    static ref UPDATING_VIDEOS: Mutex<()> = Mutex::new(());
-    static ref SOCKET : UnixStream = UnixStream::pair().unwrap().0; //rx,tx 
+struct UpdatingVideos(Mutex<()>);
+struct MPSC {
+    send: Mutex<mpsc::Sender<i64>>,
+    recv: Mutex<mpsc::Receiver<i64>>,    
 }
 
 fn setup_oauth() -> oauth2::Token {
@@ -127,9 +122,10 @@ fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
 }
 
 #[get("/updateVideos")]
-fn update_videos(tk: State<TK>, gbtk: State<GBTK>, db: State<DB>) -> Redirect {
-    let l = UPDATING_VIDEOS.try_lock();
-    if l.is_ok() {
+fn update_videos(tk: State<TK>, gbtk: State<GBTK>, db: State<DB>, upv: State<UpdatingVideos>) -> Redirect {
+    //let l = UPDATING_VIDEOS.try_lock();
+    //if l.is_ok() {
+    if upv.0.try_lock().is_ok() {
         let ntk = tk.0.clone();
         let ngbtk = gbtk.0.clone();
         let ndb = db.0.clone();
@@ -149,14 +145,17 @@ fn delete(vid: &str, db: State<DB>) -> Redirect {
 }
 
 #[get("/socket")]
-fn socket() -> Stream<UnixStream> {
-    SOCKET.try_clone().map(Stream::from).unwrap()
+fn socket(sc: State<MPSC>) -> String {
+    let reader: &mpsc::Receiver<i64> = &sc.recv.lock().unwrap();
+    json!(reader.recv().unwrap());
+    "test".to_string()
 }
 
 
 #[get("/sockettest")]
-fn sockettest() {
-    SOCKET.try_clone().unwrap().write("test".as_bytes());
+fn sockettest(sc: State<MPSC>) {
+    let writer: &mpsc::Sender<i64> = &sc.send.lock().unwrap();
+    writer.send(64);
 }
 
 #[get("/static/<file..>")]
@@ -258,6 +257,10 @@ fn main() {
     let manager = ConnectionManager::<SqliteConnection>::new(database_url);
     let pool = r2d2::Pool::new(config, manager).expect("Failed to create pool.");
 
+    println!("Setting up channels");
+    let ch = mpsc::channel();
+    let chstruct = MPSC{ send: Mutex::new(ch.0), recv: Mutex::new(ch.1)};
+    
     println!("Starting server");
     rocket::ignite()
         .mount("/",
@@ -266,5 +269,7 @@ fn main() {
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))
         .manage(HB(hb))
+        .manage(UpdatingVideos(Mutex::new(())))
+        .manage(chstruct)
         .launch();
 }
