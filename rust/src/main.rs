@@ -1,5 +1,6 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
+#![feature(custom_derive)]
 #![cfg_attr(feature = "nightly", feature(proc_macro))]
 #![feature(plugin)]
 #![plugin(rocket_codegen)]
@@ -50,6 +51,7 @@ use std::thread;
 use std::env;
 use std::sync::mpsc;
 use serde_json as json;
+use hyper::Url;
 use hyper::net::HttpsConnector;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
@@ -72,6 +74,11 @@ struct UpdatingVideos(Mutex<()>);
 struct MPSC {
     send: Mutex<mpsc::Sender<i64>>,
     recv: Mutex<mpsc::Receiver<i64>>,
+}
+
+#[derive(FromForm)]
+struct Add {
+    url: Url,
 }
 
 fn setup_oauth() -> oauth2::Token {
