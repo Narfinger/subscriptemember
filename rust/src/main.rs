@@ -1,8 +1,7 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
-#![feature(custom_derive)]
 #![cfg_attr(feature = "nightly", feature(proc_macro))]
-#![feature(plugin)]
+#![feature(plugin,custom_derive)]
 #![plugin(rocket_codegen)]
 #[cfg(feature = "nightly")]
 #[macro_use]
@@ -59,7 +58,7 @@ use diesel::sqlite::SqliteConnection;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use dotenv::dotenv;
-use rocket::request::State;
+use rocket::request::{State, Form, FromFormValue};
 use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
@@ -76,9 +75,21 @@ struct MPSC {
     recv: Mutex<mpsc::Receiver<i64>>,
 }
 
+struct MyURL(Url);
 #[derive(FromForm)]
-struct Add {
-    url: Url,
+struct AddForm {
+    url: MyURL,
+}
+
+impl<'v> FromFormValue<'v> for MyURL {
+    type Error = hyper::error::ParseError;
+    fn from_form_value(v: &'v str) -> Result<Self, Self::Error> {
+        let parsed = Url::parse(v);
+        match parsed {
+            Ok(x) => Ok(MyURL(x)),
+            Err(x) => Err(x),
+        }
+    }
 }
 
 fn setup_oauth() -> oauth2::Token {
@@ -168,6 +179,13 @@ fn sockettest(sc: State<MPSC>) {
 #[get("/static/<file..>")]
 fn static_files(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("static/").join(file)).ok()
+}
+
+#[post("/addurl", data="<form>")]
+fn addurl(form: Form<AddForm>) -> Redirect {
+    let ref url = form.get().url.0;
+    println!("found something {:?}", url);
+    Redirect::to("/")
 }
 
 #[get("/")]
@@ -275,7 +293,7 @@ fn main() {
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete,
-                       socket, sockettest, static_files, index])
+                       socket, sockettest, static_files, addurl, index])
         .manage(TK(setup_oauth()))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))
