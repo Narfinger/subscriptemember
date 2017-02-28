@@ -176,10 +176,10 @@ fn sockettest(sc: State<MPSC>) {
     writer.send(64).expect("Error in writing");
 }
 
-#[get("/static/<file..>")]
-fn static_files(file: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/").join(file)).ok()
-}
+// #[get("/static/<file..>")]
+// fn static_files(file: PathBuf) -> Option<NamedFile> {
+//     NamedFile::open(Path::new("static/").join(file)).ok()
+// }
 
 #[post("/addurl", data="<form>")]
 fn addurl(form: Form<AddForm>) -> Redirect {
@@ -293,7 +293,7 @@ fn main() {
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete,
-                       socket, sockettest, static_files, addurl, index])
+                       socket, sockettest, /*static_files,*/ addurl, index])
         .manage(TK(setup_oauth()))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))

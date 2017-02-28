@@ -53,4 +53,17 @@
 	    </div>
 	</form>
     </div>
+    <script>
+     'use strict';
+     var connectToSocket = function() {
+	 $http.get("/socket").success(
+	     function(data) {
+		 console.log("show message");
+		 console.log("");
+		 connectToSocket();
+	     }
+
+	 );
+     };
+    </script>
 </html>
