@@ -10,6 +10,7 @@ use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_ti
                      get_lastupdate_in_unixtime};
 
 static LIMIT: &'static str = "10";
+const VID_URL: &'static str = "https://www.giantbomb.com/api/videos/?format=json&limit=";
 
 #[derive(Debug,Deserialize)]
 struct GiantBombResult<T> {
@@ -66,7 +67,7 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
 
 /// query the giantbomb videos, filter them according to `unix_stamp` and returns them
 fn query_videos(t: &GBKey, unix_stamp: i64) -> Vec<NewVideo> {
-    let qstring = "https://www.giantbomb.com/api/videos/?format=json&limit=".to_string() + LIMIT;
+    let qstring = VID_URL.to_string() + LIMIT;
     let res = query_giantbomb(t, qstring);
     res.results
         .iter()
