@@ -84,7 +84,9 @@ struct AddForm {
 impl<'v> FromFormValue<'v> for MyURL {
     type Error = hyper::error::ParseError;
     fn from_form_value(v: &'v str) -> Result<Self, Self::Error> {
-        let parsed = Url::parse(v);
+        let mut nv = v.replace("%3A", ":");
+        nv = nv.replace("%2F", "/");
+        let parsed = Url::parse(&nv);
         match parsed {
             Ok(x) => Ok(MyURL(x)),
             Err(x) => Err(x),

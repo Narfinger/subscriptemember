@@ -56,24 +56,24 @@
     <script>
      'use strict';
      var isActive = true;
-     $().ready(function() {
-	 connectToSocket();
-     });
-     function connectToSocket() {
+     /* $().ready(function() {
+	connectToSocket();
+      * });
+      * function connectToSocket() {
 	if (isActive)
-	    {
-		window.setTimeout(function () {
-		    $.ajax({
-			url: "/socket",
-			type: "GET",
-			success: function (result) {
-			    location.reload();
-			    connectToSocket();
-			},
-			error: function () {
-			}});
-		}, 2500);
-	    }
-     };
+	{
+	window.setTimeout(function () {
+	$.ajax({
+	url: "/socket",
+	type: "GET",
+	success: function (result) {
+	location.reload();
+	connectToSocket();
+	},
+	error: function () {
+	}});
+	}, 2500);
+	}
+      * };*/
 </script>
 </html>
