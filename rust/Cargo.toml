@@ -7,7 +7,7 @@ authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
 default = []
 
 [dependencies]
-clippy = {version = "0.0.114", optional = true}
+clippy = {version = "0.0.118", optional = true}
 serde = "0.9.5"
 serde_json = "0.9.4"
 serde_derive = "0.9.5"

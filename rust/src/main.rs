@@ -45,7 +45,6 @@ use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecr
 
 use std::io::prelude::*;
 use std::fs::File;
-use std::path::{Path, PathBuf};
 use std::thread;
 use std::env;
 use std::sync::mpsc;
@@ -59,7 +58,7 @@ use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use dotenv::dotenv;
 use rocket::request::{State, Form, FromFormValue};
-use rocket::response::{Redirect, NamedFile};
+use rocket::response::Redirect;
 use rocket::response::content::Content;
 use rocket::http::ContentType;
 use rocket_contrib::JSON;
@@ -185,7 +184,7 @@ fn sockettest(sc: State<MPSC>) {
 
 #[post("/addurl", data="<form>")]
 fn addurl(form: Form<AddForm>) -> Redirect {
-    let ref url = form.get().url.0;
+    let url = &form.get().url.0;
     println!("found something {:?}", url);
     Redirect::to("/")
 }
