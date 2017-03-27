@@ -245,7 +245,7 @@ fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<
     if hours > 0 {
         st.push_str(format!("{}:", hours).as_str());
     }
-    if minutes > 0 {
+    if (minutes > 0) | (hours > 0) {
         st.push_str(format!("{:02}:", minutes).as_str());
     }
     st.push_str(format!("{:02}", seconds).as_str());
