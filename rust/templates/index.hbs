@@ -8,7 +8,7 @@
     </head>
     <div class="container">
 	<div class="row">
-	    <h1>Test Subscriptemember</h1>
+	    <h1>Subscriptemember</h1>
 	</div>
     </div>
     <div class="col-md-8">
@@ -18,7 +18,7 @@
 	    <div class="col-md-4">Totaltime: {{video_duration totaltime}}</div>
 	</div>
 	<div class="row">
-	    <table class="table table-striped">
+	    <table class="table table-striped" id="videos">
 		<tr>
 		    <th>Thumbnail</th>
 		    <th>Channel</th>
@@ -48,13 +48,51 @@
 	<div class="row"><a href="/updateVideos">Update Videos</a></div>
 	<form class="form-inline" action="/addurl" method="post">
 	    <div class="form-group">
-		<div class="row"><input type="text" name="url" class="form-control"></div>
+		<div class="row"><input type="text" name="url" placeholder="youtube" class="form-control"></div>
 		<div class="row"><input type="submit" value="Submit" class="btn btn-default"></div>
 	    </div>
 	</form>
+	<div class="row">
+	    <div class="input-group">
+		<input type="text" id="search" placeholder="search" class="form-control" oninput="onsearchChange(this.value)">
+		<button id="searchclear" class="input-group-addon glyphicon glyphicon-remove-circle">
+	    </div>
+	</div>
     </div>
     <script>
      'use strict';
+     $("#searchclear").onclick(function(){
+	 document.getElementById('search').val('');
+     });
+     
+     //do search
+     function onsearchChange(text) {
+	 console.log(text);
+	 var table = document.getElementById('videos');
+	 var tr = table.getElementsByTagName('tr');
+	 if (text=="") {
+	     for (var i = 0; i< tr.length; i++) {
+		 tr[i].style.display = '';
+	     }
+	     return;
+	 }
+	 	 
+	 var filter = text.toUpperCase();
+	 
+	 	 
+	 for (var i = 0; i < tr.length; i++) {
+	     var td = tr[i].getElementsByTagName('td')[1];
+	     var td2 = tr[i].getElementsByTagName('td')[2];
+	     if (td) {
+		 if (td.innerHTML.toUpperCase().indexOf(filter) > -1) {
+		     tr[i].style.display = '';
+		 } else {
+		     tr[i].style.display = 'none';
+		 }
+	     }
+	 }
+     }
+     
      var isActive = true;
      /* $().ready(function() {
 	connectToSocket();
