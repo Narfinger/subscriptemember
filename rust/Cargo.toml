@@ -7,7 +7,7 @@ authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
 default = []
 
 [dependencies]
-clippy = {version = "0.0.118", optional = true}
+clippy = {version = "0.0.121", optional = true}
 serde = "0.9.5"
 serde_json = "0.9.4"
 serde_derive = "0.9.5"
@@ -20,12 +20,12 @@ yup-oauth2 = {version = "1.0.4"}
 handlebars = {version = "0.25", features = ["serde_type"]}
 chrono = {version = "0.3.0", features = ["serde"]}
 chrono-tz = "0.3.0"
-dotenv = "0.8.0"
-diesel = {version = "0.11.0", features = ["sqlite"]}
-diesel_codegen = {version = "0.11.0", features = ["sqlite"]}
+dotenv = "0.10.0"
+diesel = {version = "0.12.0", features = ["sqlite"]}
+diesel_codegen = {version = "0.12.0", features = ["sqlite"]}
 r2d2 = "0.7.1"
-r2d2-diesel = {version = "0.11.0", features = ["sqlite"]}
-reqwest = "0.4.0"
+r2d2-diesel = {version = "0.12.0"}
+reqwest = "0.5.0"
 nom = "2.1.0"
 uuid = {version = "0.4", features = ["v4"]}
 rayon = "0.6.0"
