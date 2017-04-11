@@ -129,14 +129,14 @@ impl<'a, T> Iterator for Query<'a,T>
     fn next(&mut self) -> Option<YoutubeItem<T>> {
         if !self.initialised {
             self.initialised = true;
-            let res = query_simple_page(&self.t, &self.url, None, &self.client);
+            let res = query_simple_page(&self.t, &self.url, None, self.client);
             self.storage = res.items;
             self.next_page = res.next_page_token;
         }
 
         if self.storage.is_empty() {
             if self.next_page.is_some() {
-                let res = query_simple_page(&self.t, &self.url, self.next_page.clone(), &self.client);
+                let res = query_simple_page(&self.t, &self.url, self.next_page.clone(), self.client);
                 self.storage = res.items;
                 self.next_page = res.next_page_token;
             } else {

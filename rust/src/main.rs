@@ -1,5 +1,6 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
+#![cfg_attr(feature="clippy", allow(needless_pass_by_value))] //rocket state uses this
 #![cfg_attr(feature = "nightly", feature(proc_macro))]
 #![feature(plugin,custom_derive)]
 #![plugin(rocket_codegen)]
