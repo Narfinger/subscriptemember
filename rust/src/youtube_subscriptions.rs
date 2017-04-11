@@ -6,6 +6,7 @@ use diesel::{insert, delete, update};
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use std::ops::Deref;
+use reqwest;
 use youtube_base::{YoutubeItem, YoutubeSubscription, YoutubeRelatedPlaylistsContentDetails, Query,
                    query};
 use subs_and_video::{Subscription, NewSubscription};
@@ -17,11 +18,11 @@ const SUB_URL: &'static str = "https://www.googleapis.\
 const UPLOAD_PL_URL: &'static str = "https://www.googleapis.\
                                      com/youtube/v3/channels?part=contentDetails&maxResults=50&";
 
-fn get_subscriptions_for_me(t: &oauth2::Token) -> Query<YoutubeSubscription> {
-    query(t, SUB_URL)
+fn get_subscriptions_for_me(t: &oauth2::Token, client: &reqwest::Client) -> Query<YoutubeSubscription> {
+    query(t, client, SUB_URL)
 }
 
-fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
+fn get_upload_playlists(t: &oauth2::Token, client: &reqwest::Client, subs: &mut Vec<Subscription>) {
     let mut upload_playlist: Vec<YoutubeItem<YoutubeRelatedPlaylistsContentDetails>> = Vec::new();
     for chunk in subs.chunks(50) {
         let onlyids = chunk.iter().map(|s: &Subscription| s.channelid.clone());
@@ -29,7 +30,7 @@ fn get_upload_playlists(t: &oauth2::Token, subs: &mut Vec<Subscription>) {
             onlyids.fold("".to_string(), |comb: String, s| comb + &s + ",");
         singlestringids.pop();
         let queryurl = UPLOAD_PL_URL.to_string() + "id=" + &singlestringids + "&access_token=";
-        let res: Query<YoutubeRelatedPlaylistsContentDetails> = query(t, &queryurl);
+        let res: Query<YoutubeRelatedPlaylistsContentDetails> = query(t, client, &queryurl);
 
         println!("this is super inefficient");
         let mut realres = res.collect::<Vec<YoutubeItem<YoutubeRelatedPlaylistsContentDetails>>>();
@@ -72,6 +73,7 @@ fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscriptio
 
 pub fn get_subs(t: &oauth2::Token,
                 db: &Pool<ConnectionManager<SqliteConnection>>,
+                client: &reqwest::Client,
                 update_subs: bool)
                 -> Vec<Subscription> {
     use schema::subscriptions::dsl::*;
@@ -83,7 +85,7 @@ pub fn get_subs(t: &oauth2::Token,
             .execute(dbconn.deref())
             .expect("Deletion of old subscriptions failed");
 
-        let subs = get_subscriptions_for_me(t)
+        let subs = get_subscriptions_for_me(t,client)
             .map(construct_subscription)
             .collect::<Vec<NewSubscription>>();
         insert(&subs)
@@ -93,7 +95,7 @@ pub fn get_subs(t: &oauth2::Token,
     }
     let mut nsubs = subscriptions.load::<Subscription>(dbconn.deref()).unwrap();
     if update_subs {
-        get_upload_playlists(t, &mut nsubs);
+        get_upload_playlists(t, client, &mut nsubs);
         //update values
         for s in &nsubs {
             update(subscriptions.find(s.sid))

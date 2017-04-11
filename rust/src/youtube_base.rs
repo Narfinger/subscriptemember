@@ -97,7 +97,7 @@ pub struct YoutubeDurationContentDetails {
     pub definition: String,
 }
 
-fn query_simple_page<T>(t: &oauth2::Token, url: &str, nextpage: Option<String>) -> YoutubeResult<T>
+fn query_simple_page<T>(t: &oauth2::Token, url: &str, nextpage: Option<String>, client: &reqwest::Client) -> YoutubeResult<T>
     where T: serde::Deserialize
 {
     let mut q = String::from(url);
@@ -107,7 +107,8 @@ fn query_simple_page<T>(t: &oauth2::Token, url: &str, nextpage: Option<String>) 
         q.push_str(nextpagetk.as_str());
     }
     println!("Query: {}", q);
-    reqwest::get(q.as_str())
+    client.get(q.as_str())
+        .send()
         .and_then(|mut r| r.json::<YoutubeResult<T>>())
         .unwrap_or_else(|e| panic!("error in json parsing: {}", e))
 }
@@ -118,6 +119,7 @@ pub struct Query<T> {
     url: String,
     t: oauth2::Token,
     next_page: Option<String>,
+    client: reqwest::Client,
 }
 
 impl<'a, T> Iterator for Query<T>
@@ -127,14 +129,14 @@ impl<'a, T> Iterator for Query<T>
     fn next(&mut self) -> Option<YoutubeItem<T>> {
         if !self.initialised {
             self.initialised = true;
-            let res = query_simple_page(&self.t, &self.url, None);
+            let res = query_simple_page(&self.t, &self.url, None, &self.client);
             self.storage = res.items;
             self.next_page = res.next_page_token;
         }
 
         if self.storage.is_empty() {
             if self.next_page.is_some() {
-                let res = query_simple_page(&self.t, &self.url, self.next_page.clone());
+                let res = query_simple_page(&self.t, &self.url, self.next_page.clone(), &self.client);
                 self.storage = res.items;
                 self.next_page = res.next_page_token;
             } else {
@@ -147,7 +149,7 @@ impl<'a, T> Iterator for Query<T>
 }
 
 
-pub fn query<T>(t: &oauth2::Token, url: &str) -> Query<T>
+pub fn query<T>(t: &oauth2::Token, client: &reqwest::Client, url: &str) -> Query<T>
     where T: serde::Deserialize
 {
     Query::<T> {
@@ -156,5 +158,6 @@ pub fn query<T>(t: &oauth2::Token, url: &str) -> Query<T>
         url: url.to_string(),
         t: t.clone(),
         next_page: None,
+        client: (*client).clone(),
     }
 }

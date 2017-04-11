@@ -36,14 +36,15 @@ struct GiantBombVideo {
 }
 
 /// query giantbomb api and returns the result in a `GiantBombResult<T>`
-fn query_giantbomb<T>(t: &GBKey, url: String) -> GiantBombResult<T>
+fn query_giantbomb<T>(t: &GBKey, client: &reqwest::Client, url: String) -> GiantBombResult<T>
     where T: serde::Deserialize
 {
     let mut q = String::from(url);
     q.push_str("&api_key=");
     q.push_str(&t.key);
     println!("Query: {}", q);
-    reqwest::get(q.as_str())
+    client.get(q.as_str())
+        .send()
         .and_then(|mut s| s.json())
         .unwrap_or_else(|e| panic!("error in json parsing: {}", e))
 }
@@ -66,9 +67,9 @@ fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
 }
 
 /// query the giantbomb videos, filter them according to `unix_stamp` and returns them
-fn query_videos(t: &GBKey, unix_stamp: i64) -> Vec<NewVideo> {
+fn query_videos(t: &GBKey, client: &reqwest::Client, unix_stamp: i64) -> Vec<NewVideo> {
     let qstring = VID_URL.to_string() + LIMIT;
-    let res = query_giantbomb(t, qstring);
+    let res = query_giantbomb(t, client, qstring);
     res.results
         .iter()
         .map(construct_new_video)
@@ -77,12 +78,12 @@ fn query_videos(t: &GBKey, unix_stamp: i64) -> Vec<NewVideo> {
 }
 
 /// Update giantbomb videos and put them into the database
-pub fn update_videos(t: &GBKey, db: &Pool<ConnectionManager<SqliteConnection>>) {
+pub fn update_videos(t: &GBKey, db: &Pool<ConnectionManager<SqliteConnection>>, client: &reqwest::Client) {
     use schema::videos;
     use diesel::ExecuteDsl;
 
     let us = get_lastupdate_in_unixtime(db);
-    let vids: Vec<NewVideo> = query_videos(t, us);
+    let vids: Vec<NewVideo> = query_videos(t, client, us);
     let dbconn = db.get().expect("DB pool problem");
     insert(&vids)
         .into(videos::table)

@@ -5,6 +5,7 @@ use chrono::UTC;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert, delete};
+use reqwest;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use youtube_base::{YoutubeItem, YoutubeSnippet, YoutubeDurationContentDetails, query};
@@ -22,8 +23,8 @@ const VID_URL: &'static str = "https://www.googleapis.\
 /// Queries current Youtube Videos, filters them by `unix_stamp`
 /// and uses `subs` to get the uploadplaylist ids`
 fn query_videos<'f>(t: &'f oauth2::Token,
+                    client: &reqwest::Client,
                     subs: &'f [Subscription],
-                    //subs: &Vec<Subscription>,
                     unix_stamp: i64)
                     -> Vec<NewVideo> {
     fn build_string(s: &Subscription) -> String {
@@ -39,7 +40,7 @@ fn query_videos<'f>(t: &'f oauth2::Token,
     //     .collect::<Vec<NewVideo>>()
 
     let vids = subs.par_iter()
-        .map(|s| (s, query::<YoutubeSnippet>(t, &build_string(s))))
+        .map(|s| (s, query::<YoutubeSnippet>(t, client, &build_string(s))))
         .map(|(s, q)| (s, q.take(10).collect::<Vec<YoutubeItem<YoutubeSnippet>>>()))
         .collect::<Vec<(&Subscription, Vec<YoutubeItem<YoutubeSnippet>>)>>();
     vids.iter()
@@ -78,7 +79,7 @@ fn update_vid_time(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewV
 }
 
 /// update all running time of videos given in `v`
-fn update_video_running_time(t: &oauth2::Token, mut v: &mut Vec<NewVideo>) {
+fn update_video_running_time(t: &oauth2::Token, client: &reqwest::Client, mut v: &mut Vec<NewVideo>) {
     for chunk in v.chunks_mut(50) {
         let mut singlestringids = chunk.iter()
             .map(|s: &NewVideo| s.vid.clone())
@@ -86,7 +87,7 @@ fn update_video_running_time(t: &oauth2::Token, mut v: &mut Vec<NewVideo>) {
         singlestringids.pop();
         let queryurl = VID_URL.to_string() + &singlestringids + "&access_token=";
 
-        let q = query::<YoutubeDurationContentDetails>(t, &queryurl);
+        let q = query::<YoutubeDurationContentDetails>(t, client, &queryurl);
 
         for i in q {
             update_vid_time(&i, chunk);
@@ -97,14 +98,15 @@ fn update_video_running_time(t: &oauth2::Token, mut v: &mut Vec<NewVideo>) {
 /// Get new Videos and inserts them into the database
 pub fn update_videos(t: &oauth2::Token,
                      db: &Pool<ConnectionManager<SqliteConnection>>,
+                     client: &reqwest::Client,
                      subs: &[Subscription]) {
     use schema::videos;
     use schema::config;
 
     let us = get_lastupdate_in_unixtime(db);
-    let mut vids: Vec<NewVideo> = query_videos(t, subs, us);
+    let mut vids: Vec<NewVideo> = query_videos(t, client, subs, us);
     println!("Updating video running time");
-    update_video_running_time(t, &mut vids);
+    update_video_running_time(t, client, &mut vids);
 
     println!("New Youtube Videos length: {}", vids.len());
     let dbconn = db.get().expect("DB pool problem");

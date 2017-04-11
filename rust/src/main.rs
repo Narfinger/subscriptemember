@@ -125,13 +125,15 @@ fn setup_gbkey() -> GBKey {
 
 #[get("/updateSubs")]
 fn update_subs(tk: State<TK>, db: State<DB>) -> Redirect {
-    youtube_subscriptions::get_subs(&tk.0, &db.0, true);
+    let client = reqwest::Client::new().expect("Error creating pool");
+    youtube_subscriptions::get_subs(&tk.0, &db.0, &client, true);
     Redirect::to("/subs")
 }
 
 #[get("/subs")]
 fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
-    let sub = youtube_subscriptions::get_subs(&tk.0, &db.0, false);
+    let client = reqwest::Client::new().expect("Error creating pool");
+    let sub = youtube_subscriptions::get_subs(&tk.0, &db.0, &client, false);
     let data = json!({
         "subs": sub,
         "numberofsubs": sub.len(),
@@ -149,10 +151,11 @@ fn update_videos(tk: State<TK>,
         let ntk = tk.0.clone();
         let ngbtk = gbtk.0.clone();
         let ndb = db.0.clone();
+        let client = reqwest::Client::new().expect("Error creating connection pool");
         thread::spawn(move || {
-            giantbomb_video::update_videos(&ngbtk, &ndb);
-            let subs = youtube_subscriptions::get_subs(&ntk, &ndb, false);
-            youtube_video::update_videos(&ntk, &ndb, &subs);
+            giantbomb_video::update_videos(&ngbtk, &ndb, &client);
+            let subs = youtube_subscriptions::get_subs(&ntk, &ndb, &client, false);
+            youtube_video::update_videos(&ntk, &ndb, &client, &subs);
         });
     }
     Redirect::to("/")
