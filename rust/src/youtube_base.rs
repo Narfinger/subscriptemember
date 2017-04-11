@@ -113,16 +113,16 @@ fn query_simple_page<T>(t: &oauth2::Token, url: &str, nextpage: Option<String>, 
         .unwrap_or_else(|e| panic!("error in json parsing: {}", e))
 }
 
-pub struct Query<T> {
+pub struct Query<'a,T> {
     initialised: bool,
     storage: VecDeque<YoutubeItem<T>>,
     url: String,
     t: oauth2::Token,
     next_page: Option<String>,
-    client: reqwest::Client,
+    client: &'a reqwest::Client,
 }
 
-impl<'a, T> Iterator for Query<T>
+impl<'a, T> Iterator for Query<'a,T>
     where T: serde::Deserialize
 {
     type Item = YoutubeItem<T>;
@@ -149,7 +149,7 @@ impl<'a, T> Iterator for Query<T>
 }
 
 
-pub fn query<T>(t: &oauth2::Token, client: &reqwest::Client, url: &str) -> Query<T>
+pub fn query<'a,T>(t: &oauth2::Token, client: &'a reqwest::Client, url: &str) -> Query<'a,T>
     where T: serde::Deserialize
 {
     Query::<T> {
@@ -158,6 +158,6 @@ pub fn query<T>(t: &oauth2::Token, client: &reqwest::Client, url: &str) -> Query
         url: url.to_string(),
         t: t.clone(),
         next_page: None,
-        client: (*client).clone(),
+        client: client,
     }
 }

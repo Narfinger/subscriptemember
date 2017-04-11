@@ -18,7 +18,7 @@ const SUB_URL: &'static str = "https://www.googleapis.\
 const UPLOAD_PL_URL: &'static str = "https://www.googleapis.\
                                      com/youtube/v3/channels?part=contentDetails&maxResults=50&";
 
-fn get_subscriptions_for_me(t: &oauth2::Token, client: &reqwest::Client) -> Query<YoutubeSubscription> {
+fn get_subscriptions_for_me<'a>(t: &oauth2::Token, client: &'a reqwest::Client) -> Query<'a,YoutubeSubscription> {
     query(t, client, SUB_URL)
 }
 
