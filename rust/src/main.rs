@@ -68,6 +68,7 @@ struct TK(oauth2::Token);
 struct GBTK(GBKey);
 struct DB(Pool<ConnectionManager<SqliteConnection>>);
 struct HB(handlebars::Handlebars);
+struct CL(reqwest::Client);
 struct UpdatingVideos(Mutex<()>);
 struct MPSC {
     send: Mutex<mpsc::Sender<i64>>,
@@ -124,16 +125,14 @@ fn setup_gbkey() -> GBKey {
 }
 
 #[get("/updateSubs")]
-fn update_subs(tk: State<TK>, db: State<DB>) -> Redirect {
-    let client = reqwest::Client::new().expect("Error creating pool");
-    youtube_subscriptions::get_subs(&tk.0, &db.0, &client, true);
+fn update_subs(tk: State<TK>, db: State<DB>, cl: State<CL>) -> Redirect {
+    youtube_subscriptions::get_subs(&tk.0, &db.0, &cl.0, true);
     Redirect::to("/subs")
 }
 
 #[get("/subs")]
-fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
-    let client = reqwest::Client::new().expect("Error creating pool");
-    let sub = youtube_subscriptions::get_subs(&tk.0, &db.0, &client, false);
+fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>, cl: State<CL>) -> Content<String> {
+    let sub = youtube_subscriptions::get_subs(&tk.0, &db.0, &cl.0, false);
     let data = json!({
         "subs": sub,
         "numberofsubs": sub.len(),
@@ -145,17 +144,18 @@ fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
 fn update_videos(tk: State<TK>,
                  gbtk: State<GBTK>,
                  db: State<DB>,
-                 upv: State<UpdatingVideos>)
+                 upv: State<UpdatingVideos>,
+                 cl: State<CL>)
                  -> Redirect {
     if upv.0.try_lock().is_ok() {
         let ntk = tk.0.clone();
         let ngbtk = gbtk.0.clone();
         let ndb = db.0.clone();
-        let client = reqwest::Client::new().expect("Error creating connection pool");
+        let ncl = cl.0.clone();
         thread::spawn(move || {
-            giantbomb_video::update_videos(&ngbtk, &ndb, &client);
-            let subs = youtube_subscriptions::get_subs(&ntk, &ndb, &client, false);
-            youtube_video::update_videos(&ntk, &ndb, &client, &subs);
+            giantbomb_video::update_videos(&ngbtk, &ndb, &ncl);
+            let subs = youtube_subscriptions::get_subs(&ntk, &ndb, &ncl, false);
+            youtube_video::update_videos(&ntk, &ndb, &ncl, &subs);
         });
     }
     Redirect::to("/")
@@ -293,6 +293,7 @@ fn main() {
         recv: Mutex::new(ch.1),
     };
 
+    let cl = reqwest::Client::new().expect("Error in creating connection pool");
     println!("Starting server");
     rocket::ignite()
         .mount("/",
@@ -303,6 +304,7 @@ fn main() {
         .manage(DB(pool))
         .manage(HB(hb))
         .manage(UpdatingVideos(Mutex::new(())))
+        .manage(CL(cl))
         .manage(chstruct)
         .launch();
 }
