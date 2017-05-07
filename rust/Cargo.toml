@@ -7,14 +7,14 @@ authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
 default = []
 
 [dependencies]
-clippy = {version = "0.0.122", optional = true}
+clippy = {version = "0.0.129", optional = true}
 serde = "0.9.13"
 serde_json = "0.9.10"
 serde_derive = "0.9.13"
 rocket = "0.2.0"
 rocket_codegen = "0.2.0"
 rocket_contrib = {version = "0.2.0", features = ["handlebars_templates", "json"]}
-hyper = "0.10.7"
+hyper = "0.10.8"
 hyper-rustls = "0.3.1"
 yup-oauth2 = {version = "1.0.4"}
 handlebars = {version = "0.25", features = ["serde_type"]}
@@ -23,7 +23,7 @@ chrono-tz = "0.3.0"
 dotenv = "0.10.0"
 diesel = {version = "0.12.0", features = ["sqlite"]}
 diesel_codegen = {version = "0.12.0", features = ["sqlite"]}
-r2d2 = "0.7.1"
+r2d2 = "0.7.2"
 r2d2-diesel = {version = "0.12.0"}
 reqwest = "0.5.1"
 nom = "2.1.0"

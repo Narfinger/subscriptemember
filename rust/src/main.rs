@@ -46,6 +46,7 @@ use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecr
 
 use std::io::prelude::*;
 use std::fs::File;
+use std::path::{Path,PathBuf};
 use std::thread;
 use std::env;
 use std::sync::mpsc;
@@ -59,7 +60,7 @@ use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use dotenv::dotenv;
 use rocket::request::{State, Form, FromFormValue};
-use rocket::response::Redirect;
+use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
 use rocket_contrib::JSON;
@@ -264,6 +265,11 @@ fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<
 //     Ok(())
 // }
 
+#[get("/static/<file..>")]
+fn static_files(file: PathBuf) -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/").join(file)).ok()
+}
+
 fn main() {
     println!("Registering templates");
     let mut hb = Handlebars::new();
@@ -299,7 +305,7 @@ fn main() {
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete,
-                       socket, sockettest, /*static_files,*/ addurl, index])
+                       socket, sockettest, static_files, addurl, index])
         .manage(TK(setup_oauth()))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))
