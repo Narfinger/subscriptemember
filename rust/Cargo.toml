@@ -7,25 +7,26 @@ authors = ["Narfinger <Narfinger@users.noreply.github.com>"]
 default = []
 
 [dependencies]
-clippy = {version = "0.0.129", optional = true}
-serde = "0.9.13"
-serde_json = "0.9.10"
-serde_derive = "0.9.13"
-rocket = "0.2.0"
-rocket_codegen = "0.2.0"
-rocket_contrib = {version = "0.2.0", features = ["handlebars_templates", "json"]}
-hyper = "0.10.8"
-hyper-rustls = "0.3.1"
-yup-oauth2 = {version = "1.0.4"}
-handlebars = {version = "0.25", features = ["serde_type"]}
-chrono = {version = "0.3.0", features = ["serde"]}
-chrono-tz = "0.3.0"
-dotenv = "0.10.0"
-diesel = {version = "0.12.0", features = ["sqlite"]}
-diesel_codegen = {version = "0.12.0", features = ["sqlite"]}
-r2d2 = "0.7.2"
-r2d2-diesel = {version = "0.12.0"}
-reqwest = "0.5.1"
-nom = "2.1.0"
-uuid = {version = "0.4", features = ["v4"]}
-rayon = "0.7.0"
+clippy = {version = "0.0.138", optional = true}
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+rocket = "0.2"
+rocket_codegen = "0.2"
+rocket_contrib = {version = "0.2", features = ["handlebars_templates", "json"]}
+hyper = "0.10"
+hyper-rustls = "0.6"
+yup-oauth2 =  { git = "https://github.com/dermesser/yup-oauth2", rev="1247c35"} 
+# yup-oauth2 = {version = "1.0"}
+handlebars = "0.26"
+chrono = {version = "0.3", features = ["serde"]}
+chrono-tz = "0.3"
+dotenv = "0.10"
+diesel = {version = "0.13", features = ["sqlite"]}
+diesel_codegen = {version = "0.13", features = ["sqlite"]}
+r2d2 = "0.7"
+r2d2-diesel = {version = "0.13"}
+reqwest = "0.6"
+nom = "3.0"
+uuid = {version = "0.5", features = ["v4"]}
+rayon = "0.7"

@@ -98,7 +98,7 @@ pub struct YoutubeDurationContentDetails {
 }
 
 fn query_simple_page<T>(t: &oauth2::Token, url: &str, nextpage: Option<String>, client: &reqwest::Client) -> YoutubeResult<T>
-    where T: serde::Deserialize
+    where T: serde::de::DeserializeOwned
 {
     let mut q = String::from(url);
     q.push_str(t.access_token.as_str());
@@ -123,7 +123,7 @@ pub struct Query<'a,T> {
 }
 
 impl<'a, T> Iterator for Query<'a,T>
-    where T: serde::Deserialize
+    where T: serde::de::DeserializeOwned
 {
     type Item = YoutubeItem<T>;
     fn next(&mut self) -> Option<YoutubeItem<T>> {
@@ -150,7 +150,7 @@ impl<'a, T> Iterator for Query<'a,T>
 
 
 pub fn query<'a,T>(t: &oauth2::Token, client: &'a reqwest::Client, url: &str) -> Query<'a,T>
-    where T: serde::Deserialize
+    where T: serde::de::DeserializeOwned
 {
     Query::<T> {
         initialised: false,

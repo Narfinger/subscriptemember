@@ -104,22 +104,18 @@ pub fn from_giantbomb_datetime_to_timestamp(s: &str) -> i64 {
 }
 
 named!(number<u64>, map_res!(map_res!(ws!(digit),str::from_utf8),FromStr::from_str) );
-named!(youtube_duration_hour    <&[u8],u64>, chain!(v: number ~ tag!("H"), || {v} ) );
-named!(youtube_duration_minutes <&[u8],u64>, chain!(v: number ~ tag!("M"), || {v} ) );
-named!(youtube_duration_seconds <&[u8],u64>, chain!(v: number ~ tag!("S"), || {v} ) );
+named!(youtube_duration_hour    <&[u8],u64>, do_parse!(v: number >> tag!("H") >> (v) ));
+named!(youtube_duration_minutes <&[u8],u64>, do_parse!(v: number >> tag!("M") >> (v) ));
+named!(youtube_duration_seconds <&[u8],u64>, do_parse!(v: number >> tag!("S") >> (v) ));
 
 /// Parses a youtube duration string into unix epoch
-named!(pub youtube_duration <&[u8],u64>, chain!(
-    tag!("P") ~
-    tag!("T") ~
-        hours: opt!(youtube_duration_hour) ~
-        minutes: opt!(youtube_duration_minutes) ~
-        seconds: opt!(complete!(youtube_duration_seconds))
-        ,
-    || {
-        hours.unwrap_or(0)*60*60 + minutes.unwrap_or(0) *60 + seconds.unwrap_or(0)
-    }
-));
+named!(pub youtube_duration <&[u8],u64>, do_parse!(
+    tag!("P") >>
+    tag!("T") >>
+        hours: opt!(youtube_duration_hour) >>
+        minutes: opt!(youtube_duration_minutes) >>
+        seconds: opt!(complete!(youtube_duration_seconds)) >>
+        (hours.unwrap_or(0)*60*60 + minutes.unwrap_or(0) *60 + seconds.unwrap_or(0))));
 
 #[test]
 fn youtube_duration_parse_test() {

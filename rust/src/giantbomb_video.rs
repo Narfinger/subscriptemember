@@ -37,7 +37,7 @@ struct GiantBombVideo {
 
 /// query giantbomb api and returns the result in a `GiantBombResult<T>`
 fn query_giantbomb<T>(t: &GBKey, client: &reqwest::Client, url: String) -> GiantBombResult<T>
-    where T: serde::Deserialize
+    where T: serde::de::DeserializeOwned
 {
     let mut q = String::from(url);
     q.push_str("&api_key=");

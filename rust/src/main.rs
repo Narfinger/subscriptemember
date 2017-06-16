@@ -98,8 +98,7 @@ impl<'v> FromFormValue<'v> for MyURL {
 
 fn setup_oauth() -> oauth2::Token {
     let f = File::open("client_secret.json").expect("Did not find client_secret.json");
-
-    let secret = json::from_reader::<File, ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
+    let secret = json::from_reader::<File,ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
     let mut cwd = std::env::current_dir().unwrap();
     cwd.push("tk");
     let cwd: String = String::from(cwd.to_str().expect("string conversion error"));
