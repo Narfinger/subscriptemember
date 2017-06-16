@@ -26,7 +26,7 @@ struct GiantBombThumbnail {
 #[derive(Debug,Deserialize)]
 struct GiantBombVideo {
     pub deck: String,
-    pub hd_url: String,
+    pub hd_url: Option<String>,
     pub youtube_id: Option<String>,
     pub name: String,
     pub length_seconds: i64,
