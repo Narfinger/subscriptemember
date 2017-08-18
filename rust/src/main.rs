@@ -17,6 +17,7 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate hyper;
 extern crate hyper_rustls;
+extern crate tokio_core;
 extern crate yup_oauth2 as oauth2;
 extern crate handlebars;
 extern crate rocket;
@@ -40,16 +41,18 @@ pub mod youtube_video;
 pub mod subs_and_video;
 pub mod giantbomb_video;
 
-use std::sync::Mutex;
+use std::sync::{RwLock, Mutex};
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
              DiskTokenStorage, GetToken, FlowType};
 
+use std::borrow::BorrowMut;
 use std::io::prelude::*;
 use std::fs::File;
 use std::path::{Path,PathBuf};
 use std::thread;
 use std::env;
 use std::sync::mpsc;
+use std::str::FromStr;
 use serde_json as json;
 use hyper::Url;
 use hyper::net::HttpsConnector;
@@ -66,7 +69,7 @@ use rocket::http::ContentType;
 use rocket_contrib::JSON;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 
-struct TK(oauth2::Token);
+struct TK(RwLock<oauth2::Token>);
 struct GBTK(GBKey);
 struct DB(Pool<ConnectionManager<SqliteConnection>>);
 struct HB(handlebars::Handlebars);
@@ -84,11 +87,11 @@ struct AddForm {
 }
 
 impl<'v> FromFormValue<'v> for MyURL {
-    type Error = hyper::error::ParseError;
+    type Error = reqwest::UrlError;
     fn from_form_value(v: &'v str) -> Result<Self, Self::Error> {
         let mut nv = v.replace("%3A", ":");
         nv = nv.replace("%2F", "/");
-        let parsed = Url::parse(&nv);
+        let parsed = Url::from_str(&nv);
         match parsed {
             Ok(x) => Ok(MyURL(x)),
             Err(x) => Err(x),
@@ -104,6 +107,10 @@ fn setup_oauth() -> oauth2::Token {
     let cwd: String = String::from(cwd.to_str().expect("string conversion error"));
     let ntk = DiskTokenStorage::new(&cwd).expect("disk storage token is broken");
 
+    let mut core = tokio_core::reactor::Core::new().unwrap();
+    let handle = core.handle();
+
+    //let client = HttpsConnector::new(2,&handle);
     let client = hyper::Client::with_connector(HttpsConnector::new(hyper_rustls::TlsClient::new()));
     let realtk = Authenticator::new(&secret,
                                     DefaultAuthenticatorDelegate,
@@ -127,13 +134,18 @@ fn setup_gbkey() -> GBKey {
 
 #[get("/updateSubs")]
 fn update_subs(tk: State<TK>, db: State<DB>, cl: State<CL>) -> Redirect {
-    youtube_subscriptions::get_subs(&tk.0, &db.0, &cl.0, true);
+    if tk.0.read().unwrap().expired() {
+        let mut rwtk = tk.0.write().unwrap();
+        *rwtk = setup_oauth();
+    }
+
+    youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl.0, true);
     Redirect::to("/subs")
 }
 
 #[get("/subs")]
 fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>, cl: State<CL>) -> Content<String> {
-    let sub = youtube_subscriptions::get_subs(&tk.0, &db.0, &cl.0, false);
+    let sub = youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl.0, false);
     let data = json!({
         "subs": sub,
         "numberofsubs": sub.len(),
@@ -149,7 +161,12 @@ fn update_videos(tk: State<TK>,
                  cl: State<CL>)
                  -> Redirect {
     if upv.0.try_lock().is_ok() {
-        let ntk = tk.0.clone();
+        if tk.0.read().unwrap().expired() {
+            let mut rwtk = tk.0.write().unwrap();
+            *rwtk = setup_oauth();
+        }
+
+        let ntk = tk.0.read().unwrap().clone();
         let ngbtk = gbtk.0.clone();
         let ndb = db.0.clone();
         let ncl = cl.0.clone();
@@ -192,6 +209,27 @@ fn addurl(form: Form<AddForm>) -> Redirect {
     println!("found something {:?}", url);
     Redirect::to("/")
 }
+
+#[get("/small")]
+fn small(db: State<DB>, hb: State<HB>) -> Content<String> {
+    let vids = youtube_video::get_videos(&db.0);
+
+    let lastrefreshed =
+        format!("{}", NaiveDateTime::from_timestamp(get_lastupdate_in_unixtime(&db.0), 0)
+                                .format("%H:%M:%S %d.%m.%Y"));
+    let numberofvideos = vids.len();
+    let totaltime: i64 = vids.iter().map(|v| v.duration).sum();
+
+    let data = json!({
+        "vids": vids,
+        "lastrefreshed": lastrefreshed,
+        "numberofvideos": numberofvideos,
+        "totaltime": totaltime,
+    });
+    Content(ContentType::HTML,
+            hb.0.render("index", &data).map_err(|err| err.to_string()).unwrap())
+}
+
 
 #[get("/")]
 fn index(db: State<DB>, hb: State<HB>) -> Content<String> {
@@ -304,8 +342,8 @@ fn main() {
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete,
-                       socket, sockettest, static_files, addurl, index])
-        .manage(TK(setup_oauth()))
+                       socket, sockettest, static_files, addurl, small, index])
+        .manage(TK(RwLock::new(setup_oauth())))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))
         .manage(HB(hb))

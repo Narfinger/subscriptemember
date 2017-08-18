@@ -1,7 +1,7 @@
 use oauth2;
 use std::iter::Iterator;
 use std::ops::Deref;
-use chrono::UTC;
+use chrono::Utc;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert, delete};
@@ -116,7 +116,7 @@ pub fn update_videos(t: &oauth2::Token,
         .expect("Insertion of Videos Failed");
 
     delete(config::table).execute(dbconn.deref()).expect("Deletion of old config failed");
-    let nc = NewConfig { lastupdate: UTC::now().to_rfc3339() };
+    let nc = NewConfig { lastupdate: Utc::now().to_rfc3339() };
     insert(&nc).into(config::table).execute(dbconn.deref()).expect("Insertion of config failed");
 }
 

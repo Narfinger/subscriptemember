@@ -152,6 +152,10 @@ impl<'a, T> Iterator for Query<'a,T>
 pub fn query<'a,T>(t: &oauth2::Token, client: &'a reqwest::Client, url: &str) -> Query<'a,T>
     where T: serde::de::DeserializeOwned
 {
+    if t.expired() {
+        println!("Token expired");
+    }
+    
     Query::<T> {
         initialised: false,
         storage: VecDeque::with_capacity(50),
