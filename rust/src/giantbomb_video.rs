@@ -42,7 +42,7 @@ fn query_giantbomb<T>(t: &GBKey, client: &reqwest::Client, url: String) -> Giant
     let mut q = String::from(url);
     q.push_str("&api_key=");
     q.push_str(&t.key);
-    println!("Query: {}", q);
+    //println!("Query: {}", q);
     client.get(q.as_str())
         .send()
         .and_then(|mut s| s.json())

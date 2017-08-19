@@ -106,7 +106,7 @@ fn query_simple_page<T>(t: &oauth2::Token, url: &str, nextpage: Option<String>, 
         q.push_str("&pageToken=");
         q.push_str(nextpagetk.as_str());
     }
-    println!("Query: {}", q);
+    //println!("Query: {}", q);
     client.get(q.as_str())
         .send()
         .and_then(|mut r| r.json::<YoutubeResult<T>>())
