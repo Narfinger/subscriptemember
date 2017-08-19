@@ -66,7 +66,7 @@ use rocket::request::{State, Form, FromFormValue};
 use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
-use rocket_contrib::JSON;
+use rocket_contrib::Json;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 
 struct TK(RwLock<oauth2::Token>);
@@ -88,7 +88,7 @@ struct AddForm {
 
 impl<'v> FromFormValue<'v> for MyURL {
     type Error = reqwest::UrlError;
-    fn from_form_value(v: &'v str) -> Result<Self, Self::Error> {
+    fn from_form_value(v: &'v rocket::http::RawStr) -> Result<Self, Self::Error> {
         let mut nv = v.replace("%3A", ":");
         nv = nv.replace("%2F", "/");
         let parsed = Url::from_str(&nv);
@@ -180,23 +180,23 @@ fn update_videos(tk: State<TK>,
 }
 
 #[get("/delete/<vid>")]
-fn delete(vid: &str, db: State<DB>) -> Redirect {
-    youtube_video::delete_video(&db.0, vid);
+fn delete(vid: String, db: State<DB>) -> Redirect {
+    youtube_video::delete_video(&db.0, &vid);
     Redirect::to("/")
 }
 
-#[get("/socket")]
-fn socket(sc: State<MPSC>) -> JSON<i64> {
-    let reader: &mpsc::Receiver<i64> = &sc.recv.lock().unwrap();
-    JSON(reader.recv().unwrap())
-}
+// #[get("/socket")]
+// fn socket(sc: State<MPSC>) -> Json<i64> {
+//     let reader: &mpsc::Receiver<i64> = &sc.recv.lock().unwrap();
+//     Json(reader.recv().unwrap())
+// }
 
 
-#[get("/sockettest")]
-fn sockettest(sc: State<MPSC>) {
-    let writer: &mpsc::Sender<i64> = &sc.send.lock().unwrap();
-    writer.send(64).expect("Error in writing");
-}
+// #[get("/sockettest")]
+// fn sockettest(sc: State<MPSC>) {
+//     let writer: &mpsc::Sender<i64> = &sc.send.lock().unwrap();
+//     writer.send(64).expect("Error in writing");
+// }
 
 // #[get("/static/<file..>")]
 // fn static_files(file: PathBuf) -> Option<NamedFile> {
@@ -342,7 +342,7 @@ fn main() {
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete,
-                       socket, sockettest, static_files, addurl, small, index])
+                       /* socket, sockettest,*/ static_files, addurl, small, index])
         .manage(TK(RwLock::new(setup_oauth())))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))

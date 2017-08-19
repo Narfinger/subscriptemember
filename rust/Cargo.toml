@@ -13,15 +13,15 @@ clippy = {version = "0.0", optional = true}
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
-rocket = "0.2"
-rocket_codegen = "0.2"
-rocket_contrib = {version = "0.2", features = ["handlebars_templates", "json"]}
+rocket = "0.3"
+rocket_codegen = "0.3"
+rocket_contrib = {version = "0.3", features = ["handlebars_templates", "json"]}
 hyper = "0.10.2"
 tokio-core = "0.1"
 hyper-rustls = "0.6.1"
 #yup-oauth2 =  { git = "https://github.com/dermesser/yup-oauth2", rev="8e7060b041fb28c802190206897c4a5d9d0aaf17"} 
 yup-oauth2 = {version = "1.0"}
-handlebars = "0.26"
+handlebars = "0.27"
 dotenv = "0.10"
 diesel = {version = "0.13", features = ["sqlite"]}
 diesel_codegen = {version = "0.13", features = ["sqlite"]}
