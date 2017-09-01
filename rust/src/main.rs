@@ -73,7 +73,6 @@ struct TK(RwLock<oauth2::Token>);
 struct GBTK(GBKey);
 struct DB(Pool<ConnectionManager<SqliteConnection>>);
 struct HB(handlebars::Handlebars);
-struct CL(reqwest::Client);
 struct UpdatingVideos(Mutex<()>);
 struct MPSC {
     send: Mutex<mpsc::Sender<i64>>,
@@ -133,19 +132,20 @@ fn setup_gbkey() -> GBKey {
 }
 
 #[get("/updateSubs")]
-fn update_subs(tk: State<TK>, db: State<DB>, cl: State<CL>) -> Redirect {
+fn update_subs(tk: State<TK>, db: State<DB>) -> Redirect {
     if tk.0.read().unwrap().expired() {
         let mut rwtk = tk.0.write().unwrap();
         *rwtk = setup_oauth();
     }
-
-    youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl.0, true);
+    let cl = reqwest::Client::new().expect("Error in creating connection pool");
+    youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl, true);
     Redirect::to("/subs")
 }
 
 #[get("/subs")]
-fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>, cl: State<CL>) -> Content<String> {
-    let sub = youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl.0, false);
+fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
+    let cl = reqwest::Client::new().expect("Error in creating connection pool");
+    let sub = youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl, false);
     let data = json!({
         "subs": sub,
         "numberofsubs": sub.len(),
@@ -157,8 +157,7 @@ fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>, cl: State<CL>) -> Content<S
 fn update_videos(tk: State<TK>,
                  gbtk: State<GBTK>,
                  db: State<DB>,
-                 upv: State<UpdatingVideos>,
-                 cl: State<CL>)
+                 upv: State<UpdatingVideos>)
                  -> Redirect {
     if upv.0.try_lock().is_ok() {
         if tk.0.read().unwrap().expired() {
@@ -169,7 +168,9 @@ fn update_videos(tk: State<TK>,
         let ntk = tk.0.read().unwrap().clone();
         let ngbtk = gbtk.0.clone();
         let ndb = db.0.clone();
-        let ncl = cl.0.clone();
+
+        let cl = reqwest::Client::new().expect("Error in creating connection pool");
+        let ncl = cl.clone();
         thread::spawn(move || {
             giantbomb_video::update_videos(&ngbtk, &ndb, &ncl);
             let subs = youtube_subscriptions::get_subs(&ntk, &ndb, &ncl, false);
@@ -348,7 +349,6 @@ fn main() {
         .manage(DB(pool))
         .manage(HB(hb))
         .manage(UpdatingVideos(Mutex::new(())))
-        .manage(CL(cl))
         .manage(chstruct)
         .launch();
 }
