@@ -1,3 +1,4 @@
+#![recursion_limit="128"]
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 #![cfg_attr(feature="clippy", allow(needless_pass_by_value))] //rocket state uses this
@@ -5,6 +6,7 @@
 #![feature(plugin,custom_derive)]
 #![plugin(rocket_codegen)]
 #[cfg(feature = "nightly")]
+
 #[macro_use]
 extern crate rocket;
 extern crate serde;
@@ -55,8 +57,7 @@ use std::env;
 use std::sync::mpsc;
 use std::str::FromStr;
 use serde_json as json;
-use hyper::Url;
-use hyper::net::HttpsConnector;
+use hyper::Uri;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
 use diesel::sqlite::SqliteConnection;
@@ -79,7 +80,7 @@ struct UpdatingVideos(Mutex<()>);
 #[derive(Clone)]
 struct MPSC(mpsc::SyncSender<()>);
 
-struct MyURL(Url);
+struct MyURL(Uri);
 #[derive(FromForm)]
 struct AddForm {
     url: MyURL,
@@ -87,10 +88,10 @@ struct AddForm {
 
 impl<'v> FromFormValue<'v> for MyURL {
     type Error = reqwest::UrlError;
-    fn from_form_value(v: &'v rocket::http::RawStr) -> Result<Self, Self::Error> {
+    fn from_form_value(v: &'v rocket::http::RawStr) -> Result<Self, hyper::error::Error> {
         let mut nv = v.replace("%3A", ":");
         nv = nv.replace("%2F", "/");
-        let parsed = Url::from_str(&nv);
+        let parsed = Uri::from_str(&nv);
         match parsed {
             Ok(x) => Ok(MyURL(x)),
             Err(x) => Err(x),
@@ -110,7 +111,10 @@ fn setup_oauth() -> oauth2::Token {
     let handle = core.handle();
 
     //let client = HttpsConnector::new(2,&handle);
-    let client = hyper::Client::with_connector(HttpsConnector::new(hyper_rustls::TlsClient::new()));
+    let client = hyper::Client::configure()
+        .connector(hyper_rustls::HttpsConnector::new(4, &core.handle()))
+        .build();
+    //let client = hyper::Client::with_connector(hyper_rustls::HttpsConnector::new(4, &core.handle())).build();
     let realtk = Authenticator::new(&secret,
                                     DefaultAuthenticatorDelegate,
                                     client,

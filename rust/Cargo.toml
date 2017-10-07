@@ -10,27 +10,27 @@ default = []
 chrono = {version = "0.4", features = ["serde"]}
 chrono-tz = "0.4"
 clippy = {version = "0.0", optional = true}
+diesel = {version = "0.16", features = ["sqlite"]}
+diesel_codegen = {version = "0.16", features = ["sqlite"]}
+dotenv = "0.10"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
 rocket = "0.3"
 rocket_codegen = "0.3"
 rocket_contrib = {version = "0.3", features = ["handlebars_templates", "json"]}
-hyper = "0.10.2"
+hyper = "0.11"
+hyper-rustls = "0.11"
 tokio-core = "0.1"
-hyper-rustls = "0.6.1"
-#yup-oauth2 =  { git = "https://github.com/dermesser/yup-oauth2", rev="8e7060b041fb28c802190206897c4a5d9d0aaf17"} 
-yup-oauth2 = {version = "1.0"}
-handlebars = "0.27"
-dotenv = "0.10"
-diesel = {version = "0.13", features = ["sqlite"]}
-diesel_codegen = {version = "0.13", features = ["sqlite"]}
+handlebars = "0.29"
 r2d2 = "0.7"
-r2d2-diesel = {version = "0.13"}
-reqwest = "0.6"
+r2d2-diesel = {version = "0.16"}
+reqwest = "0.8"
 nom = "3.0"
 uuid = {version = "0.5", features = ["v4"]}
 rayon = "0.8"
+yup-oauth2 =  { git = "https://github.com/Narfinger/yup-oauth2"} 
+#yup-oauth2 = {version = "1.0"}
 ws = "0.7.3"         # Lightweight, event-driven WebSockets for Rust.
 
 
