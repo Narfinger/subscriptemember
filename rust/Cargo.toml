@@ -31,3 +31,6 @@ reqwest = "0.6"
 nom = "3.0"
 uuid = {version = "0.5", features = ["v4"]}
 rayon = "0.8"
+ws = "0.7.3"         # Lightweight, event-driven WebSockets for Rust.
+
+

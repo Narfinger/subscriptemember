@@ -33,6 +33,7 @@ extern crate dotenv;
 extern crate nom;
 extern crate uuid;
 extern crate rayon;
+extern crate ws;
 
 pub mod schema;
 pub mod youtube_base;
@@ -67,6 +68,7 @@ use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
 use rocket_contrib::Json;
+
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 
 struct TK(RwLock<oauth2::Token>);
@@ -74,10 +76,8 @@ struct GBTK(GBKey);
 struct DB(Pool<ConnectionManager<SqliteConnection>>);
 struct HB(handlebars::Handlebars);
 struct UpdatingVideos(Mutex<()>);
-struct MPSC {
-    send: Mutex<mpsc::Sender<i64>>,
-    recv: Mutex<mpsc::Receiver<i64>>,
-}
+#[derive(Clone)]
+struct MPSC(mpsc::SyncSender<()>);
 
 struct MyURL(Url);
 #[derive(FromForm)]
@@ -157,6 +157,7 @@ fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
 fn update_videos(tk: State<TK>,
                  gbtk: State<GBTK>,
                  db: State<DB>,
+                 ch: State<MPSC>,
                  upv: State<UpdatingVideos>)
                  -> Redirect {
     if upv.0.try_lock().is_ok() {
@@ -171,10 +172,13 @@ fn update_videos(tk: State<TK>,
 
         let cl = reqwest::Client::new().expect("Error in creating connection pool");
         let ncl = cl.clone();
+        let nch = ch.to_owned();
         thread::spawn(move || {
             giantbomb_video::update_videos(&ngbtk, &ndb, &ncl);
             let subs = youtube_subscriptions::get_subs(&ntk, &ndb, &ncl, false);
             youtube_video::update_videos(&ntk, &ndb, &ncl, &subs);
+
+            nch.0.send(());
         });
     }
     Redirect::to("/")
@@ -186,17 +190,9 @@ fn delete(vid: String, db: State<DB>) -> Redirect {
     Redirect::to("/")
 }
 
-// #[get("/socket")]
-// fn socket(sc: State<MPSC>) -> Json<i64> {
-//     let reader: &mpsc::Receiver<i64> = &sc.recv.lock().unwrap();
-//     Json(reader.recv().unwrap())
-// }
-
-
 // #[get("/sockettest")]
 // fn sockettest(sc: State<MPSC>) {
-//     let writer: &mpsc::Sender<i64> = &sc.send.lock().unwrap();
-//     writer.send(64).expect("Error in writing");
+//     sc.0.send(());
 // }
 
 // #[get("/static/<file..>")]
@@ -332,18 +328,37 @@ fn main() {
     let pool = r2d2::Pool::new(config, manager).expect("Failed to create pool.");
 
     println!("Setting up channels");
-    let ch = mpsc::channel();
-    let chstruct = MPSC {
-        send: Mutex::new(ch.0),
-        recv: Mutex::new(ch.1),
-    };
+    let (sender, receiver) = mpsc::sync_channel::<()>(2);
+    let chstruct = MPSC(sender);
+    
+    {
+        println!("Starting websockets");
+        let mut ws = ws::WebSocket::new(|_| {
+            move |msg| {
+                Ok(())
+            }
+        }).unwrap();
+        let broadcaster = ws.broadcaster();
+        
+        thread::spawn(move || {
+            if let Ok(_) = receiver.recv() {
+                broadcaster.send(ws::Message::text("refresh please"))
+            } else {
+                broadcaster.send(ws::Message::text("disconnected"))
+            }
+        });
+        
+        thread::spawn(|| ws.listen("127.0.0.1:3012"));
+    }
 
+    
     let cl = reqwest::Client::new().expect("Error in creating connection pool");
+    
     println!("Starting server");
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete,
-                       /* socket, sockettest,*/ static_files, addurl, small, index])
+                       /* sockettest,*/ static_files, addurl, small, index])
         .manage(TK(RwLock::new(setup_oauth())))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))
