@@ -4,7 +4,7 @@ use std::ops::Deref;
 use chrono::Utc;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
-use diesel::{insert, delete};
+use diesel::{insert_into, delete};
 use reqwest;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
@@ -79,7 +79,7 @@ fn update_vid_time(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewV
 }
 
 /// update all running time of videos given in `v`
-fn update_video_running_time(t: &oauth2::Token, client: &reqwest::Client, mut v: &mut Vec<NewVideo>) {
+fn update_video_running_time(t: &oauth2::Token, client: &reqwest::Client, v: &mut Vec<NewVideo>) {
     for chunk in v.chunks_mut(50) {
         let mut singlestringids = chunk.iter()
             .map(|s: &NewVideo| s.vid.clone())
@@ -110,14 +110,14 @@ pub fn update_videos(t: &oauth2::Token,
 
     println!("New Youtube Videos length: {}", vids.len());
     let dbconn = db.get().expect("DB pool problem");
-    insert(&vids)
-        .into(videos::table)
+    insert_into(videos::table)
+        .values(&vids)
         .execute(dbconn.deref())
         .expect("Insertion of Videos Failed");
 
     delete(config::table).execute(dbconn.deref()).expect("Deletion of old config failed");
     let nc = NewConfig { lastupdate: Utc::now().to_rfc3339() };
-    insert(&nc).into(config::table).execute(dbconn.deref()).expect("Insertion of config failed");
+    insert_into(config::table).values(&nc).execute(dbconn.deref()).expect("Insertion of config failed");
 }
 
 /// Returns current videos in the database

@@ -2,7 +2,7 @@ use oauth2;
 use std::iter::Iterator;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
-use diesel::{insert, delete, update};
+use diesel::{insert_into, delete, update};
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use std::ops::Deref;
@@ -88,8 +88,8 @@ pub fn get_subs(t: &oauth2::Token,
         let subs = get_subscriptions_for_me(t,client)
             .map(construct_subscription)
             .collect::<Vec<NewSubscription>>();
-        insert(&subs)
-            .into(subscriptions::table)
+        insert_into(subscriptions::table)
+            .values(&subs)
             .execute(dbconn.deref())
             .expect("Insertion of new subs failed");
     }

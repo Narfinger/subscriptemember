@@ -1,5 +1,5 @@
 use serde;
-use diesel::insert;
+use diesel::insert_into;
 use diesel::sqlite::SqliteConnection;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
@@ -85,8 +85,8 @@ pub fn update_videos(t: &GBKey, db: &Pool<ConnectionManager<SqliteConnection>>, 
     let us = get_lastupdate_in_unixtime(db);
     let vids: Vec<NewVideo> = query_videos(t, client, us);
     let dbconn = db.get().expect("DB pool problem");
-    insert(&vids)
-        .into(videos::table)
+    insert_into(videos::table)
+        .values(&vids)
         .execute(dbconn.deref())
         .expect("Insertion of Videos Failed");
 }
