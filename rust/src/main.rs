@@ -1,44 +1,56 @@
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
-#![cfg_attr(feature="clippy", allow(needless_pass_by_value))] //rocket state uses this
 #![cfg_attr(feature = "nightly", feature(proc_macro))]
 #![feature(plugin,custom_derive)]
 #![plugin(rocket_codegen)]
 #[cfg(feature = "nightly")]
-#[macro_use]
-extern crate rocket;
-extern crate serde;
-extern crate reqwest;
 extern crate chrono;
 extern crate chrono_tz;
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
+#[macro_use]
+extern crate error_chain;
+extern crate handlebars;
+extern crate hyper;
+extern crate hyper_rustls;
+#[macro_use]
+extern crate nom;
+extern crate rayon;
+extern crate reqwest;
+extern crate rocket;
+extern crate rocket_contrib;
+extern crate r2d2;
+extern crate r2d2_diesel;
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
-extern crate hyper;
-extern crate hyper_rustls;
 extern crate tokio_core;
-extern crate yup_oauth2 as oauth2;
-extern crate handlebars;
-extern crate rocket;
-extern crate rocket_contrib;
-#[macro_use]
-extern crate diesel;
-extern crate r2d2;
-extern crate r2d2_diesel;
-extern crate dotenv;
-#[macro_use]
-extern crate nom;
 extern crate uuid;
-extern crate rayon;
 extern crate ws;
+extern crate yup_oauth2 as oauth2;
 
-pub mod schema;
-pub mod youtube_base;
-pub mod youtube_subscriptions;
-pub mod youtube_video;
-pub mod subs_and_video;
-pub mod giantbomb_video;
+
+mod schema;
+mod youtube_base;
+mod youtube_subscriptions;
+mod youtube_video;
+mod subs_and_video;
+mod giantbomb_video;
+mod errors {
+    error_chain!{}
+}
+// mod errors {
+//     error_chain!{
+//         foreign_links {
+//             Io(::std::io::Error);
+//             Serde(::serde_yaml::Error);
+//             Reqwest(::reqwest::Error);
+//             Nom(::nom::ErrorKind);
+//         }
+//     }
+// }
+
 
 use std::sync::{RwLock, Mutex};
 use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
@@ -51,19 +63,21 @@ use std::thread;
 use std::env;
 use std::sync::mpsc;
 use std::str::FromStr;
-use serde_json as json;
+
 use hyper::Url;
 use hyper::net::HttpsConnector;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
 use diesel::sqlite::SqliteConnection;
+use dotenv::dotenv;
+use errors::*;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
-use dotenv::dotenv;
 use rocket::request::{State, Form, FromFormValue};
 use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
+use serde_json as json;
 
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 
