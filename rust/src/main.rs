@@ -262,7 +262,7 @@ fn template_filename_to_string(s: &str) -> Result<String, String> {
 fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
     let param = h.param(0).unwrap().value().to_string().replace("\"", "").parse::<i64>().unwrap();
     let d = NaiveDateTime::from_timestamp(param, 0);
-    let dt = d.format("%H:%M - %d.%m").to_string();
+    let dt = d.format("%Y.%m.%d - %H:%M").to_string();
     //println!("this needs to be timezone aware");
 
     try!(rc.writer.write_all(dt.into_bytes().as_ref()));
@@ -353,7 +353,7 @@ fn main() {
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete,
-                       /* sockettest,*/ static_files, addurl, small, index])
+                         static_files, addurl, small, index])
         .manage(TK(RwLock::new(setup_oauth())))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))
