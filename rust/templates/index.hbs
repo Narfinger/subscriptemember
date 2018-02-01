@@ -31,6 +31,7 @@
 					<th>Duration</th>
 					<th>Play</th>
 					<th>Delete</th>
+					<th style="display:none">ignore</th>
 				</tr>
 			</thead>
 		    <tbody>
@@ -42,7 +43,8 @@
 					<td>{{video_time published_at}}</td>
 					<td style="text-align:center;">{{video_duration duration}}</td>
 					<td><a target="_blank" href="{{url}}">Play</a></td>
-					<td><a href="/delete/{{vid}}/">Delete</a></td>
+					<td><button type="button" class="btn btn-danger">Delete</button></td>
+					<td style="display:none">{{vid}}</td>
 				</tr>
 				{{/each}}
 			</tbody>
@@ -70,10 +72,22 @@
 	 'use strict';
 
 	$(document).ready( function () {
-    	$('#videos').DataTable({
+    	var table = $('#videos').DataTable({
 			paging: false,
 			searching:  false
 		});
+
+		$('#videos tbody').on( 'click', 'button', function () {
+    		table
+        		.row( $(this).parents('tr') )
+        		.remove()
+        		.draw();
+
+				var vidid = table.row( $(this).parents('tr')).data()[7];
+				console.log(vidid);
+				$.get("/delete/" + vidid + "/");
+		} );
+		
 	} );
 
 	 //do search
