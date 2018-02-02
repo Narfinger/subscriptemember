@@ -133,9 +133,7 @@ pub fn get_videos(db: &Pool<ConnectionManager<SqliteConnection>>) -> Vec<Video> 
 
 pub fn delete_video(db: &Pool<ConnectionManager<SqliteConnection>>, videoid: &str) {
     use schema::videos::dsl::*;
-
     let dbconn = db.get().expect("DB pool problem");
-    delete(videos.filter(vid.like(videoid)))
-        .execute(dbconn.deref())
-        .expect("Deleting failed");
+    let b = delete(videos.filter(vid.like(videoid)))
+        .execute(dbconn.deref());
 }
