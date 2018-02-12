@@ -80,8 +80,7 @@ fn query_videos(t: &GBKey, client: &reqwest::Client, unix_stamp: i64) -> Vec<New
 /// Update giantbomb videos and put them into the database
 pub fn update_videos(t: &GBKey, db: &Pool<ConnectionManager<SqliteConnection>>, client: &reqwest::Client) {
     use schema::videos;
-    use diesel::ExecuteDsl;
-
+ 
     let us = get_lastupdate_in_unixtime(db);
     let vids: Vec<NewVideo> = query_videos(t, client, us);
     let dbconn = db.get().expect("DB pool problem");

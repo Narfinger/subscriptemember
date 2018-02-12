@@ -30,6 +30,7 @@ extern crate dotenv;
 #[macro_use]
 extern crate nom;
 extern crate uuid;
+extern crate url;
 extern crate rayon;
 extern crate ws;
 
@@ -50,8 +51,7 @@ use std::env;
 use std::sync::mpsc;
 use std::str::FromStr;
 use serde_json as json;
-use hyper::Url;
-use hyper::net::HttpsConnector;
+use hyper::Uri;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
 use diesel::sqlite::SqliteConnection;
@@ -62,7 +62,7 @@ use rocket::request::{State, Form, FromFormValue};
 use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
 use rocket::http::ContentType;
-
+use url::Url;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 
 struct TK(RwLock<oauth2::Token>);
@@ -73,7 +73,7 @@ struct UpdatingVideos(Mutex<()>);
 #[derive(Clone)]
 struct MPSC(mpsc::SyncSender<()>);
 
-struct MyURL(Url);
+struct MyURL(Uri);
 #[derive(FromForm)]
 struct AddForm {
     url: MyURL,

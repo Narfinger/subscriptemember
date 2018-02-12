@@ -14,7 +14,7 @@ diesel = {version = "1.1", features = ["sqlite"]}
 dotenv = "0.10"
 handlebars = "0.31"
 hyper = "0.11"
-hyper-rustls = "0.6.1"
+hyper-rustls = "0.6"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
@@ -29,6 +29,7 @@ oauth2 = "1.2.1"
 nom = "3.0"
 uuid = {version = "0.5", features = ["v4"]}
 rayon = "0.9"
-ws = "0.7.3"         # Lightweight, event-driven WebSockets for Rust.
+url = "1.6"                  # URL library for Rust, based on the WHATWG URL Standard
+ws = "0.7"         # Lightweight, event-driven WebSockets for Rust.
 
 
