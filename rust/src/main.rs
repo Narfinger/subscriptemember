@@ -18,7 +18,7 @@ extern crate serde_json;
 extern crate hyper;
 extern crate hyper_rustls;
 extern crate tokio_core;
-extern crate yup_oauth2 as oauth2;
+extern crate oauth2;
 extern crate handlebars;
 extern crate rocket;
 extern crate rocket_contrib;
@@ -35,15 +35,13 @@ extern crate ws;
 
 pub mod schema;
 pub mod youtube_base;
+pub mod youtube_oauth;
 pub mod youtube_subscriptions;
 pub mod youtube_video;
 pub mod subs_and_video;
 pub mod giantbomb_video;
 
 use std::sync::{RwLock, Mutex};
-use oauth2::{Authenticator, DefaultAuthenticatorDelegate, ConsoleApplicationSecret,
-             DiskTokenStorage, GetToken, FlowType};
-
 use std::io::prelude::*;
 use std::fs::File;
 use std::path::{Path,PathBuf};
@@ -92,31 +90,6 @@ impl<'v> FromFormValue<'v> for MyURL {
             Err(x) => Err(x),
         }
     }
-}
-
-fn setup_oauth() -> oauth2::Token {
-    let f = File::open("client_secret.json").expect("Did not find client_secret.json");
-    let secret = json::from_reader::<File,ConsoleApplicationSecret>(f).unwrap().installed.unwrap();
-    let mut cwd = std::env::current_dir().unwrap();
-    cwd.push("tk");
-    let cwd: String = String::from(cwd.to_str().expect("string conversion error"));
-    let ntk = DiskTokenStorage::new(&cwd).expect("disk storage token is broken");
-
-//    let core = tokio_core::reactor::Core::new().unwrap();
-//    let handle = core.handle();
-
-    //let client = HttpsConnector::new(2,&handle);
-    let client = hyper::Client::with_connector(HttpsConnector::new(hyper_rustls::TlsClient::new()));
-    let realtk = Authenticator::new(&secret,
-                                    DefaultAuthenticatorDelegate,
-                                    client,
-                                    ntk,
-                                    Some(FlowType::InstalledInteractive))
-        .token(&["https://www.googleapis.com/auth/youtube"]);
-    if let Err(e) = realtk {
-        panic!("Error in token generation: {:?}", e);
-    }
-    realtk.unwrap()
 }
 
 fn setup_gbkey() -> GBKey {
