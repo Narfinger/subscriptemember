@@ -46,7 +46,6 @@ fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
     let authorize_url = config.authorize_url();
     println!("Open this URL in your browser:\n{}\n", authorize_url.to_string());
     let mut code = String::new();
-    let mut state = String::new();
 
     // A very naive implementation of the redirect server.
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
@@ -69,18 +68,8 @@ fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
 
                     let (_, value) = code_pair;
                     code = value.into_owned();
-
-                    let state_pair = url.query_pairs().find(|pair| {
-                        let &(ref key, _) = pair;
-                        key == "state"
-                    }).unwrap();
-
-                    let (_, value) = state_pair;
-                    state = value.into_owned();
                 }
-
-                let message = "Go back to your terminal :)";
-                let response = format!("HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{}", message.len(), message);
+                let response = format!("HTTP/1.1 301 Moved Permanently\r\n Location: http://localhost:8000");
                 stream.write_all(response.as_bytes()).unwrap();
 
                 // The server will terminate itself after collecting the first code.
@@ -99,11 +88,18 @@ fn refresh() -> Token {
 
 pub fn setup_oauth() -> Token {
     let f = File::open("tk.json");
-    if let Ok(f) = f {
+    let tk = if let Ok(f) = f {
         json::from_reader(f).unwrap()    
     }
     else {
-        Token{ tk: authorize().unwrap(), created: Utc::now()} 
-    }
+        let f = File::create("tk.json").unwrap();
+        let tk = Token{ tk: authorize().unwrap(), created: Utc::now()};
+        json::to_writer(f, &tk);
+        tk
+    };
 
+    if tk.expired() {
+        panic!("Token expired, we don't have a refresh.");
+    }
+    tk
 }
