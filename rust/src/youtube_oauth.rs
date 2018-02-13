@@ -1,14 +1,14 @@
 use serde_json as json;
 use oauth2;
 use url::Url;
-use chrono::{DateTime,Utc};
+use chrono::{DateTime,Duration, Utc};
 use std::fs::File;
 use std::net::TcpListener;
 use std::io::{BufRead, BufReader, Write};
 
 #[derive(Clone, Debug)]
 pub struct Token {
-    tk: oauth2::Token,
+    pub tk: oauth2::Token,
     created: DateTime<Utc>,
 }
 
@@ -18,7 +18,9 @@ pub trait Expireing {
 
 impl Expireing for Token {
     fn expired(self) -> bool {
-        Utc::now() >= self.created.checked_add_signed(self.tk.expires_in)
+        Utc::now() >= self.created.checked_add_signed(
+            //we assume seconds here because I do not know what it is in
+            Duration::seconds(self.tk.expires_in.unwrap_or(0) as i64)).unwrap()
     }
 }
 

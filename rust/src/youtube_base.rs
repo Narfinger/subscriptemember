@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
-use oauth2;
 use serde;
 use reqwest;
+use youtube_oauth::{Expireing, Token};
 
 #[derive(Debug,Deserialize)]
 pub struct YoutubePageInfo {
@@ -97,11 +97,11 @@ pub struct YoutubeDurationContentDetails {
     pub definition: String,
 }
 
-fn query_simple_page<T>(t: &oauth2::Token, url: &str, nextpage: Option<String>, client: &reqwest::Client) -> YoutubeResult<T>
+fn query_simple_page<T>(t: &Token, url: &str, nextpage: Option<String>, client: &reqwest::Client) -> YoutubeResult<T>
     where T: serde::de::DeserializeOwned
 {
     let mut q = String::from(url);
-    q.push_str(t.access_token.as_str());
+    q.push_str(t.tk.access_token.as_str());
     if let Some(nextpagetk) = nextpage {
         q.push_str("&pageToken=");
         q.push_str(nextpagetk.as_str());
@@ -117,7 +117,7 @@ pub struct Query<'a,T> {
     initialised: bool,
     storage: VecDeque<YoutubeItem<T>>,
     url: String,
-    t: oauth2::Token,
+    t: Token,
     next_page: Option<String>,
     client: &'a reqwest::Client,
 }
@@ -149,7 +149,7 @@ impl<'a, T> Iterator for Query<'a,T>
 }
 
 
-pub fn query<'a,T>(t: &oauth2::Token, client: &'a reqwest::Client, url: &str) -> Query<'a,T>
+pub fn query<'a,T>(t: &Token, client: &'a reqwest::Client, url: &str) -> Query<'a,T>
     where T: serde::de::DeserializeOwned
 {
     if t.expired() {
