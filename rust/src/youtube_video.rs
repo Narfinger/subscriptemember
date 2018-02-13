@@ -15,10 +15,10 @@ use subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in
 use youtube_oauth;
 
 
-const PL_URL: &'static str = "https://www.googleapis.\
+const PL_URL: &str = "https://www.googleapis.\
                               com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
 
-const VID_URL: &'static str = "https://www.googleapis.\
+const VID_URL: &str = "https://www.googleapis.\
                                com/youtube/v3/videos?part=contentDetails&maxResults=50&id=";
 
 /// Queries current Youtube Videos, filters them by `unix_stamp`
@@ -135,6 +135,6 @@ pub fn get_videos(db: &Pool<ConnectionManager<SqliteConnection>>) -> Vec<Video> 
 pub fn delete_video(db: &Pool<ConnectionManager<SqliteConnection>>, videoid: &str) {
     use schema::videos::dsl::*;
     let dbconn = db.get().expect("DB pool problem");
-    let b = delete(videos.filter(vid.like(videoid)))
+    delete(videos.filter(vid.like(videoid)))
         .execute(dbconn.deref());
 }

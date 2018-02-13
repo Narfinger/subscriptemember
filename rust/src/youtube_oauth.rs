@@ -20,12 +20,11 @@ impl Expireing for Token {
     fn expired(&self) -> bool {
         Utc::now() >= self.created.checked_add_signed(
             //we assume seconds here because I do not know what it is in
-            Duration::seconds(self.tk.expires_in.unwrap_or(0) as i64)).unwrap()
+            Duration::seconds(i64::from(self.tk.expires_in.unwrap_or(0)))).unwrap()
     }
 }
 
 fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
-    let tk_storage = File::open("tk");
     
     #[derive(Deserialize)]
     struct Installed {
@@ -69,7 +68,7 @@ fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
                     let (_, value) = code_pair;
                     code = value.into_owned();
                 }
-                let response = format!("HTTP/1.1 301 Moved Permanently\r\n Location: http://localhost:8000");
+                let response = "HTTP/1.1 301 Moved Permanently\r\n Location: http://localhost:8000";
                 stream.write_all(response.as_bytes()).unwrap();
 
                 // The server will terminate itself after collecting the first code.

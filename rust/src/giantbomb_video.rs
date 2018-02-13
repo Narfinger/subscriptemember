@@ -9,8 +9,8 @@ use uuid::Uuid;
 use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp,
                      get_lastupdate_in_unixtime};
 
-static LIMIT: &'static str = "10";
-const VID_URL: &'static str = "https://www.giantbomb.com/api/videos/?format=json&limit=";
+static LIMIT: &str = "10";
+const VID_URL: &str = "https://www.giantbomb.com/api/videos/?format=json&limit=";
 
 #[derive(Debug,Deserialize)]
 struct GiantBombResult<T> {
@@ -39,7 +39,7 @@ struct GiantBombVideo {
 fn query_giantbomb<T>(t: &GBKey, client: &reqwest::Client, url: String) -> GiantBombResult<T>
     where T: serde::de::DeserializeOwned
 {
-    let mut q = String::from(url);
+    let mut q = url;
     q.push_str("&api_key=");
     q.push_str(&t.key);
     //println!("Query: {}", q);

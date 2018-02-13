@@ -50,8 +50,6 @@ use std::thread;
 use std::env;
 use std::sync::mpsc;
 use std::str::FromStr;
-use serde_json as json;
-use hyper::Uri;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
 use diesel::sqlite::SqliteConnection;
@@ -64,7 +62,7 @@ use rocket::response::content::Content;
 use rocket::http::ContentType;
 use url::Url;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
-use youtube_oauth::{Expireing, Token, setup_oauth};
+use youtube_oauth::{Expireing, setup_oauth};
 
 struct TK(RwLock<youtube_oauth::Token>);
 struct GBTK(GBKey);

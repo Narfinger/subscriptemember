@@ -11,11 +11,11 @@ use youtube_base::{YoutubeItem, YoutubeSubscription, YoutubeRelatedPlaylistsCont
                    query};
 use youtube_oauth;
 
-const SUB_URL: &'static str = "https://www.googleapis.\
+const SUB_URL: &str = "https://www.googleapis.\
                                com/youtube/v3/subscriptions\
                                ?part=snippet&mine=true&maxResults=50&access_token=";
 
-const UPLOAD_PL_URL: &'static str = "https://www.googleapis.\
+const UPLOAD_PL_URL: &str = "https://www.googleapis.\
                                      com/youtube/v3/channels?part=contentDetails&maxResults=50&";
 
 fn get_subscriptions_for_me<'a>(t: &youtube_oauth::Token, client: &'a reqwest::Client) -> Query<'a,YoutubeSubscription> {
