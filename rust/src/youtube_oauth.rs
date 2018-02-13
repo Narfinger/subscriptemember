@@ -6,18 +6,18 @@ use std::fs::File;
 use std::net::TcpListener;
 use std::io::{BufRead, BufReader, Write};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Token {
     pub tk: oauth2::Token,
     created: DateTime<Utc>,
 }
 
 pub trait Expireing {
-    fn expired(self) -> bool;
+    fn expired(&self) -> bool;
 }
 
 impl Expireing for Token {
-    fn expired(self) -> bool {
+    fn expired(&self) -> bool {
         Utc::now() >= self.created.checked_add_signed(
             //we assume seconds here because I do not know what it is in
             Duration::seconds(self.tk.expires_in.unwrap_or(0) as i64)).unwrap()
@@ -94,9 +94,16 @@ fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
 }
 
 fn refresh() -> Token {
-
+    panic!("not yet implemented");
 }
 
 pub fn setup_oauth() -> Token {
+    let f = File::open("tk.json");
+    if let Ok(f) = f {
+        json::from_reader(f).unwrap()    
+    }
+    else {
+        Token{ tk: authorize().unwrap(), created: Utc::now()} 
+    }
 
 }
