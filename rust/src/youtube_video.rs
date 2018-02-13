@@ -1,10 +1,10 @@
-use oauth2;
 use std::iter::Iterator;
 use std::ops::Deref;
 use chrono::Utc;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert_into, delete};
+use rayon::prelude::*;
 use reqwest;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
@@ -12,7 +12,8 @@ use youtube_base::{YoutubeItem, YoutubeSnippet, YoutubeDurationContentDetails, q
 use subs_and_video;
 use subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in_unixtime,
                      make_youtube_url, youtube_duration};
-use rayon::prelude::*;
+use youtube_oauth;
+
 
 const PL_URL: &'static str = "https://www.googleapis.\
                               com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=";
@@ -22,7 +23,7 @@ const VID_URL: &'static str = "https://www.googleapis.\
 
 /// Queries current Youtube Videos, filters them by `unix_stamp`
 /// and uses `subs` to get the uploadplaylist ids`
-fn query_videos<'f>(t: &'f oauth2::Token,
+fn query_videos<'f>(t: &'f youtube_oauth::Token,
                     client: &reqwest::Client,
                     subs: &'f [Subscription],
                     unix_stamp: i64)
@@ -79,7 +80,7 @@ fn update_vid_time(i: &YoutubeItem<YoutubeDurationContentDetails>, v: &mut [NewV
 }
 
 /// update all running time of videos given in `v`
-fn update_video_running_time(t: &oauth2::Token, client: &reqwest::Client, v: &mut Vec<NewVideo>) {
+fn update_video_running_time(t: &youtube_oauth::Token, client: &reqwest::Client, v: &mut Vec<NewVideo>) {
     for chunk in v.chunks_mut(50) {
         let mut singlestringids = chunk.iter()
             .map(|s: &NewVideo| s.vid.clone())
@@ -96,7 +97,7 @@ fn update_video_running_time(t: &oauth2::Token, client: &reqwest::Client, v: &mu
 }
 
 /// Get new Videos and inserts them into the database
-pub fn update_videos(t: &oauth2::Token,
+pub fn update_videos(t: &youtube_oauth::Token,
                      db: &Pool<ConnectionManager<SqliteConnection>>,
                      client: &reqwest::Client,
                      subs: &[Subscription]) {

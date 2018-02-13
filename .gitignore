@@ -3,3 +3,4 @@ src/Keys.hs
 /rust/client_secret_gb.json
 /rust/subscriptemember.db
 /rust/tk
+/rust/target

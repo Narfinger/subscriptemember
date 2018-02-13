@@ -6,7 +6,6 @@ use schema::{subscriptions, videos, config};
 use chrono::{NaiveDateTime, DateTime, TimeZone};
 use chrono_tz::US::Pacific;
 use diesel::sqlite::SqliteConnection;
-use diesel::LoadDsl;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use std::ops::Deref;

@@ -64,8 +64,9 @@ use rocket::response::content::Content;
 use rocket::http::ContentType;
 use url::Url;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
+use youtube_oauth::{Expireing, Token, setup_oauth};
 
-struct TK(RwLock<oauth2::Token>);
+struct TK(RwLock<youtube_oauth::Token>);
 struct GBTK(GBKey);
 struct DB(Pool<ConnectionManager<SqliteConnection>>);
 struct HB(handlebars::Handlebars);
@@ -73,7 +74,7 @@ struct UpdatingVideos(Mutex<()>);
 #[derive(Clone)]
 struct MPSC(mpsc::SyncSender<()>);
 
-struct MyURL(Uri);
+struct MyURL(reqwest::Url);
 #[derive(FromForm)]
 struct AddForm {
     url: MyURL,

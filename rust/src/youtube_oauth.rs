@@ -1,9 +1,26 @@
 use serde_json as json;
 use oauth2;
+use url::Url;
+use chrono::{DateTime,Utc};
 use std::fs::File;
 use std::net::TcpListener;
 use std::io::{BufRead, BufReader, Write};
-use url::Url;
+
+#[derive(Clone, Debug)]
+pub struct Token {
+    tk: oauth2::Token,
+    created: DateTime<Utc>,
+}
+
+pub trait Expireing {
+    fn expired(self) -> bool;
+}
+
+impl Expireing for Token {
+    fn expired(self) -> bool {
+        Utc::now() >= self.created.checked_add_signed(self.tk.expires_in)
+    }
+}
 
 fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
     let tk_storage = File::open("tk");
@@ -74,10 +91,10 @@ fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
     config.exchange_code(code)
 }
 
-fn refresh() -> oauth2::Token {
+fn refresh() -> Token {
 
 }
 
-fn setup_oauth2() -> oauth2::Token {
+pub fn setup_oauth() -> Token {
 
 }

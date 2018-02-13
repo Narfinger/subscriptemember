@@ -1,4 +1,3 @@
-use oauth2;
 use std::iter::Iterator;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
@@ -7,9 +6,10 @@ use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use std::ops::Deref;
 use reqwest;
+use subs_and_video::{Subscription, NewSubscription};
 use youtube_base::{YoutubeItem, YoutubeSubscription, YoutubeRelatedPlaylistsContentDetails, Query,
                    query};
-use subs_and_video::{Subscription, NewSubscription};
+use youtube_oauth;
 
 const SUB_URL: &'static str = "https://www.googleapis.\
                                com/youtube/v3/subscriptions\
@@ -18,11 +18,11 @@ const SUB_URL: &'static str = "https://www.googleapis.\
 const UPLOAD_PL_URL: &'static str = "https://www.googleapis.\
                                      com/youtube/v3/channels?part=contentDetails&maxResults=50&";
 
-fn get_subscriptions_for_me<'a>(t: &oauth2::Token, client: &'a reqwest::Client) -> Query<'a,YoutubeSubscription> {
+fn get_subscriptions_for_me<'a>(t: &youtube_oauth::Token, client: &'a reqwest::Client) -> Query<'a,YoutubeSubscription> {
     query(t, client, SUB_URL)
 }
 
-fn get_upload_playlists(t: &oauth2::Token, client: &reqwest::Client, subs: &mut Vec<Subscription>) {
+fn get_upload_playlists(t: &youtube_oauth::Token, client: &reqwest::Client, subs: &mut Vec<Subscription>) {
     let mut upload_playlist: Vec<YoutubeItem<YoutubeRelatedPlaylistsContentDetails>> = Vec::new();
     for chunk in subs.chunks(50) {
         let onlyids = chunk.iter().map(|s: &Subscription| s.channelid.clone());
@@ -71,7 +71,7 @@ fn construct_subscription(s: YoutubeItem<YoutubeSubscription>) -> NewSubscriptio
     }
 }
 
-pub fn get_subs(t: &oauth2::Token,
+pub fn get_subs(t: &youtube_oauth::Token,
                 db: &Pool<ConnectionManager<SqliteConnection>>,
                 client: &reqwest::Client,
                 update_subs: bool)
