@@ -2,6 +2,7 @@ use serde_json as json;
 use oauth2;
 use url::Url;
 use chrono::{DateTime,Duration, Utc};
+use reqwest;
 use std::fs::File;
 use std::net::TcpListener;
 use std::io::{BufRead, BufReader, Write};
@@ -24,21 +25,25 @@ impl Expireing for Token {
     }
 }
 
-fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
-    
-    #[derive(Deserialize)]
-    struct Installed {
-        client_id: String,
-        auth_uri: String,
-        token_uri: String,
-        client_secret: String,
-    };
+#[derive(Deserialize)]
+struct Installed {
+    client_id: String,
+    auth_uri: String,
+    token_uri: String,
+    client_secret: String,
+}
+
+fn get_client_secrets() -> Installed {
     #[derive(Deserialize)]
     struct ClientSecret {
         installed: Installed,
     };
     let f = File::open("client_secret.json").expect("Did not find client_secret.json");
-    let secret = json::from_reader::<File, ClientSecret>(f).unwrap().installed;
+    json::from_reader::<File, ClientSecret>(f).unwrap().installed
+}
+
+fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
+    let secret = get_client_secrets();
     let mut config = oauth2::Config::new(secret.client_id, secret.client_secret, secret.auth_uri, secret.token_uri);    
     config = config.add_scope("https://www.googleapis.com/auth/youtube");
     config = config.set_redirect_url("http://localhost:8080");
@@ -81,8 +86,29 @@ fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
     config.exchange_code(code)
 }
 
-fn refresh() -> Token {
-    panic!("not yet implemented");
+fn refresh(oldtoken: Token) -> Token {
+    let secret = get_client_secrets();
+    let params = [("refresh_token", oldtoken.tk.refresh_token.clone().unwrap()), 
+                    ("client_id", secret.client_id),
+                    ("client_secret", secret.client_secret),
+                    ("grant_type", String::from("refresh_token"))];
+    let client = reqwest::Client::new().unwrap();
+    let res = client.post("https://www.googleapis.com/oauth2/v4/token")
+        .form(&params)
+        .send()
+        .unwrap();
+    #[derive(Deserialize)]
+    struct Response {
+        access_token: String,
+        expires_in: u32,
+    }
+    let new_response: Response = json::from_reader(res).unwrap();
+    
+    //changing to new token, take the old one as a copy
+    let mut newtk = oldtoken.tk.clone();
+    newtk.access_token = new_response.access_token;
+    newtk.expires_in = Some(new_response.expires_in);
+    Token { created: Utc::now(), tk: newtk }
 }
 
 pub fn setup_oauth() -> Token {
@@ -98,7 +124,7 @@ pub fn setup_oauth() -> Token {
     };
 
     if tk.expired() {
-        panic!("Token expired, we don't have a refresh.");
+        return refresh(tk);
     }
     tk
 }
