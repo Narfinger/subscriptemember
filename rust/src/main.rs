@@ -33,6 +33,7 @@ extern crate uuid;
 extern crate url;
 extern crate rayon;
 extern crate ws;
+extern crate failure;
 
 pub mod schema;
 pub mod youtube_base;
@@ -103,7 +104,7 @@ fn setup_gbkey() -> GBKey {
 fn update_subs(tk: State<TK>, db: State<DB>) -> Redirect {
     if tk.0.read().unwrap().expired() {
         let mut rwtk = tk.0.write().unwrap();
-        *rwtk = setup_oauth();
+        *rwtk = setup_oauth().expect("Error getting fresh token");
     }
     let cl = reqwest::Client::new().expect("Error in creating connection pool");
     youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl, true);
@@ -131,7 +132,7 @@ fn update_videos(tk: State<TK>,
     if upv.0.try_lock().is_ok() {
         if tk.0.read().unwrap().expired() {
             let mut rwtk = tk.0.write().unwrap();
-            *rwtk = setup_oauth();
+            *rwtk = setup_oauth().expect("Error in getting fresh token");
         }
 
         let ntk = tk.0.read().unwrap().clone();
@@ -322,11 +323,12 @@ fn main() {
     //let cl = reqwest::Client::new().expect("Error in creating connection pool");
     
     println!("Starting server");
+    let oauth = setup_oauth().expect("Problem with oauth");
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete,
                          static_files, addurl, small, index])
-        .manage(TK(RwLock::new(setup_oauth())))
+        .manage(TK(RwLock::new(oauth)))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))
         .manage(HB(hb))

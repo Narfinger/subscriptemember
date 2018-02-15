@@ -6,6 +6,7 @@ use reqwest;
 use std::fs::File;
 use std::net::TcpListener;
 use std::io::{BufRead, BufReader, Write};
+use failure::Error;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Token {
@@ -86,45 +87,44 @@ fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
     config.exchange_code(code)
 }
 
-fn refresh(oldtoken: Token) -> Token {
+fn refresh(oldtoken: Token) -> Result<Token, Error> {
     let secret = get_client_secrets();
     let params = [("refresh_token", oldtoken.tk.refresh_token.clone().unwrap()), 
                     ("client_id", secret.client_id),
                     ("client_secret", secret.client_secret),
                     ("grant_type", String::from("refresh_token"))];
-    let client = reqwest::Client::new().unwrap();
+    let client = reqwest::Client::new()?;
     let res = client.post("https://www.googleapis.com/oauth2/v4/token")
         .form(&params)
-        .send()
-        .unwrap();
+        .send()?;
     #[derive(Deserialize)]
     struct Response {
         access_token: String,
         expires_in: u32,
     }
-    let new_response: Response = json::from_reader(res).unwrap();
+    let new_response: Response = json::from_reader(res)?;
     
     //changing to new token, take the old one as a copy
     let mut newtk = oldtoken.tk.clone();
     newtk.access_token = new_response.access_token;
     newtk.expires_in = Some(new_response.expires_in);
-    Token { created: Utc::now(), tk: newtk }
+    Ok(Token { created: Utc::now(), tk: newtk })
 }
 
-pub fn setup_oauth() -> Token {
+pub fn setup_oauth() -> Result<Token,Error> {
     let f = File::open("tk.json");
     let tk = if let Ok(f) = f {
-        json::from_reader(f).unwrap()    
+        json::from_reader(f)
     }
     else {
-        let f = File::create("tk.json").unwrap();
+        let f = File::create("tk.json")?;
         let tk = Token{ tk: authorize().unwrap(), created: Utc::now()};
         json::to_writer(f, &tk);
-        tk
-    };
-
+        Ok(tk)
+    }?;
     if tk.expired() {
         return refresh(tk);
+    } else {
+        Ok(tk)
     }
-    tk
 }
