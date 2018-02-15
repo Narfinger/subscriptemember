@@ -309,7 +309,7 @@ fn main() {
         let broadcaster = ws.broadcaster();
         
         thread::spawn(move || {
-            if let Ok(_) = receiver.recv() {
+            if receiver.recv().is_ok() {
                 broadcaster.send(ws::Message::text("refresh please"))
             } else {
                 broadcaster.send(ws::Message::text("disconnected"))

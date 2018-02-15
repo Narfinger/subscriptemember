@@ -55,39 +55,35 @@ fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
     // A very naive implementation of the redirect server.
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
     for stream in listener.incoming() {
-        match stream {
-            Ok(mut stream) => {
-                {
-                    let mut reader = BufReader::new(&stream);
+        if let Ok(mut s) = stream {
+            {
+                let mut reader = BufReader::new(&s);
 
-                    let mut request_line = String::new();
-                    reader.read_line(&mut request_line).unwrap();
+                let mut request_line = String::new();
+                reader.read_line(&mut request_line).unwrap();
 
-                    let redirect_url = request_line.split_whitespace().nth(1).unwrap();
-                    let url = Url::parse(&("http://localhost".to_string() + redirect_url)).unwrap();
+                let redirect_url = request_line.split_whitespace().nth(1).unwrap();
+                let url = Url::parse(&("http://localhost".to_string() + redirect_url)).unwrap();
 
-                    let code_pair = url.query_pairs().find(|pair| {
-                        let &(ref key, _) = pair;
-                        key == "code"
-                    }).unwrap();
+                let code_pair = url.query_pairs().find(|pair| {
+                    let &(ref key, _) = pair;
+                    key == "code"
+                }).unwrap();
 
-                    let (_, value) = code_pair;
-                    code = value.into_owned();
-                }
-                let response = "HTTP/1.1 301 Moved Permanently\r\n Location: http://localhost:8000";
-                stream.write_all(response.as_bytes()).unwrap();
-
-                // The server will terminate itself after collecting the first code.
-                break;
+                let (_, value) = code_pair;
+                code = value.into_owned();
             }
-            Err(_) => {},
-        }
-    };
+            let response = "HTTP/1.1 301 Moved Permanently\r\n Location: http://localhost:8000";
+            s.write_all(response.as_bytes()).unwrap();
 
+            // The server will terminate itself after collecting the first code.
+            break;
+            }
+        };
     config.exchange_code(code)
 }
 
-fn refresh(oldtoken: Token) -> Result<Token, Error> {
+fn refresh(oldtoken: &Token) -> Result<Token, Error> {
     let secret = get_client_secrets();
     let params = [("refresh_token", oldtoken.tk.refresh_token.clone().unwrap()), 
                     ("client_id", secret.client_id),
@@ -119,11 +115,11 @@ pub fn setup_oauth() -> Result<Token,Error> {
     else {
         let f = File::create("tk.json")?;
         let tk = Token{ tk: authorize().unwrap(), created: Utc::now()};
-        json::to_writer(f, &tk);
+        json::to_writer(f, &tk).expect("Could not write token");
         Ok(tk)
     }?;
     if tk.expired() {
-        return refresh(tk);
+        refresh(&tk)
     } else {
         Ok(tk)
     }
