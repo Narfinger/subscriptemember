@@ -1,10 +1,9 @@
-#![cfg_attr(feature="clippy", feature(plugin))]
-#![cfg_attr(feature="clippy", plugin(clippy))]
 #![cfg_attr(feature="clippy", allow(needless_pass_by_value))] //rocket state uses this
 #![cfg_attr(feature = "nightly", feature(proc_macro))]
 #![feature(plugin,custom_derive)]
 #![plugin(rocket_codegen)]
 #[cfg(feature = "nightly")]
+
 #[macro_use]
 extern crate rocket;
 extern crate serde;
@@ -32,6 +31,7 @@ extern crate url;
 extern crate rayon;
 extern crate ws;
 extern crate failure;
+extern crate preferences;
 
 pub mod schema;
 pub mod youtube_base;
@@ -50,6 +50,7 @@ use std::env;
 use std::sync::mpsc;
 use std::str::FromStr;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
+use preferences::{AppInfo, prefs_base_dir};
 use chrono::NaiveDateTime;
 use diesel::sqlite::SqliteConnection;
 use r2d2::Pool;
@@ -62,6 +63,9 @@ use rocket::http::ContentType;
 use url::Url;
 use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 use youtube_oauth::{Expireing, setup_oauth};
+
+const APP_INFO: AppInfo = AppInfo{name: "subscriptemember", author: "narfinger"};
+const PREFS_KEY: &'static str = "subscriptemember_prefs";
 
 struct TK(RwLock<youtube_oauth::Token>);
 struct GBTK(GBKey);
@@ -91,11 +95,7 @@ impl<'v> FromFormValue<'v> for MyURL {
 }
 
 fn setup_gbkey() -> GBKey {
-    let mut f = File::open("client_secret_gb.json").expect("Did not find client_secret_gb.json");
-    let mut s = String::new();
-    f.read_to_string(&mut s).unwrap();
-
-    GBKey { key: s }
+    GBKey { key: include_str!("client_secret_gb.json") }
 }
 
 #[get("/updateSubs")]
@@ -215,21 +215,6 @@ fn index(db: State<DB>, hb: State<HB>) -> Content<String> {
             hb.0.render("index", &data).map_err(|err| err.to_string()).unwrap())
 }
 
-fn template_filename_to_string(s: &str) -> Result<String, String> {
-    let mut f = match File::open(s) {
-        Ok(ff) => ff,
-        Err(e) => return Err(e.to_string()),
-    };
-
-    let mut s = String::new();
-    match f.read_to_string(&mut s) {
-        Ok(br) => br,
-        Err(e) => return Err(e.to_string()),
-    };
-    Ok(s)
-}
-
-
 fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
     let param = h.param(0).unwrap().value().to_string().replace("\"", "").parse::<i64>().unwrap();
     let d = NaiveDateTime::from_timestamp(param, 0);
@@ -266,30 +251,34 @@ fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<
 //     Ok(())
 // }
 
-#[get("/static/<file..>")]
-fn static_files(file: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/").join(file)).ok()
+#[get("/static/datatables.css")]
+fn static_datatablescss() -> String {
+    include_str!("static/datatables.css")    
+}
+
+#[get("/static/datatables.js")]
+fn static_datatablesjs() -> String {
+    include_str!("static/datatables.js")
 }
 
 fn main() {
     println!("Registering templates");
     let mut hb = Handlebars::new();
     {
-        let its = template_filename_to_string("templates/index.hbs").unwrap();
+        let its = include_str!("templates/index.hbs");
         assert!(hb.register_template_string("index", its).is_ok());
 
-        let its = template_filename_to_string("templates/subs.hbs").unwrap();
+        let its = include_str!("templates/subs.hbs");
         assert!(hb.register_template_string("subs", its).is_ok());
 
         hb.register_helper("video_time", Box::new(video_time));
         hb.register_helper("video_duration", Box::new(video_duration));
         //        HB.lock().unwrap().register_helper("video_url", Box::new(video_url));
     }
-    //println!("Checking token: {}", TK.token_type);
-    dotenv().ok();
 
     println!("Setting up database");
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let mut prefs = PreferencesMap::<String>::new();
+    let database_url = prefs_base_dir() + "subscriptemember.db";
     let manager = ConnectionManager::<SqliteConnection>::new(database_url);
     let pool = r2d2::Pool::new(manager).expect("Failed to create pool.");
 
@@ -320,12 +309,14 @@ fn main() {
     
     //let cl = reqwest::Client::new().expect("Error in creating connection pool");
     
+    println!("Do transaction for update!");
+    println!("make position independent");
     println!("Starting server");
     let oauth = setup_oauth().expect("Problem with oauth");
     rocket::ignite()
         .mount("/",
                routes![update_subs, subs, update_videos, delete,
-                         static_files, addurl, small, index])
+                         static_datatablescss, static_datatablesjs, addurl, small, index])
         .manage(TK(RwLock::new(oauth)))
         .manage(GBTK(setup_gbkey()))
         .manage(DB(pool))

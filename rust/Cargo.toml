@@ -23,6 +23,7 @@ rocket_contrib = {version = "0.3", features = ["handlebars_templates", "json"]}
 tokio-core = "0.1"
 r2d2 = "0.8"
 r2d2-diesel = {version = "1.0"}
+preferences = "1.1"
 reqwest = "0.6"
 oauth2 = "1.2.1"
 nom = "3.0"

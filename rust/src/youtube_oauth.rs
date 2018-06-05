@@ -108,12 +108,12 @@ fn refresh(oldtoken: &Token) -> Result<Token, Error> {
 }
 
 pub fn setup_oauth() -> Result<Token,Error> {
-    let f = File::open("tk.json");
+    let f = File::open(prefs_base_dir() + "tk.json");
     let tk = if let Ok(f) = f {
         json::from_reader(f)
     }
     else {
-        let f = File::create("tk.json")?;
+        let f = File::create(prefs_base_dir() + "tk.json")?;
         let tk = Token{ tk: authorize().unwrap(), created: Utc::now()};
         json::to_writer(f, &tk).expect("Could not write token");
         Ok(tk)
