@@ -22,9 +22,6 @@ extern crate rocket;
 extern crate rocket_contrib;
 #[macro_use]
 extern crate diesel;
-extern crate r2d2;
-extern crate r2d2_diesel;
-extern crate dotenv;
 #[macro_use]
 extern crate nom;
 extern crate uuid;
@@ -52,8 +49,8 @@ use std::str::FromStr;
 use handlebars::{Handlebars, Helper, RenderContext, RenderError};
 use chrono::NaiveDateTime;
 use diesel::sqlite::SqliteConnection;
-use r2d2::Pool;
-use r2d2_diesel::ConnectionManager;
+use diesel::r2d2::Pool;
+use diesel::r2d2::ConnectionManager;
 use dotenv::dotenv;
 use rocket::request::{State, Form, FromFormValue};
 use rocket::response::{Redirect, NamedFile};
@@ -320,6 +317,8 @@ fn main() {
     
     //let cl = reqwest::Client::new().expect("Error in creating connection pool");
     
+    println!("Do transaction for update!");
+
     println!("Starting server");
     let oauth = setup_oauth().expect("Problem with oauth");
     rocket::ignite()
