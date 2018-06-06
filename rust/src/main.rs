@@ -52,7 +52,6 @@ use chrono::NaiveDateTime;
 use diesel::sqlite::SqliteConnection;
 use diesel::r2d2::Pool;
 use diesel::r2d2::ConnectionManager;
-use dotenv::dotenv;
 use rocket::request::{State, Form, FromFormValue};
 use rocket::response::{Redirect, NamedFile};
 use rocket::response::content::Content;
@@ -92,7 +91,7 @@ impl<'v> FromFormValue<'v> for MyURL {
 }
 
 fn setup_gbkey() -> GBKey {
-    GBKey { key: include_str!("client_secret_gb.json") }
+    GBKey { key: include_str!("../client_secret_gb.json").to_string() }
 }
 
 #[get("/updateSubs")]
@@ -101,14 +100,14 @@ fn update_subs(tk: State<TK>, db: State<DB>) -> Redirect {
         let mut rwtk = tk.0.write().unwrap();
         *rwtk = setup_oauth().expect("Error getting fresh token");
     }
-    let cl = reqwest::Client::new().expect("Error in creating connection pool");
+    let cl = reqwest::Client::new();
     youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl, true);
     Redirect::to("/subs")
 }
 
 #[get("/subs")]
 fn subs(tk: State<TK>, db: State<DB>, hb: State<HB>) -> Content<String> {
-    let cl = reqwest::Client::new().expect("Error in creating connection pool");
+    let cl = reqwest::Client::new();
     let sub = youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl, false);
     let data = json!({
         "subs": sub,
@@ -134,7 +133,7 @@ fn update_videos(tk: State<TK>,
         let ngbtk = gbtk.0.clone();
         let ndb = db.0.clone();
 
-        let cl = reqwest::Client::new().expect("Error in creating connection pool");
+        let cl = reqwest::Client::new();
         let ncl = cl.clone();
         let nch = ch.to_owned();
         thread::spawn(move || {
@@ -249,23 +248,23 @@ fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<
 // }
 
 #[get("/static/datatables.css")]
-fn static_datatablescss() -> String {
-    include_str!("static/datatables.css")    
+fn static_datatablescss() -> &'static str {
+    include_str!("../static/datatables.css")    
 }
 
 #[get("/static/datatables.js")]
-fn static_datatablesjs() -> String {
-    include_str!("static/datatables.js")
+fn static_datatablesjs() -> &'static str {
+    include_str!("../static/datatables.js")
 }
 
 fn main() {
     println!("Registering templates");
     let mut hb = Handlebars::new();
     {
-        let its = include_str!("templates/index.hbs");
+        let its = include_str!("../templates/index.hbs");
         assert!(hb.register_template_string("index", its).is_ok());
 
-        let its = include_str!("templates/subs.hbs");
+        let its = include_str!("../templates/subs.hbs");
         assert!(hb.register_template_string("subs", its).is_ok());
 
         hb.register_helper("video_time", Box::new(video_time));
@@ -274,10 +273,11 @@ fn main() {
     }
 
     println!("Setting up database");
-    let mut prefs = PreferencesMap::<String>::new();
-    let database_url = prefs_base_dir() + "subscriptemember.db";
-    let manager = ConnectionManager::<SqliteConnection>::new(database_url);
-    let pool = r2d2::Pool::new(manager).expect("Failed to create pool.");
+    let mut database_url = prefs_base_dir().expect("Could not get prefs base dir");
+    database_url.push("subscriptemember");
+    database_url.push("subscriptemember.db");
+    let manager = ConnectionManager::<SqliteConnection>::new(database_url.to_str().expect("Error in converting path"));
+    let pool = diesel::r2d2::Pool::new(manager).expect("Failed to create pool.");
 
     println!("Setting up channels");
     let (sender, receiver) = mpsc::sync_channel::<()>(2);
@@ -307,7 +307,6 @@ fn main() {
     //let cl = reqwest::Client::new().expect("Error in creating connection pool");
     
     println!("Do transaction for update!");
-    println!("make position independent");
 
     println!("Starting server");
     let oauth = setup_oauth().expect("Problem with oauth");

@@ -1,8 +1,8 @@
 use serde;
 use diesel::insert_into;
 use diesel::sqlite::SqliteConnection;
-use r2d2::Pool;
-use r2d2_diesel::ConnectionManager;
+use diesel::r2d2::Pool;
+use diesel::r2d2::ConnectionManager;
 use std::ops::Deref;
 use reqwest;
 use uuid::Uuid;

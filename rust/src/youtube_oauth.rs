@@ -7,6 +7,7 @@ use std::fs::File;
 use std::net::TcpListener;
 use std::io::{BufRead, BufReader, Write};
 use failure::Error;
+use preferences::prefs_base_dir;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Token {
@@ -89,7 +90,7 @@ fn refresh(oldtoken: &Token) -> Result<Token, Error> {
                     ("client_id", secret.client_id),
                     ("client_secret", secret.client_secret),
                     ("grant_type", String::from("refresh_token"))];
-    let client = reqwest::Client::new()?;
+    let client = reqwest::Client::new();
     let res = client.post("https://www.googleapis.com/oauth2/v4/token")
         .form(&params)
         .send()?;
@@ -108,12 +109,15 @@ fn refresh(oldtoken: &Token) -> Result<Token, Error> {
 }
 
 pub fn setup_oauth() -> Result<Token,Error> {
-    let f = File::open(prefs_base_dir() + "tk.json");
+    let mut path = prefs_base_dir().expect("Could not get prefs base dir");
+    path.push("subscriptemember");
+    path.push("tk.json");
+    let f = File::open(&path);
     let tk = if let Ok(f) = f {
         json::from_reader(f)
     }
     else {
-        let f = File::create(prefs_base_dir() + "tk.json")?;
+        let f = File::create(&path)?;
         let tk = Token{ tk: authorize().unwrap(), created: Utc::now()};
         json::to_writer(f, &tk).expect("Could not write token");
         Ok(tk)

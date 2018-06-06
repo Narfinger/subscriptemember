@@ -6,8 +6,8 @@ use schema::{subscriptions, videos, config};
 use chrono::{NaiveDateTime, DateTime, TimeZone};
 use chrono_tz::US::Pacific;
 use diesel::sqlite::SqliteConnection;
-use r2d2::Pool;
-use r2d2_diesel::ConnectionManager;
+use diesel::r2d2::Pool;
+use diesel::r2d2::ConnectionManager;
 use std::ops::Deref;
 use nom::digit;
 #[cfg(test)]
