@@ -136,5 +136,6 @@ pub fn delete_video(db: &Pool<ConnectionManager<SqliteConnection>>, videoid: &st
     use schema::videos::dsl::*;
     let dbconn = db.get().expect("DB pool problem");
     delete(videos.filter(vid.like(videoid)))
-        .execute(dbconn.deref());
+        .execute(dbconn.deref())
+        .expect("Error in deleting video");
 }
