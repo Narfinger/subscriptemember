@@ -40,8 +40,8 @@ fn get_client_secrets() -> Installed {
     struct ClientSecret {
         installed: Installed,
     };
-    let f = File::open("client_secret.json").expect("Did not find client_secret.json");
-    json::from_reader::<File, ClientSecret>(f).unwrap().installed
+    //let f = File::open("client_secret.json").expect("Did not find client_secret.json");
+    json::from_str::<ClientSecret>(include_str!("../client_secret.json")).unwrap().installed
 }
 
 fn authorize() -> Result<oauth2::Token,oauth2::TokenError> {
