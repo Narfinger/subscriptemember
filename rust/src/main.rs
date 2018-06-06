@@ -244,13 +244,13 @@ fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<
 // }
 
 #[get("/static/datatables.css")]
-fn static_datatablescss() -> &'static str {
-    include_str!("../static/datatables.css")    
+fn static_datatablescss() -> Content<String> {
+    Content(ContentType::CSS, String::from(include_str!("../static/datatables.css")))
 }
 
 #[get("/static/datatables.js")]
-fn static_datatablesjs() -> &'static str {
-    include_str!("../static/datatables.js")
+fn static_datatablesjs() -> Content<String> {
+    Content(ContentType::JavaScript, String::from(include_str!("../static/datatables.js")))
 }
 
 fn main() {
