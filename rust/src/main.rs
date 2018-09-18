@@ -42,7 +42,7 @@ use std::sync::{RwLock, Mutex};
 use std::thread;
 use std::sync::mpsc;
 use std::str::FromStr;
-use handlebars::{Handlebars, Helper, RenderContext, RenderError};
+use handlebars::{Context, Handlebars, Helper, RenderContext, RenderError, Output};
 use preferences::{AppInfo, prefs_base_dir};
 use chrono::NaiveDateTime;
 use diesel::sqlite::SqliteConnection;
@@ -207,17 +207,17 @@ fn index(db: State<DB>, hb: State<HB>) -> Content<String> {
             hb.0.render("index", &data).map_err(|err| err.to_string()).unwrap())
 }
 
-fn video_time(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+fn video_time(h: &Helper, _: &Handlebars, _: &Context, _: &mut RenderContext, out: &mut Output) -> Result<(), RenderError> {
     let param = h.param(0).unwrap().value().to_string().replace("\"", "").parse::<i64>().unwrap();
     let d = NaiveDateTime::from_timestamp(param, 0);
     let dt = d.format("%Y.%m.%d - %H:%M").to_string();
     //println!("this needs to be timezone aware");
 
-    try!(rc.writer.write_all(dt.into_bytes().as_ref()));
+    out.write(&dt)?;
     Ok(())
 }
 
-fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+fn video_duration(h: &Helper, _: &Handlebars, _: &Context, _: &mut RenderContext, out: &mut Output) -> Result<(), RenderError> {
     let param = h.param(0).unwrap().value().to_string().replace("\"", "").parse::<i64>().unwrap();
 
     let seconds = param % 60;
@@ -232,7 +232,7 @@ fn video_duration(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<
         st.push_str(format!("{:02}:", minutes).as_str());
     }
     st.push_str(format!("{:02}", seconds).as_str());
-    try!(rc.writer.write_all(st.into_bytes().as_ref()));
+    out.write(&st)?;
     Ok(())
 }
 

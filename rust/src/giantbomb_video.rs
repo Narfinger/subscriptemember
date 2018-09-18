@@ -53,7 +53,7 @@ fn query_giantbomb<T>(t: &GBKey, client: &reqwest::Client, url: String) -> Giant
 fn construct_new_video(v: &GiantBombVideo) -> NewVideo {
     let id = match v.youtube_id {
         Some(ref i) => i.clone(),
-        None => format!("{}", Uuid::new_v4().simple()),
+        None => format!("{}", Uuid::new_v4().to_simple()),
     };
     NewVideo {
         vid: id,
