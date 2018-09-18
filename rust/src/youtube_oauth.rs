@@ -110,8 +110,7 @@ fn refresh(oldtoken: &Token) -> Result<Token, Error> {
 
 pub fn setup_oauth() -> Result<Token,Error> {
     let mut path = prefs_base_dir().expect("Could not get prefs base dir");
-    path.push("subscriptemember");
-    path.push("tk.json");
+    path.extend(&["subscriptemember", "tk.json"]);
     let f = File::open(&path);
     let tk = if let Ok(f) = f {
         json::from_reader(f)
