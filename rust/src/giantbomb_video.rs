@@ -6,7 +6,7 @@ use diesel::r2d2::ConnectionManager;
 use std::ops::Deref;
 use reqwest;
 use uuid::Uuid;
-use subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp,
+use crate::subs_and_video::{GBKey, NewVideo, make_gb_url, from_giantbomb_datetime_to_timestamp,
                      get_lastupdate_in_unixtime};
 
 static LIMIT: &str = "10";
@@ -79,7 +79,7 @@ fn query_videos(t: &GBKey, client: &reqwest::Client, unix_stamp: i64) -> Vec<New
 
 /// Update giantbomb videos and put them into the database
 pub fn update_videos(t: &GBKey, db: &Pool<ConnectionManager<SqliteConnection>>, client: &reqwest::Client) {
-    use schema::videos;
+    use crate::schema::videos;
     use diesel::RunQueryDsl;
  
     let us = get_lastupdate_in_unixtime(db);

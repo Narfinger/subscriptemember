@@ -8,11 +8,11 @@ use rayon::prelude::*;
 use reqwest;
 use diesel::r2d2::Pool;
 use diesel::r2d2::ConnectionManager;
-use youtube_base::{YoutubeItem, YoutubeSnippet, YoutubeDurationContentDetails, query};
-use subs_and_video;
-use subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in_unixtime,
+use crate::youtube_base::{YoutubeItem, YoutubeSnippet, YoutubeDurationContentDetails, query};
+use crate::subs_and_video;
+use crate::subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in_unixtime,
                      make_youtube_url, youtube_duration};
-use youtube_oauth;
+use crate::youtube_oauth;
 
 
 const PL_URL: &str = "https://www.googleapis.\
@@ -101,8 +101,8 @@ pub fn update_videos(t: &youtube_oauth::Token,
                      db: &Pool<ConnectionManager<SqliteConnection>>,
                      client: &reqwest::Client,
                      subs: &[Subscription]) {
-    use schema::videos;
-    use schema::config;
+    use crate::schema::videos;
+    use crate::schema::config;
 
     let us = get_lastupdate_in_unixtime(db);
     let mut vids: Vec<NewVideo> = query_videos(t, client, subs, us);
@@ -123,7 +123,7 @@ pub fn update_videos(t: &youtube_oauth::Token,
 
 /// Returns current videos in the database
 pub fn get_videos(db: &Pool<ConnectionManager<SqliteConnection>>) -> Vec<Video> {
-    use schema::videos::dsl::*;
+    use crate::schema::videos::dsl::*;
 
     let dbconn = db.get().expect("DB pool problem");
 
@@ -133,7 +133,7 @@ pub fn get_videos(db: &Pool<ConnectionManager<SqliteConnection>>) -> Vec<Video> 
 }
 
 pub fn delete_video(db: &Pool<ConnectionManager<SqliteConnection>>, videoid: &str) {
-    use schema::videos::dsl::*;
+    use crate::schema::videos::dsl::*;
     let dbconn = db.get().expect("DB pool problem");
     delete(videos.filter(vid.like(videoid)))
         .execute(dbconn.deref())

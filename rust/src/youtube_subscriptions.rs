@@ -6,10 +6,10 @@ use diesel::r2d2::Pool;
 use diesel::r2d2::ConnectionManager;
 use std::ops::Deref;
 use reqwest;
-use subs_and_video::{Subscription, NewSubscription};
-use youtube_base::{YoutubeItem, YoutubeSubscription, YoutubeRelatedPlaylistsContentDetails, Query,
+use crate::subs_and_video::{Subscription, NewSubscription};
+use crate::youtube_base::{YoutubeItem, YoutubeSubscription, YoutubeRelatedPlaylistsContentDetails, Query,
                    query};
-use youtube_oauth;
+use crate::youtube_oauth;
 
 const SUB_URL: &str = "https://www.googleapis.\
                                com/youtube/v3/subscriptions\
@@ -76,8 +76,8 @@ pub fn get_subs(t: &youtube_oauth::Token,
                 client: &reqwest::Client,
                 update_subs: bool)
                 -> Vec<Subscription> {
-    use schema::subscriptions::dsl::*;
-    use schema::subscriptions;
+    use crate::schema::subscriptions::dsl::*;
+    use crate::schema::subscriptions;
 
     let dbconn = db.get().expect("DB pool problem");
     if update_subs {

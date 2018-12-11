@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use serde;
 use reqwest;
-use youtube_oauth::{Expireing, Token};
+use crate::youtube_oauth::{Expireing, Token};
 
 #[derive(Debug,Deserialize)]
 pub struct YoutubePageInfo {

@@ -156,9 +156,10 @@ fn delete(vid: String, db: State<DB>) -> Redirect {
 
 #[post("/addurl", data="<form>")]
 fn addurl(form: Form<AddForm>) -> Redirect {
-    let url = &form.get().url.0;
-    println!("found something {:?}", url);
-    Redirect::to("/")
+    panic!("not implemented")
+    //let url = &form.get().url.0;
+    //println!("found something {:?}", url);
+    //Redirect::to("/")
 }
 
 #[get("/small")]

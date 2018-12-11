@@ -2,7 +2,6 @@ use std::fmt;
 use std::cmp::Ordering;
 use std::str;
 use std::str::FromStr;
-use schema::{subscriptions, videos, config};
 use chrono::{NaiveDateTime, DateTime, TimeZone};
 use chrono_tz::US::Pacific;
 use diesel::sqlite::SqliteConnection;
@@ -12,6 +11,9 @@ use std::ops::Deref;
 use nom::digit;
 #[cfg(test)]
 use nom::IResult;
+
+use crate::schema::{subscriptions, videos, config};
+
 
 #[derive(Debug,Deserialize,Clone)]
 pub struct GBKey {
@@ -149,7 +151,7 @@ pub struct NewConfig {
 
 /// Get the lastupdate from the database in unix epoch
 pub fn get_lastupdate_in_unixtime(db: &Pool<ConnectionManager<SqliteConnection>>) -> i64 {
-    use schema::config::dsl::*;
+    use crate::schema::config::dsl::*;
     use diesel::RunQueryDsl;
 
     let dbconn = db.get().expect("DB pool problem");
