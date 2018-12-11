@@ -1,8 +1,4 @@
-#![cfg_attr(feature="clippy", allow(needless_pass_by_value))] //rocket state uses this
-#![cfg_attr(feature = "nightly", feature(proc_macro))]
-#![feature(plugin,custom_derive)]
-#![plugin(rocket_codegen)]
-#[cfg(feature = "nightly")]
+#![feature(proc_macro_hygiene, decl_macro)]
 
 #[macro_use]
 extern crate rocket;
@@ -17,7 +13,6 @@ extern crate serde_json;
 extern crate tokio_core;
 extern crate oauth2;
 extern crate handlebars;
-extern crate rocket;
 extern crate rocket_contrib;
 #[macro_use]
 extern crate diesel;
@@ -53,8 +48,8 @@ use rocket::response::Redirect;
 use rocket::response::content::Content;
 use rocket::http::ContentType;
 use url::Url;
-use subs_and_video::{GBKey, get_lastupdate_in_unixtime};
-use youtube_oauth::{Expireing, setup_oauth};
+use crate::subs_and_video::{GBKey, get_lastupdate_in_unixtime};
+use crate::youtube_oauth::{Expireing, setup_oauth};
 
 const APP_INFO: AppInfo = AppInfo{name: "subscriptemember", author: "narfinger"};
 const PREFS_KEY: &'static str = "subscriptemember_prefs";
