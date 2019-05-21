@@ -29,7 +29,7 @@ pub mod youtube_video;
 pub mod subs_and_video;
 pub mod giantbomb_video;
 
-use actix_web::{App, HttpRequest, HttpResponse, Responder, State, Path};
+use actix_web::{App, HttpRequest, HttpResponse, Responder, State, Path, server};
 use actix_web::http::{StatusCode, ContentEncoding, Method, header};
 
 use std::sync::{RwLock, Mutex};
@@ -65,19 +65,19 @@ fn setup_gbkey() -> GBKey {
 }
 
 
-fn update_subs(state: State<AppState>) -> impl Responder {
+fn update_subs(state: State<AppState>) -> HttpResponse {
     let tk = state.tk;
     let db = state.db;
-    if tk.0.read().unwrap().expired() {
-        let mut rwtk = tk.0.write().unwrap();
+    if tk.read().unwrap().expired() {
+        let mut rwtk = tk.write().unwrap();
         *rwtk = setup_oauth().expect("Error getting fresh token");
     }
     let cl = reqwest::Client::new();
-    youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl, true);
+    youtube_subscriptions::get_subs(&tk.read().unwrap(), &db, &cl, true);
 
-    Ok(HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
+    HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
             .header(header::LOCATION, "/subs")
-            .finish())
+            .finish()
 }
 
 fn subs(state: State<AppState>) -> String {
@@ -86,30 +86,30 @@ fn subs(state: State<AppState>) -> String {
     let hb = state.hb;
 
     let cl = reqwest::Client::new();
-    let sub = youtube_subscriptions::get_subs(&tk.0.read().unwrap(), &db.0, &cl, false);
+    let sub = youtube_subscriptions::get_subs(&tk.read().unwrap(), &db, &cl, false);
     let data = json!({
         "subs": sub,
         "numberofsubs": sub.len(),
     });
-    hb.0.render("subs", &data).unwrap()
+    hb.render("subs", &data).unwrap()
 }
 
-fn update_videos(state: State<AppState>) -> impl Responder {
+fn update_videos(state: State<AppState>) -> HttpResponse {
     let tk = state.tk;
     let gbtk = state.gbtk;
     let db = state.db;
     let ch = state.mpsc;
     let upv = state.updating_videos;
 
-    if upv.0.try_lock().is_ok() {
-        if tk.0.read().unwrap().expired() {
-            let mut rwtk = tk.0.write().unwrap();
+    if upv.try_lock().is_ok() {
+        if tk.read().unwrap().expired() {
+            let mut rwtk = tk.write().unwrap();
             *rwtk = setup_oauth().expect("Error in getting fresh token");
         }
 
-        let ntk = tk.0.read().unwrap().clone();
-        let ngbtk = gbtk.0.clone();
-        let ndb = db.0.clone();
+        let ntk = tk.read().unwrap().clone();
+        let ngbtk = gbtk.clone();
+        let ndb = db.clone();
 
         let cl = reqwest::Client::new();
         let ncl = cl.clone();
@@ -119,29 +119,29 @@ fn update_videos(state: State<AppState>) -> impl Responder {
             let subs = youtube_subscriptions::get_subs(&ntk, &ndb, &ncl, false);
             youtube_video::update_videos(&ntk, &ndb, &ncl, &subs);
 
-            nch.0.send(());
+            nch.send(());
         });
     }
-    Ok(HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
+    HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
             .header(header::LOCATION, "/")
-            .finish())
+            .finish()
 }
 
-fn delete(vid: Path<(String,String)>, req: HttpRequest) -> impl Responder {
-    let db = req.state().db;
-    youtube_video::delete_video(&db.0, &vid);
-    Ok(HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
+fn delete(vid: Path<String>, state: State<AppState>) -> HttpResponse {
+    let db = state.db;
+    youtube_video::delete_video(&db, &vid);
+    HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
             .header(header::LOCATION, "/")
-            .finish())
+            .finish()
 }
 
-fn index(req: HttpRequest) -> String {
-    let db = req.state().db;
-    let hb = req.state().hb;
-    let vids = youtube_video::get_videos(&db.0);
+fn index(state: State<AppState>) -> String {
+    let db = state.db;
+    let hb = state.hb;
+    let vids = youtube_video::get_videos(&db);
 
     let lastrefreshed =
-        format!("{}", NaiveDateTime::from_timestamp(get_lastupdate_in_unixtime(&db.0), 0)
+        format!("{}", NaiveDateTime::from_timestamp(get_lastupdate_in_unixtime(&db), 0)
                                 .format("%H:%M:%S %d.%m.%Y"));
     let numberofvideos = vids.len();
     let totaltime: i64 = vids.iter().map(|v| v.duration).sum();
@@ -152,7 +152,7 @@ fn index(req: HttpRequest) -> String {
         "numberofvideos": numberofvideos,
         "totaltime": totaltime,
     });
-    hb.0.render("index", &data).map_err(|err| err.to_string()).unwrap()
+    hb.render("index", &data).map_err(|err| err.to_string()).unwrap()
 }
 
 fn video_time(h: &Helper, _: &Handlebars, _: &Context, _: &mut RenderContext, out: &mut Output) -> Result<(), RenderError> {
@@ -184,13 +184,13 @@ fn video_duration(h: &Helper, _: &Handlebars, _: &Context, _: &mut RenderContext
     Ok(())
 }
 
-fn static_datatablescss() -> impl Responder {
+fn static_datatablescss(state: State<AppState>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/css")
         .body(include_str!("../static/datatables.css"))
 }
 
-fn static_datatablesjs() -> impl Responder {
+fn static_datatablesjs(state: State<AppState>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/javascript")
         .body(include_str!("../static/datatables.js"))
@@ -217,7 +217,6 @@ fn main() {
     database_url.push("subscriptemember.db");
     let manager = ConnectionManager::<SqliteConnection>::new(database_url.to_str().expect("Error in converting path"));
     let pool = diesel::r2d2::Pool::new(manager).expect("Failed to create pool.");
-
     println!("Setting up channels");
     let (sender, receiver) = mpsc::sync_channel::<()>(2);
     //let chstruct = MPSC(sender);
@@ -250,14 +249,26 @@ fn main() {
     println!("Starting server");
     let oauth = setup_oauth().expect("Problem with oauth");
 
-    App::with_state(AppState {
+
+    let app = App::with_state(AppState {
         tk: RwLock::new(oauth),
         gbtk: setup_gbkey(),
         db: pool,
         hb: hb,
-        updating_videos: Mutex::new(),
+        updating_videos: Mutex::new(()),
         mpsc: sender,
     })
-    .resource("/", |r| r.method(Method::GET).f(index))
-    .finish()
+    .route("/update_subs", Method::GET, update_subs)
+    .route("/subs", Method::GET, subs)
+    .route("/update_videos", Method::GET, update_videos)
+    .route("/delete/{vid}", Method::GET, delete)
+    .route("/static_datatablecss", Method::GET, static_datatablescss)
+    .route("/static_datatablejss", Method::GET, static_datatablesjs)
+    .route("/", Method::GET, index)
+    .finish();
+
+     server::new(|| app)
+        .bind("127.0.0.1:8088")
+        .unwrap()
+        .run();
 }
