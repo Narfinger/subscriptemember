@@ -34,7 +34,7 @@ use actix_web::http::{StatusCode, ContentEncoding, Method, header};
 
 use std::sync::{RwLock, Mutex};
 use std::thread;
-use std::sync::mpsc;
+use std::sync::{Arc, mpsc};
 use std::str::FromStr;
 use handlebars::{Context, Handlebars, Helper, RenderContext, RenderError, Output};
 use preferences::{AppInfo, prefs_base_dir};
@@ -50,7 +50,6 @@ use crate::youtube_oauth::{Expireing, setup_oauth};
 const APP_INFO: AppInfo = AppInfo{name: "subscriptemember", author: "narfinger"};
 const PREFS_KEY: &'static str = "subscriptemember_prefs";
 
-
 struct AppState {
     tk: RwLock<youtube_oauth::Token>,
     gbtk: GBKey,
@@ -65,7 +64,7 @@ fn setup_gbkey() -> GBKey {
 }
 
 
-fn update_subs(state: State<AppState>) -> HttpResponse {
+fn update_subs(state: State<Arc<AppState>>) -> HttpResponse {
     let tk = state.tk;
     let db = state.db;
     if tk.read().unwrap().expired() {
@@ -80,7 +79,7 @@ fn update_subs(state: State<AppState>) -> HttpResponse {
             .finish()
 }
 
-fn subs(state: State<AppState>) -> String {
+fn subs(state: State<Arc<AppState>>) -> String {
     let tk = state.tk;
     let db = state.db;
     let hb = state.hb;
@@ -94,7 +93,7 @@ fn subs(state: State<AppState>) -> String {
     hb.render("subs", &data).unwrap()
 }
 
-fn update_videos(state: State<AppState>) -> HttpResponse {
+fn update_videos(state: State<Arc<AppState>>) -> HttpResponse {
     let tk = state.tk;
     let gbtk = state.gbtk;
     let db = state.db;
@@ -127,7 +126,7 @@ fn update_videos(state: State<AppState>) -> HttpResponse {
             .finish()
 }
 
-fn delete(vid: Path<String>, state: State<AppState>) -> HttpResponse {
+fn delete(vid: Path<String>, state: State<Arc<AppState>>) -> HttpResponse {
     let db = state.db;
     youtube_video::delete_video(&db, &vid);
     HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
@@ -135,7 +134,7 @@ fn delete(vid: Path<String>, state: State<AppState>) -> HttpResponse {
             .finish()
 }
 
-fn index(state: State<AppState>) -> String {
+fn index(state: State<Arc<AppState>>) -> String {
     let db = state.db;
     let hb = state.hb;
     let vids = youtube_video::get_videos(&db);
@@ -184,13 +183,13 @@ fn video_duration(h: &Helper, _: &Handlebars, _: &Context, _: &mut RenderContext
     Ok(())
 }
 
-fn static_datatablescss(state: State<AppState>) -> HttpResponse {
+fn static_datatablescss(state: State<Arc<AppState>>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/css")
         .body(include_str!("../static/datatables.css"))
 }
 
-fn static_datatablesjs(state: State<AppState>) -> HttpResponse {
+fn static_datatablesjs(state: State<Arc<AppState>>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/javascript")
         .body(include_str!("../static/datatables.js"))
@@ -250,24 +249,26 @@ fn main() {
     let oauth = setup_oauth().expect("Problem with oauth");
 
 
-    let app = App::with_state(AppState {
-        tk: RwLock::new(oauth),
-        gbtk: setup_gbkey(),
-        db: pool,
-        hb: hb,
-        updating_videos: Mutex::new(()),
-        mpsc: sender,
-    })
-    .route("/update_subs", Method::GET, update_subs)
-    .route("/subs", Method::GET, subs)
-    .route("/update_videos", Method::GET, update_videos)
-    .route("/delete/{vid}", Method::GET, delete)
-    .route("/static_datatablecss", Method::GET, static_datatablescss)
-    .route("/static_datatablejss", Method::GET, static_datatablesjs)
-    .route("/", Method::GET, index)
-    .finish();
+    let state = Arc::new(
+        AppState {
+            tk: RwLock::new(oauth),
+            gbtk: setup_gbkey(),
+            db: pool,
+            hb: hb,
+            updating_videos: Mutex::new(()),
+            mpsc: sender,
+    });
+    let app = App::with_state(state)
+        .route("/update_subs", Method::GET, update_subs)
+        .route("/subs", Method::GET, subs)
+        .route("/update_videos", Method::GET, update_videos)
+        .route("/delete/{vid}", Method::GET, delete)
+        .route("/static_datatablecss", Method::GET, static_datatablescss)
+        .route("/static_datatablejss", Method::GET, static_datatablesjs)
+        .route("/", Method::GET, index)
+        .finish();
 
-     server::new(|| app)
+     server::new(app)
         .bind("127.0.0.1:8088")
         .unwrap()
         .run();
