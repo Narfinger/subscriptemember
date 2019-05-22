@@ -59,12 +59,14 @@ struct AppState {
     mpsc: mpsc::SyncSender<()>,
 }
 
+type AppStateShared = Arc<RwLock<AppState>>;
+
 fn setup_gbkey() -> GBKey {
     GBKey { key: include_str!("../client_secret_gb.json").to_string() }
 }
 
 
-fn update_subs(state: State<Arc<AppState>>) -> HttpResponse {
+fn update_subs(state: State<AppStateShared>) -> HttpResponse {
     let tk = state.tk;
     let db = state.db;
     if tk.read().unwrap().expired() {
@@ -79,7 +81,7 @@ fn update_subs(state: State<Arc<AppState>>) -> HttpResponse {
             .finish()
 }
 
-fn subs(state: State<Arc<AppState>>) -> String {
+fn subs(state: State<AppStateShared>) -> String {
     let tk = state.tk;
     let db = state.db;
     let hb = state.hb;
@@ -93,7 +95,7 @@ fn subs(state: State<Arc<AppState>>) -> String {
     hb.render("subs", &data).unwrap()
 }
 
-fn update_videos(state: State<Arc<AppState>>) -> HttpResponse {
+fn update_videos(state: State<AppStateShared>) -> HttpResponse {
     let tk = state.tk;
     let gbtk = state.gbtk;
     let db = state.db;
@@ -126,7 +128,7 @@ fn update_videos(state: State<Arc<AppState>>) -> HttpResponse {
             .finish()
 }
 
-fn delete(vid: Path<String>, state: State<Arc<AppState>>) -> HttpResponse {
+fn delete(vid: Path<String>, state: State<AppStateShared>) -> HttpResponse {
     let db = state.db;
     youtube_video::delete_video(&db, &vid);
     HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
@@ -134,7 +136,7 @@ fn delete(vid: Path<String>, state: State<Arc<AppState>>) -> HttpResponse {
             .finish()
 }
 
-fn index(state: State<Arc<AppState>>) -> String {
+fn index(state: State<AppStateShared>) -> String {
     let db = state.db;
     let hb = state.hb;
     let vids = youtube_video::get_videos(&db);
@@ -183,13 +185,13 @@ fn video_duration(h: &Helper, _: &Handlebars, _: &Context, _: &mut RenderContext
     Ok(())
 }
 
-fn static_datatablescss(state: State<Arc<AppState>>) -> HttpResponse {
+fn static_datatablescss(state: State<AppStateShared>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/css")
         .body(include_str!("../static/datatables.css"))
 }
 
-fn static_datatablesjs(state: State<Arc<AppState>>) -> HttpResponse {
+fn static_datatablesjs(state: State<AppStateShared>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/javascript")
         .body(include_str!("../static/datatables.js"))
@@ -250,14 +252,15 @@ fn main() {
 
 
     let state = Arc::new(
-        AppState {
-            tk: RwLock::new(oauth),
-            gbtk: setup_gbkey(),
-            db: pool,
-            hb: hb,
-            updating_videos: Mutex::new(()),
-            mpsc: sender,
-    });
+        RwLock::new(
+            AppState {
+                tk: RwLock::new(oauth),
+                gbtk: setup_gbkey(),
+                db: pool,
+                hb: hb,
+                updating_videos: Mutex::new(()),
+                mpsc: sender,
+    }));
     let app = App::with_state(state)
         .route("/update_subs", Method::GET, update_subs)
         .route("/subs", Method::GET, subs)
