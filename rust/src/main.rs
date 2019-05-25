@@ -29,13 +29,13 @@ pub mod youtube_video;
 pub mod subs_and_video;
 pub mod giantbomb_video;
 
-use actix_web::{App, HttpRequest, HttpResponse, Responder, State, Path, server};
-use actix_web::http::{StatusCode, ContentEncoding, Method, header};
+use actix::*;
+use actix_web::*;
+use actix_web::http::{StatusCode, Method, header};
 
 use std::sync::{RwLock, Mutex};
 use std::thread;
 use std::sync::{Arc, mpsc};
-use std::str::FromStr;
 use handlebars::{Context, Handlebars, Helper, RenderContext, RenderError, Output};
 use preferences::{AppInfo, prefs_base_dir};
 use chrono::NaiveDateTime;
@@ -43,7 +43,6 @@ use diesel::sqlite::SqliteConnection;
 use diesel::r2d2::Pool;
 use diesel::r2d2::ConnectionManager;
 
-use url::Url;
 use crate::subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 use crate::youtube_oauth::{Expireing, setup_oauth};
 
@@ -67,8 +66,8 @@ fn setup_gbkey() -> GBKey {
 
 
 fn update_subs(state: State<AppStateShared>) -> HttpResponse {
-    let tk = state.tk;
-    let db = state.db;
+    let tk = &state.read().unwrap().tk;
+    let db = &state.read().unwrap().db;
     if tk.read().unwrap().expired() {
         let mut rwtk = tk.write().unwrap();
         *rwtk = setup_oauth().expect("Error getting fresh token");
@@ -82,9 +81,9 @@ fn update_subs(state: State<AppStateShared>) -> HttpResponse {
 }
 
 fn subs(state: State<AppStateShared>) -> String {
-    let tk = state.tk;
-    let db = state.db;
-    let hb = state.hb;
+    let tk = &state.read().unwrap().tk;
+    let db = &state.read().unwrap().db;
+    let hb = &state.read().unwrap().hb;
 
     let cl = reqwest::Client::new();
     let sub = youtube_subscriptions::get_subs(&tk.read().unwrap(), &db, &cl, false);
@@ -96,11 +95,11 @@ fn subs(state: State<AppStateShared>) -> String {
 }
 
 fn update_videos(state: State<AppStateShared>) -> HttpResponse {
-    let tk = state.tk;
-    let gbtk = state.gbtk;
-    let db = state.db;
-    let ch = state.mpsc;
-    let upv = state.updating_videos;
+    let tk   = &state.read().unwrap().tk;
+    let gbtk = &state.read().unwrap().gbtk;
+    let db   = &state.read().unwrap().db;
+    let ch   = &state.read().unwrap().mpsc;
+    let upv  = &state.read().unwrap().updating_videos;
 
     if upv.try_lock().is_ok() {
         if tk.read().unwrap().expired() {
@@ -129,16 +128,16 @@ fn update_videos(state: State<AppStateShared>) -> HttpResponse {
 }
 
 fn delete(vid: Path<String>, state: State<AppStateShared>) -> HttpResponse {
-    let db = state.db;
+    let db = &state.read().unwrap().db;
     youtube_video::delete_video(&db, &vid);
     HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
             .header(header::LOCATION, "/")
             .finish()
 }
 
-fn index(state: State<AppStateShared>) -> String {
-    let db = state.db;
-    let hb = state.hb;
+fn index(state: State<AppStateShared>) -> impl Responder {
+    let db = &state.read().unwrap().db;
+    let hb = &state.read().unwrap().hb;
     let vids = youtube_video::get_videos(&db);
 
     let lastrefreshed =
@@ -185,17 +184,28 @@ fn video_duration(h: &Helper, _: &Handlebars, _: &Context, _: &mut RenderContext
     Ok(())
 }
 
-fn static_datatablescss(state: State<AppStateShared>) -> HttpResponse {
+fn static_datatablescss(_state: State<AppStateShared>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/css")
         .body(include_str!("../static/datatables.css"))
 }
 
-fn static_datatablesjs(state: State<AppStateShared>) -> HttpResponse {
+fn static_datatablesjs(_state: State<AppStateShared>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/javascript")
         .body(include_str!("../static/datatables.js"))
 }
+
+struct Ws;
+
+//impl Actor for Ws {
+//    type Context = ws::WebSocketContext<Self>;
+//}
+
+//impl StreamHandler<ws::Message, ws::ProtocolError> for Ws {
+//    fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
+//    }
+//}
 
 fn main() {
     println!("Registering templates");
@@ -261,18 +271,17 @@ fn main() {
                 updating_videos: Mutex::new(()),
                 mpsc: sender,
     }));
-    let app = App::with_state(state)
-        .route("/update_subs", Method::GET, update_subs)
-        .route("/subs", Method::GET, subs)
-        .route("/update_videos", Method::GET, update_videos)
-        .route("/delete/{vid}", Method::GET, delete)
-        .route("/static_datatablecss", Method::GET, static_datatablescss)
-        .route("/static_datatablejss", Method::GET, static_datatablesjs)
-        .route("/", Method::GET, index)
-        .finish();
 
-     server::new(app)
-        .bind("127.0.0.1:8088")
+    server::new(move || {
+            App::with_state(state.clone())
+            .route("/update_subs", Method::GET, update_subs)
+            .route("/subs", Method::GET, subs)
+            .route("/update_videos", Method::GET, update_videos)
+            .route("/delete/{vid}", Method::GET, delete)
+            .route("/static_datatablecss", Method::GET, static_datatablescss)
+            .route("/static_datatablejss", Method::GET, static_datatablesjs)
+            .route("/", Method::GET, index)
+    }).bind("127.0.0.1:8000")
         .unwrap()
         .run();
 }
