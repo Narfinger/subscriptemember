@@ -155,13 +155,13 @@ pub fn query<'a,T>(t: &Token, client: &'a reqwest::Client, url: &str) -> Query<'
     if t.expired() {
         println!("Token expired");
     }
-    
+
     Query::<T> {
         initialised: false,
         storage: VecDeque::with_capacity(50),
         url: url.to_string(),
         t: t.clone(),
         next_page: None,
-        client: client,
+        client,
     }
 }

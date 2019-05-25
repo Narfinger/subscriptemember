@@ -29,9 +29,10 @@ pub mod youtube_video;
 pub mod subs_and_video;
 pub mod giantbomb_video;
 
-use actix::*;
 use actix_web::*;
 use actix_web::http::{StatusCode, Method, header};
+//use actix_web::ws;
+
 
 use std::sync::{RwLock, Mutex};
 use std::thread;
@@ -46,8 +47,8 @@ use diesel::r2d2::ConnectionManager;
 use crate::subs_and_video::{GBKey, get_lastupdate_in_unixtime};
 use crate::youtube_oauth::{Expireing, setup_oauth};
 
-const APP_INFO: AppInfo = AppInfo{name: "subscriptemember", author: "narfinger"};
-const PREFS_KEY: &'static str = "subscriptemember_prefs";
+//const APP_INFO: AppInfo = AppInfo{name: "subscriptemember", author: "narfinger"};
+//const PREFS_KEY: &'static str = "subscriptemember_prefs";
 
 struct AppState {
     tk: RwLock<youtube_oauth::Token>,
@@ -196,16 +197,22 @@ fn static_datatablesjs(_state: State<AppStateShared>) -> HttpResponse {
         .body(include_str!("../static/datatables.js"))
 }
 
+/*
 struct Ws;
 
-//impl Actor for Ws {
-//    type Context = ws::WebSocketContext<Self>;
-//}
+impl Actor for Ws {
+    type Context = ws::WebsocketContext<Self>;
+}
 
-//impl StreamHandler<ws::Message, ws::ProtocolError> for Ws {
-//    fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
-//    }
-//}
+impl StreamHandler<ws::Message, ws::ProtocolError> for Ws {
+    fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
+    }
+}
+
+fn ws_index(req: &HttpRequest) -> Result<HttpResponse> {
+    ws::start(req, Ws)
+}
+*/
 
 fn main() {
     println!("Registering templates");
@@ -230,7 +237,7 @@ fn main() {
     let pool = diesel::r2d2::Pool::new(manager).expect("Failed to create pool.");
     println!("Setting up channels");
     let (sender, receiver) = mpsc::sync_channel::<()>(2);
-    //let chstruct = MPSC(sender);
+
 
     {
         println!("Starting websockets");
@@ -253,8 +260,6 @@ fn main() {
     }
 
 
-    //let cl = reqwest::Client::new().expect("Error in creating connection pool");
-
     println!("Do transaction for update!");
 
     println!("Starting server");
@@ -267,7 +272,7 @@ fn main() {
                 tk: RwLock::new(oauth),
                 gbtk: setup_gbkey(),
                 db: pool,
-                hb: hb,
+                hb,
                 updating_videos: Mutex::new(()),
                 mpsc: sender,
     }));

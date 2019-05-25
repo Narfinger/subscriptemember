@@ -45,7 +45,7 @@ fn query_videos<'f>(t: &'f youtube_oauth::Token,
         .map(|(s, q)| (s, q.take(10).collect::<Vec<YoutubeItem<YoutubeSnippet>>>()))
         .collect::<Vec<(&Subscription, Vec<YoutubeItem<YoutubeSnippet>>)>>();
     vids.iter()
-        .flat_map(|&(s, ref q)| q.into_iter().map(move |sn| construct_new_video(s, sn)))
+        .flat_map(|&(s, ref q)| q.iter().map(move |sn| construct_new_video(s, sn)))
         .filter(|s| s.published_at > unix_stamp)
         .collect::<Vec<NewVideo>>()
 }
