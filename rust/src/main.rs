@@ -81,7 +81,7 @@ fn update_subs(state: State<AppStateShared>) -> HttpResponse {
             .finish()
 }
 
-fn subs(state: State<AppStateShared>) -> String {
+fn subs(state: State<AppStateShared>) -> Result<HttpResponse> {
     let tk = &state.read().unwrap().tk;
     let db = &state.read().unwrap().db;
     let hb = &state.read().unwrap().hb;
@@ -92,7 +92,9 @@ fn subs(state: State<AppStateShared>) -> String {
         "subs": sub,
         "numberofsubs": sub.len(),
     });
-    hb.render("subs", &data).unwrap()
+    let s = hb.render("subs", &data).unwrap();
+
+    Ok(HttpResponse::Ok().content_type("text/html").body(s))
 }
 
 fn update_videos(state: State<AppStateShared>) -> HttpResponse {
@@ -136,7 +138,7 @@ fn delete(vid: Path<String>, state: State<AppStateShared>) -> HttpResponse {
             .finish()
 }
 
-fn index(state: State<AppStateShared>) -> impl Responder {
+fn index(state: State<AppStateShared>) -> Result<HttpResponse> {
     let db = &state.read().unwrap().db;
     let hb = &state.read().unwrap().hb;
     let vids = youtube_video::get_videos(&db);
@@ -153,7 +155,8 @@ fn index(state: State<AppStateShared>) -> impl Responder {
         "numberofvideos": numberofvideos,
         "totaltime": totaltime,
     });
-    hb.render("index", &data).map_err(|err| err.to_string()).unwrap()
+    let s = hb.render("index", &data).map_err(|err| err.to_string()).unwrap();
+    Ok(HttpResponse::Ok().content_type("text/html").body(s))
 }
 
 fn video_time(h: &Helper, _: &Handlebars, _: &Context, _: &mut RenderContext, out: &mut Output) -> Result<(), RenderError> {
@@ -281,7 +284,7 @@ fn main() {
             App::with_state(state.clone())
             .route("/update_subs", Method::GET, update_subs)
             .route("/subs", Method::GET, subs)
-            .route("/update_videos", Method::GET, update_videos)
+            .route("/updateVideos", Method::GET, update_videos)
             .route("/delete/{vid}", Method::GET, delete)
             .route("/static_datatablecss", Method::GET, static_datatablescss)
             .route("/static_datatablejss", Method::GET, static_datatablesjs)
