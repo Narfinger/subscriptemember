@@ -38,7 +38,7 @@ use std::sync::{RwLock, Mutex};
 use std::thread;
 use std::sync::{Arc, mpsc};
 use handlebars::{Context, Handlebars, Helper, RenderContext, RenderError, Output};
-use preferences::{AppInfo, prefs_base_dir};
+use preferences::prefs_base_dir;
 use chrono::NaiveDateTime;
 use diesel::sqlite::SqliteConnection;
 use diesel::r2d2::Pool;
@@ -282,12 +282,13 @@ fn main() {
 
     server::new(move || {
             App::with_state(state.clone())
-            .route("/update_subs", Method::GET, update_subs)
+            .route("/updateSubs", Method::GET, update_subs)
             .route("/subs", Method::GET, subs)
             .route("/updateVideos", Method::GET, update_videos)
-            .route("/delete/{vid}", Method::GET, delete)
-            .route("/static_datatablecss", Method::GET, static_datatablescss)
-            .route("/static_datatablejss", Method::GET, static_datatablesjs)
+            .resource("/delete/{vid}/", |r| r.method(http::Method::GET).with(delete))
+            //.route("/delete/", Method::GET, delete)
+            .route("/static/datatables.css", Method::GET, static_datatablescss)
+            .route("/static/datatables.js", Method::GET, static_datatablesjs)
             .route("/", Method::GET, index)
     }).bind("127.0.0.1:8000")
         .unwrap()
