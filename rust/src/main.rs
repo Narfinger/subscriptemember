@@ -66,7 +66,7 @@ fn setup_gbkey() -> GBKey {
 }
 
 
-fn update_subs(state: State<AppStateShared>) -> HttpResponse {
+fn update_subs(state: web::Data<AppStateShared>) -> HttpResponse {
     let tk = &state.read().unwrap().tk;
     let db = &state.read().unwrap().db;
     if tk.read().unwrap().expired() {
@@ -81,7 +81,7 @@ fn update_subs(state: State<AppStateShared>) -> HttpResponse {
             .finish()
 }
 
-fn subs(state: State<AppStateShared>) -> Result<HttpResponse> {
+fn subs(state: web::Data<AppStateShared>) -> Result<HttpResponse> {
     let tk = &state.read().unwrap().tk;
     let db = &state.read().unwrap().db;
     let hb = &state.read().unwrap().hb;
@@ -97,7 +97,7 @@ fn subs(state: State<AppStateShared>) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().content_type("text/html").body(s))
 }
 
-fn update_videos(state: State<AppStateShared>) -> HttpResponse {
+fn update_videos(state: web::Data<AppStateShared>) -> HttpResponse {
     let tk   = &state.read().unwrap().tk;
     let gbtk = &state.read().unwrap().gbtk;
     let db   = &state.read().unwrap().db;
@@ -130,7 +130,7 @@ fn update_videos(state: State<AppStateShared>) -> HttpResponse {
             .finish()
 }
 
-fn delete(vid: Path<String>, state: State<AppStateShared>) -> HttpResponse {
+fn delete(vid: web::Path<String>, state: web::Data<AppStateShared>) -> HttpResponse {
     let db = &state.read().unwrap().db;
     youtube_video::delete_video(&db, &vid);
     HttpResponse::build(StatusCode::TEMPORARY_REDIRECT)
@@ -138,7 +138,8 @@ fn delete(vid: Path<String>, state: State<AppStateShared>) -> HttpResponse {
             .finish()
 }
 
-fn index(state: State<AppStateShared>) -> Result<HttpResponse> {
+#[get("/")]
+fn index(state: web::Data<AppStateShared>) -> Result<HttpResponse> {
     let db = &state.read().unwrap().db;
     let hb = &state.read().unwrap().hb;
     let vids = youtube_video::get_videos(&db);
@@ -188,13 +189,13 @@ fn video_duration(h: &Helper, _: &Handlebars, _: &Context, _: &mut RenderContext
     Ok(())
 }
 
-fn static_datatablescss(_state: State<AppStateShared>) -> HttpResponse {
+fn static_datatablescss(_state: web::Data<AppStateShared>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/css")
         .body(include_str!("../static/datatables.css"))
 }
 
-fn static_datatablesjs(_state: State<AppStateShared>) -> HttpResponse {
+fn static_datatablesjs(_state: web::Data<AppStateShared>) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/javascript")
         .body(include_str!("../static/datatables.js"))
@@ -269,7 +270,7 @@ fn main() {
     let oauth = setup_oauth().expect("Problem with oauth");
 
 
-    let state = Arc::new(
+    let state = web::Data::new(Arc::new(
         RwLock::new(
             AppState {
                 tk: RwLock::new(oauth),
@@ -278,19 +279,21 @@ fn main() {
                 hb,
                 updating_videos: Mutex::new(()),
                 mpsc: sender,
-    }));
+    })));
 
-    server::new(move || {
-            App::with_state(state.clone())
-            .route("/updateSubs", Method::GET, update_subs)
-            .route("/subs", Method::GET, subs)
-            .route("/updateVideos", Method::GET, update_videos)
-            .resource("/delete/{vid}/", |r| r.method(http::Method::GET).with(delete))
+    HttpServer::new(move || {
+            App::new()
+            .register_data(state.clone())
+            .service(web::resource("/updateSubs").to(update_subs))
+            .service(web::resource("/subs").to(subs))
+            .service(web::resource("/updateVideos").to(update_videos))
+            .service(web::resource("/delete/{vid}/").route(web::get().to(delete)))
             //.route("/delete/", Method::GET, delete)
-            .route("/static/datatables.css", Method::GET, static_datatablescss)
-            .route("/static/datatables.js", Method::GET, static_datatablesjs)
-            .route("/", Method::GET, index)
+            .service(web::resource("/static/datatables.css").to(static_datatablescss))
+            .service(web::resource("/static/datatables.js").to(static_datatablesjs))
+            .service(web::resource("/"))
     }).bind("127.0.0.1:8000")
         .unwrap()
-        .run();
+        .run()
+        .expect("Could not start server");
 }
