@@ -30,7 +30,7 @@ pub mod subs_and_video;
 pub mod giantbomb_video;
 
 use actix_web::*;
-use actix_web::http::{StatusCode, Method, header};
+use actix_web::http::{StatusCode, header};
 //use actix_web::ws;
 
 
@@ -138,7 +138,6 @@ fn delete(vid: web::Path<String>, state: web::Data<AppStateShared>) -> HttpRespo
             .finish()
 }
 
-#[get("/")]
 fn index(state: web::Data<AppStateShared>) -> Result<HttpResponse> {
     let db = &state.read().unwrap().db;
     let hb = &state.read().unwrap().hb;
@@ -291,7 +290,7 @@ fn main() {
             //.route("/delete/", Method::GET, delete)
             .service(web::resource("/static/datatables.css").to(static_datatablescss))
             .service(web::resource("/static/datatables.js").to(static_datatablesjs))
-            .service(web::resource("/"))
+            .service(web::resource("/").to(index))
     }).bind("127.0.0.1:8000")
         .unwrap()
         .run()
