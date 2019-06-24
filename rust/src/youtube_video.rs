@@ -10,7 +10,7 @@ use diesel::r2d2::Pool;
 use diesel::r2d2::ConnectionManager;
 use crate::youtube_base::{YoutubeItem, YoutubeSnippet, YoutubeDurationContentDetails, query};
 use crate::subs_and_video;
-use crate::subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in_unixtime,
+use crate::subs_and_video::{Subscription, Video, NewVideo, NewConfig, get_lastupdate_in_utctime,
                      make_youtube_url, youtube_duration};
 use crate::youtube_oauth;
 
@@ -104,7 +104,7 @@ pub fn update_videos(t: &youtube_oauth::Token,
     use crate::schema::videos;
     use crate::schema::config;
 
-    let us = get_lastupdate_in_unixtime(db);
+    let us = get_lastupdate_in_utctime(db).map(|s| s.timestamp()).unwrap_or(0);
     let mut vids: Vec<NewVideo> = query_videos(t, client, subs, us);
     println!("Updating video running time");
     update_video_running_time(t, client, &mut vids);

@@ -150,7 +150,7 @@ pub struct NewConfig {
 }
 
 /// Get the lastupdate from the database in unix epoch
-pub fn get_lastupdate_in_unixtime(db: &Pool<ConnectionManager<SqliteConnection>>) -> i64 {
+pub fn get_lastupdate_in_utctime(db: &Pool<ConnectionManager<SqliteConnection>>) -> Option<DateTime<chrono::Utc>> {
     use crate::schema::config::dsl::*;
     use diesel::RunQueryDsl;
 
@@ -158,8 +158,8 @@ pub fn get_lastupdate_in_unixtime(db: &Pool<ConnectionManager<SqliteConnection>>
     let val = config.load::<Config>(dbconn.deref()).unwrap();
 
     if val.is_empty() {
-        0
+        None
     } else {
-        DateTime::parse_from_rfc3339(&val[0].lastupdate).map(|s| s.timestamp()).unwrap_or(0)
+        DateTime::parse_from_rfc3339(&val[0].lastupdate).ok().map(|s| s.with_timezone(&chrono::Utc))
     }
 }

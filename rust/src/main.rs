@@ -44,7 +44,7 @@ use diesel::sqlite::SqliteConnection;
 use diesel::r2d2::Pool;
 use diesel::r2d2::ConnectionManager;
 
-use crate::subs_and_video::{GBKey, get_lastupdate_in_unixtime};
+use crate::subs_and_video::{GBKey, get_lastupdate_in_utctime};
 use crate::youtube_oauth::{Expireing, setup_oauth};
 
 //const APP_INFO: AppInfo = AppInfo{name: "subscriptemember", author: "narfinger"};
@@ -143,9 +143,12 @@ fn index(state: web::Data<AppStateShared>) -> Result<HttpResponse> {
     let hb = &state.read().unwrap().hb;
     let vids = youtube_video::get_videos(&db);
 
-    let lastrefreshed =
-        format!("{}", NaiveDateTime::from_timestamp(get_lastupdate_in_unixtime(&db), 0)
-                                .format("%H:%M:%S %d.%m.%Y"));
+    let time = get_lastupdate_in_utctime(&db);
+    let lastrefreshed = time
+        .map(|t| t.with_timezone(&chrono::Local))
+        .map(|t| format!("{}", t.format("%H:%M:%S %d.%m.%Y")))
+        .unwrap_or_else(|| "".to_string());
+
     let numberofvideos = vids.len();
     let totaltime: i64 = vids.iter().map(|v| v.duration).sum();
 
